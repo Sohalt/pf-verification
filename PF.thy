@@ -64,21 +64,22 @@ datatype hostspec =
   | Host "host list"
   | Route string
 
-(*
-record pf_rule = 
-  Action :: action 
-  Direction :: "direction option"
-  Quick :: bool
-  On :: "iface option"
-  Af :: "afspec option"
-  Proto :: "protocol list"
-  Hosts :: "hostspec option"
-  FilterOpts :: "(filteropt list) option"
-*)
 
+record pf_rule = 
+  r_Action :: action
+  r_Quick :: bool
+  r_Direction :: "direction option"
+  r_On :: "iface option"
+  r_Af :: "afspec option"
+  r_Proto :: "protocol list option"
+  r_Hosts :: "hostspec option"
+  r_FilterOpts :: "filteropt list option"
+
+(*
 record pf_rule =
   r_action :: action
   r_address :: ipv4addr
+*)
 
 type_synonym protospec = "protocol list"
 
@@ -100,8 +101,36 @@ datatype decision =
   | Reject
   | Undecided
 
+(*
 fun match_pfrule :: "pf_rule \<Rightarrow> (32 simple_packet) \<Rightarrow> bool" where
-"match_pfrule r p \<longleftrightarrow> ((r_address r) = (p_dst p))" (* TODO *)
+"match_pfrule r p \<longleftrightarrow> ((r_address r) = (p_dst p))"  TODO *)
+
+fun match_direction:: "direction \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_direction _ _ = True"
+
+fun match_on:: "iface \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_on _ _ = True"
+
+fun match_af:: "afspec \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_af _ _ = True"
+
+fun match_proto:: "protocol list \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_proto _ _ = True"
+
+fun match_hosts:: "hostspec \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_hosts _ _ = True"
+
+fun match_filteropts:: "filteropt list \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_filteropts _ _ = True"
+
+fun match_pfrule :: "pf_rule \<Rightarrow> (32 simple_packet) \<Rightarrow> bool" where
+"match_pfrule r p = 
+((case (r_Direction r) of Some(dir) \<Rightarrow> (match_direction dir p) | None \<Rightarrow> True)
+\<and> (case (r_On r) of Some(on) \<Rightarrow> (match_on on p) | None \<Rightarrow> True)
+\<and> (case (r_Af r) of Some(af) \<Rightarrow> (match_af af p) | None \<Rightarrow> True)
+\<and> (case (r_Proto r) of Some(proto) \<Rightarrow> (match_proto proto p) | None \<Rightarrow> True)
+\<and> (case (r_Hosts r) of Some(hosts) \<Rightarrow> (match_hosts hosts p) | None \<Rightarrow> True)
+\<and> (case (r_FilterOpts r) of (Some fo) \<Rightarrow> (match_filteropts fo p) | None \<Rightarrow> True))"
 
 fun match_anchorrule :: "anchor_rule \<Rightarrow> (32 simple_packet) \<Rightarrow> bool" where
 "match_anchorrule _ _ = True" (* TODO *)
@@ -110,7 +139,7 @@ fun filter :: "line list \<Rightarrow> 32 simple_packet \<Rightarrow> decision \
 "filter [] _ d = d"
 | "filter (Option # rs) p d = filter rs p d"
 | "filter ((PfRule rule) # rs) p d = (if (match_pfrule rule p) 
-then filter rs p (case (r_action rule) of Pass \<Rightarrow> Accept | Block \<Rightarrow> Reject | Match \<Rightarrow> d)
+then filter rs p (case (r_Action rule) of Pass \<Rightarrow> Accept | Block \<Rightarrow> Reject | Match \<Rightarrow> d)
 else filter rs p d)"
 | "filter ((Anchor rule l) # rs) p d = (if (match_anchorrule rule p)
 then filter (l @ rs) p d
