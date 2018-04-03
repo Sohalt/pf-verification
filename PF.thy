@@ -41,7 +41,7 @@ datatype filteropt =
 (* Block return semantically equal to Block (without return)*)
 datatype action = Pass | Match | Block
 
-datatype direction = In | Out
+datatype direction = In | Out | AnyIface
 
 datatype iface =
   string
@@ -57,7 +57,7 @@ datatype host =
   (* TODO cidr *)
 
 datatype hostspec =
-  Any
+  AnyHost
   | NoRoute
   | UrpfFailed
   | Self
@@ -101,12 +101,11 @@ datatype decision =
   | Reject
   | Undecided
 
-(*
-fun match_pfrule :: "pf_rule \<Rightarrow> (32 simple_packet) \<Rightarrow> bool" where
-"match_pfrule r p \<longleftrightarrow> ((r_address r) = (p_dst p))"  TODO *)
 
 fun match_direction:: "direction \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_direction _ _ = True"
+"match_direction In p = ((p_iiface p) \<noteq> [])" |
+"match_direction Out p = ((p_oiface p) \<noteq> [])" |
+"match_direction AnyIface p = True"
 
 fun match_on:: "iface \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_on _ _ = True"
@@ -156,6 +155,42 @@ definition test_packet :: "32 simple_packet" where
           \<rparr>"
 
 value "filter [] test_packet Undecided"
+value "filter [
+PfRule \<lparr>
+  r_Action = Pass,
+  r_Quick = False,
+  r_Direction = Some In,
+  r_On = None,
+  r_Af = None,
+  r_Proto = None,
+  r_Hosts = None,
+  r_FilterOpts = None
+\<rparr>
+] test_packet Undecided"
+value "filter [
+PfRule \<lparr>
+  r_Action = Block,
+  r_Quick = False,
+  r_Direction = Some In,
+  r_On = None,
+  r_Af = None,
+  r_Proto = None,
+  r_Hosts = None,
+  r_FilterOpts = None
+\<rparr>
+] test_packet Undecided"
+value "filter [
+PfRule \<lparr>
+  r_Action = Block,
+  r_Quick = False,
+  r_Direction = Some Out,
+  r_On = None,
+  r_Af = None,
+  r_Proto = None,
+  r_Hosts = None,
+  r_FilterOpts = None
+\<rparr>
+] test_packet Undecided"
 
 (*
 
