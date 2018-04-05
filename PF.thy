@@ -41,9 +41,9 @@ datatype filteropt =
 (* Block return semantically equal to Block (without return)*)
 datatype action = Pass | Match | Block
 
-datatype direction = In | Out | AnyIface
+datatype direction = In | Out
 
-datatype iface =
+type_synonym iface =
   string
 
 datatype afspec =
@@ -102,16 +102,17 @@ datatype decision =
   | Undecided
 
 
-fun match_direction:: "direction \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_direction In p = ((p_iiface p) \<noteq> [])" |
-"match_direction Out p = ((p_oiface p) \<noteq> [])" |
-"match_direction AnyIface p = True"
-
-fun match_on:: "iface \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_on _ _ = True"
+fun match_interface :: "direction option \<Rightarrow> iface option \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_interface (Some In) (Some iface) p = ((p_iiface p) = iface)" |
+"match_interface (Some In) None p = ((p_iiface p) \<noteq> [])" |
+"match_interface (Some Out) (Some iface) p = ((p_oiface p) = iface)" |
+"match_interface (Some Out) None p = ((p_oiface p) \<noteq> [])" |
+"match_interface None (Some iface) p = ((p_iiface p = iface) \<or> (p_oiface p = iface))" |
+"match_interface None None p = True"
 
 fun match_af:: "afspec \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_af _ _ = True"
+"match_af Inet _ = True" |
+"match_af Inet6 _ = False" (* TODO ipv6 *)
 
 fun match_proto:: "protocol list \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_proto _ _ = True"
@@ -124,8 +125,7 @@ fun match_filteropts:: "filteropt list \<Rightarrow> 32 simple_packet \<Rightarr
 
 fun match_pfrule :: "pf_rule \<Rightarrow> (32 simple_packet) \<Rightarrow> bool" where
 "match_pfrule r p = 
-((case (r_Direction r) of Some(dir) \<Rightarrow> (match_direction dir p) | None \<Rightarrow> True)
-\<and> (case (r_On r) of Some(on) \<Rightarrow> (match_on on p) | None \<Rightarrow> True)
+((match_interface (r_Direction r) (r_On r) p)
 \<and> (case (r_Af r) of Some(af) \<Rightarrow> (match_af af p) | None \<Rightarrow> True)
 \<and> (case (r_Proto r) of Some(proto) \<Rightarrow> (match_proto proto p) | None \<Rightarrow> True)
 \<and> (case (r_Hosts r) of Some(hosts) \<Rightarrow> (match_hosts hosts p) | None \<Rightarrow> True)
