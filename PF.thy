@@ -3,67 +3,11 @@ theory PF
           Simple_Firewall.L4_Protocol
           Simple_Firewall.Simple_Packet
           IP_Addresses.IPv4
+          PrimitiveMatchers
 begin
-
-datatype identifier =
-  Name string
-  | Number nat
-
-datatype unary_op =
-  Eq identifier
-  | NEq identifier
-  | Lt identifier
-  | LtEq identifier
-  | Gt identifier
-  | GtEq identifier
-
-datatype binary_op =
-  RangeIncl nat nat
-  | RangeExcl nat nat
-  | RangeComp nat nat
-
-datatype opspec =
-  Unary unary_op
-  | Binary binary_op
-
-
-datatype filteropt =
-  User "opspec list"
-  | Group "opspec list"
-  | Flags ipt_tcp_flags
-(*
-  | IcmpType icmp_type
-  | Icmp6Type icmp6_type
-  | Tos string
-*)
-
 
 (* Block return semantically equal to Block (without return)*)
 datatype action = Pass | Match | Block
-
-datatype direction = In | Out
-
-type_synonym iface =
-  string
-
-datatype afspec =
-  Inet
-  | Inet6
-
-datatype host =
-  Address ipv4addr
-  | NotAddress ipv4addr
-  | HostName string
-  (* TODO cidr *)
-
-datatype hostspec =
-  AnyHost
-  | NoRoute
-  | UrpfFailed
-  | Self
-  | Host "host list"
-  | Route string
-
 
 record pf_rule = 
   r_Action :: action
@@ -75,19 +19,11 @@ record pf_rule =
   r_Hosts :: "hostspec option"
   r_FilterOpts :: "filteropt list option"
 
-(*
-record pf_rule =
-  r_action :: action
-  r_address :: ipv4addr
-*)
-
-type_synonym protospec = "protocol list"
-
 record anchor_rule =
   Direction :: "direction option"
   On :: "iface option"
   Af :: "afspec option"
-  Proto :: "protospec option"
+  Proto :: "protocol list option"
   Hosts :: "hostspec option"
 
 datatype line = 
@@ -100,28 +36,6 @@ datatype decision =
   Accept
   | Reject
   | Undecided
-
-
-fun match_interface :: "direction option \<Rightarrow> iface option \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_interface (Some In) (Some iface) p = ((p_iiface p) = iface)" |
-"match_interface (Some In) None p = ((p_iiface p) \<noteq> [])" |
-"match_interface (Some Out) (Some iface) p = ((p_oiface p) = iface)" |
-"match_interface (Some Out) None p = ((p_oiface p) \<noteq> [])" |
-"match_interface None (Some iface) p = ((p_iiface p = iface) \<or> (p_oiface p = iface))" |
-"match_interface None None p = True"
-
-fun match_af:: "afspec \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_af Inet _ = True" |
-"match_af Inet6 _ = False" (* TODO ipv6 *)
-
-fun match_proto:: "protocol list \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_proto _ _ = True"
-
-fun match_hosts:: "hostspec \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_hosts _ _ = True"
-
-fun match_filteropts:: "filteropt list \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_filteropts _ _ = True"
 
 fun match_pfrule :: "pf_rule \<Rightarrow> (32 simple_packet) \<Rightarrow> bool" where
 "match_pfrule r p = 
