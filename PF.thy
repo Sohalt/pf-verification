@@ -16,7 +16,7 @@ record pf_rule =
   r_On :: "iface option"
   r_Af :: "afspec option"
   r_Proto :: "primitive_protocol list option"
-  r_Hosts :: "hostspec option"
+  r_Hosts :: "hosts option"
   r_FilterOpts :: "filteropt list option"
 
 record anchor_rule =
@@ -24,7 +24,7 @@ record anchor_rule =
   On :: "iface option"
   Af :: "afspec option"
   Proto :: "protocol list option"
-  Hosts :: "hostspec option"
+  Hosts :: "hosts option"
 
 datatype line = 
   Option

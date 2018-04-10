@@ -19,8 +19,43 @@ fun match_proto:: "primitive_protocol list \<Rightarrow> 32 simple_packet \<Righ
 "match_proto [] _ = False"|
 "match_proto (p#ps) pkt = ((p_proto pkt = p) \<or> match_proto ps pkt)"
 
-fun match_hosts:: "hostspec \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_hosts _ _ = True"
+fun match_address :: "address \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
+"match_address _ _ = True" -- TODO
+
+fun match_table :: "string \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
+"match_table name ip = True" (* TODO *)
+
+fun match_host :: "host \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
+"match_host (Address addr) ip = match_address addr ip"|
+"match_host (NotAddress addr) ip = (\<not> (match_address addr ip))"|
+"match_host (Table t) ip = match_table t ip"
+
+fun match_hostlist :: "host list \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
+"match_hostlist [] _ = False" |
+"match_hostlist (h#hs) ip = (match_host h ip \<or> match_hostlist hs ip)"
+
+fun match_hostspec:: "hostspec \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
+"match_hostspec AnyHost _ = True" |
+"match_hostspec NoRoute _ = True" | (* TODO: unknown *)
+"match_hostspec UrpfFailed _ = True" | (* TODO: unknown *)
+"match_hostspec Self _ = True" | (* TODO: unknown *)
+"match_hostspec (Host hostlist) ip = match_hostlist hostlist ip" |
+"match_hostspec (Route route) _ = True" (* TODO: unknown *)
+
+fun match_op :: "opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
+"match_op _ _ = True"
+
+fun match_port_ops :: "opspec list \<Rightarrow> 16 word \<Rightarrow> bool" where
+"match_port_ops [] _ = False" |
+"match_port_ops (operator#ops) p = (match_op operator p \<or> match_port_ops ops p)"
+
+fun match_port :: "opspec list option \<Rightarrow> 16 word \<Rightarrow> bool" where
+"match_port None _ = True"|
+"match_port (Some ops) port = match_port_ops ops port"
+
+fun match_hosts:: "hosts \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_hosts AllHosts _ = True" |
+"match_hosts (FromTo from sports to dports) p = (match_hostspec from (p_src p) \<and> match_port sports (p_sport p) \<and> match_hostspec to (p_dst p) \<and> match_port dports (p_dport p))"
 
 fun match_filteropts:: "filteropt list \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_filteropts _ _ = True"

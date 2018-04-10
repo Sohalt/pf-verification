@@ -1,5 +1,6 @@
 theory Primitives
   imports IP_Addresses.IPv4
+    IP_Addresses.IPv6
  Iptables_Semantics.L4_Protocol_Flags
 begin
 
@@ -46,10 +47,17 @@ datatype afspec =
   Inet
   | Inet6
 
+datatype address = 
+  InterfaceName string
+  | InterfaceGroup string
+  | Hostname string
+  | Ipv4 ipv4addr
+  | Ipv6 ipv6addr
+
 datatype host =
-  Address ipv4addr
-  | NotAddress ipv4addr
-  | HostName string
+  Address address
+  | NotAddress address
+  | Table string
   (* TODO cidr *)
 
 datatype hostspec =
@@ -59,4 +67,8 @@ datatype hostspec =
   | Self
   | Host "host list"
   | Route string
+
+datatype hosts = 
+AllHosts
+| FromTo hostspec "opspec list option" hostspec "opspec list option"
 end
