@@ -15,7 +15,7 @@ record pf_rule =
   r_Direction :: "direction option"
   r_On :: "iface option"
   r_Af :: "afspec option"
-  r_Proto :: "protocol list option"
+  r_Proto :: "primitive_protocol list option"
   r_Hosts :: "hostspec option"
   r_FilterOpts :: "filteropt list option"
 
