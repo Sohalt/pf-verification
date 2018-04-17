@@ -42,12 +42,29 @@ fun match_hostspec:: "hostspec \<Rightarrow> ('i::len word) \<Rightarrow> bool" 
 "match_hostspec (Host hostlist) ip = match_hostlist hostlist ip" |
 "match_hostspec (Route route) _ = True" (* TODO: unknown *)
 
-fun match_op :: "opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
-"match_op _ _ = True"
+fun lookup_port :: "identifier \<Rightarrow> 16 word" where
+"lookup_port (Name n) = 0" | -- TODO
+"lookup_port (Number n) = of_nat n"
+
+(* fun match_unary_op :: "(identifier \<Rightarrow> 'a) \<Rightarrow> unary_op \<Rightarrow> 'a \<Rightarrow> bool" where *)
+fun match_unary_op :: "(identifier \<Rightarrow> 16 word) \<Rightarrow> unary_op \<Rightarrow> 16 word \<Rightarrow> bool" where
+"match_unary_op lookup (Eq i) x = (x = lookup i)" |
+"match_unary_op lookup (NEq i) x = (x \<noteq> lookup i)" |
+"match_unary_op lookup (Lt i) x = (x < lookup i)" |
+"match_unary_op lookup (LtEq i) x = (x \<le> lookup i)" |
+"match_unary_op lookup (Gt i) x = (x > lookup i)" |
+"match_unary_op lookup (GtEq i) x = (x \<ge> lookup i)"
+
+fun match_op :: "(identifier \<Rightarrow> 'i) \<Rightarrow> opspec \<Rightarrow> 'i \<Rightarrow> bool" where
+"match_op lookup (Unary operator) x = match_unary_op lookup operator x" |
+"match_op lookup (Binary operator) x = match_binary_op lookup operator x"
+
+fun match_op_port :: "opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
+"match_op_port opspec p = match_op lookup_port opspec p"
 
 fun match_port_ops :: "opspec list \<Rightarrow> 16 word \<Rightarrow> bool" where
 "match_port_ops [] _ = False" |
-"match_port_ops (operator#ops) p = (match_op operator p \<or> match_port_ops ops p)"
+"match_port_ops (operator#ops) p = (match_op_port operator p \<or> match_port_ops ops p)"
 
 fun match_port :: "opspec list option \<Rightarrow> 16 word \<Rightarrow> bool" where
 "match_port None _ = True"|
