@@ -55,9 +55,16 @@ fun match_unary_op :: "(identifier \<Rightarrow> 16 word) \<Rightarrow> unary_op
 "match_unary_op lookup (Gt i) x = (x > lookup i)" |
 "match_unary_op lookup (GtEq i) x = (x \<ge> lookup i)"
 
-fun match_op :: "(identifier \<Rightarrow> 'i) \<Rightarrow> opspec \<Rightarrow> 'i \<Rightarrow> bool" where
+(* fun match_binary_op :: "(identifier \<Rightarrow> 'a) \<Rightarrow> binary_op \<Rightarrow> 'a \<Rightarrow> bool" where *)
+fun match_binary_op :: "binary_op \<Rightarrow> 16 word \<Rightarrow> bool" where
+"match_binary_op (RangeIncl l u) x = (of_nat l \<le> x \<and> x \<le> of_nat u)"|
+"match_binary_op (RangeExcl l u) x = (of_nat l < x \<and> x < of_nat u)"|
+"match_binary_op (RangeComp l u) x = ((l \<le> u) \<and> \<not>(of_nat l \<le> x \<and> x \<le> of_nat u))"
+
+(* fun match_op :: "(identifier \<Rightarrow> 'i) \<Rightarrow> opspec \<Rightarrow> 'i \<Rightarrow> bool" where *)
+fun match_op :: "(identifier \<Rightarrow> 16 word) \<Rightarrow> opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
 "match_op lookup (Unary operator) x = match_unary_op lookup operator x" |
-"match_op lookup (Binary operator) x = match_binary_op lookup operator x"
+"match_op lookup (Binary operator) x = match_binary_op operator x"
 
 fun match_op_port :: "opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
 "match_op_port opspec p = match_op lookup_port opspec p"
