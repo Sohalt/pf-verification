@@ -58,6 +58,9 @@ else filter rs p d)"
 then filter (l @ rs) p d
 else filter rs p d)"
 
+fun pf :: "line list \<Rightarrow> 32 simple_packet \<Rightarrow> decision" where
+"pf rules packet = filter rules packet Undecided"
+
 definition test_packet :: "32 simple_packet" where
 "test_packet \<equiv>
 \<lparr> 
