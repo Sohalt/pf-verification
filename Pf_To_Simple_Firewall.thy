@@ -26,4 +26,8 @@ fun remove_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
 
 (* lemma remove_quick_preserves_semantics : "\<forall> rules : pf rules = pf (remove_quick rules)" *)
 
+(*
+fun pf_to_simplefw :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"pf_to_simplefw rules = (map to_simple_match (reverse (normalize_firewall (remove_quick (remove_anchors rules)))))"
+*)
 end
