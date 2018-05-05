@@ -19,13 +19,11 @@ fun remove_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
 
 (* lemma remove_anchors_preserves_semantics : "\<forall> rules : pf rules = pf (remove_anchors rules)" *)
 
-remove_quick :: "line list \<Rightarrow> line list" where
+fun remove_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_quick [] = []"|
-"remove_quick (r#rs) = (set_quick_false r)#(remove_quick (if (quick? r) then (and_each (not r) rs) else rs))"
+"remove_quick ((PfRule r)#ls) = (PfRule (r\<lparr>get_quick := False\<rparr>))#(if (get_quick r) then (and_each (MatchNot (pf_rule2.get_match r)) ls) else ls)"|
+"remove_quick (l#ls) = l#(remove_quick ls)"
 
-lemma remove_quick_preserves_semantics : "\<forall> rules : pf rules = pf (remove_quick rules)"
-
-fun pf_to_simplefw :: "line list \<Rightarrow> simple_match list" where
-"pf_to_simplefw rules = (map to_simple_match (reverse (normalize (remove_quick (remove_anchors rules)))))"
+(* lemma remove_quick_preserves_semantics : "\<forall> rules : pf rules = pf (remove_quick rules)" *)
 
 end
