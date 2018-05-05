@@ -9,6 +9,29 @@ begin
 (* Block return semantically equal to Block (without return)*)
 datatype action = Pass | Match | Block
 
+(* Taken from Iptaples_Semantics/Firewall_Common.thy*)
+datatype 'a match_expr = Match 'a
+                       | MatchNot "'a match_expr"
+                       | MatchAnd "'a match_expr" "'a match_expr"
+                       | MatchAny
+
+definition MatchOr :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" where
+  "MatchOr m1 m2 = MatchNot (MatchAnd (MatchNot m1) (MatchNot m2))"
+(* end *)
+
+text\<open>A matcher (parameterized by the type of primitive @{typ 'a} and packet @{typ 'p})
+     is a function which just tells whether a given primitive and packet matches.\<close>
+type_synonym ('a, 'p) matcher = "'a \<Rightarrow> 'p \<Rightarrow> bool"
+
+
+text\<open>Given an @{typ "('a, 'p) matcher"} and a match expression, does a packet of type @{typ 'p}
+     match the match expression?\<close>
+fun matches :: "('a, 'p) matcher \<Rightarrow> 'a match_expr \<Rightarrow> 'p \<Rightarrow> bool" where
+"matches \<gamma> (MatchAnd e1 e2) p \<longleftrightarrow> matches \<gamma> e1 p \<and> matches \<gamma> e2 p" |
+"matches \<gamma> (MatchNot me) p \<longleftrightarrow> \<not> matches \<gamma> me p" |
+"matches \<gamma> (Match e) p \<longleftrightarrow> \<gamma> e p" |
+"matches _ MatchAny _ \<longleftrightarrow> True"
+
 record pf_rule = 
   r_Action :: action
   r_Quick :: bool
@@ -19,18 +42,28 @@ record pf_rule =
   r_Hosts :: "hosts option"
   r_FilterOpts :: "filteropt list option"
 
+record 'a pf_rule2 =
+  get_action :: action
+  get_quick :: bool
+  get_match :: "'a match_expr"
+
 record anchor_rule =
   Direction :: "direction option"
   On :: "iface option"
   Af :: "afspec option"
   Proto :: "protocol list option"
   Hosts :: "hosts option"
+  r_FilterOpts :: "filteropt list option"
 
-datatype line = 
+record 'a anchor_rule2 =
+  get_match :: "'a match_expr"
+
+datatype 'a line = 
   Option
-  | PfRule "pf_rule"
-  | Anchor anchor_rule "line list"
+  | PfRule "'a pf_rule2"
+  | Anchor "'a anchor_rule2" "'a line list"
 
+type_synonym 'a ruleset = "'a line list"
 
 datatype decision =
   Accept
@@ -48,18 +81,25 @@ fun match_pfrule :: "pf_rule \<Rightarrow> (32 simple_packet) \<Rightarrow> bool
 fun match_anchorrule :: "anchor_rule \<Rightarrow> (32 simple_packet) \<Rightarrow> bool" where
 "match_anchorrule _ _ = True" (* TODO *)
 
-fun filter :: "line list \<Rightarrow> 32 simple_packet \<Rightarrow> decision \<Rightarrow> decision" where
-"filter [] _ d = d"
-| "filter (Option # rs) p d = filter rs p d"
-| "filter ((PfRule rule) # rs) p d = (if (match_pfrule rule p) 
-then filter rs p (case (r_Action rule) of Pass \<Rightarrow> Accept | Block \<Rightarrow> Reject | Match \<Rightarrow> d)
-else filter rs p d)"
-| "filter ((Anchor rule l) # rs) p d = (if (match_anchorrule rule p)
-then filter (l @ rs) p d
-else filter rs p d)"
+fun action_to_decision :: "action \<Rightarrow> decision \<Rightarrow> decision" where
+"action_to_decision Pass _ = Accept"|
+"action_to_decision Block _ = Reject"|
+"action_to_decision action.Match d = d"
 
-fun pf :: "line list \<Rightarrow> 32 simple_packet \<Rightarrow> decision" where
-"pf rules packet = filter rules packet Undecided"
+fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
+"filter [] _ _ d = d"
+| "filter (Option # rs) m p d = filter rs m p d"
+| "filter ((PfRule r) # rs) m p d = (if (matches m (pf_rule2.get_match r) p)
+then
+(if (get_quick r) then (action_to_decision (get_action r) d)
+else filter rs m p (action_to_decision (get_action r) d))
+else filter rs m p d)"
+| "filter ((Anchor r l) # rs) m p d = (if (matches m (anchor_rule2.get_match r) p)
+then filter (l @ rs) m p d
+else filter rs m p d)"
+
+fun pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
+"pf rules matcher packet = filter rules matcher packet Undecided"
 
 definition test_packet :: "32 simple_packet" where
 "test_packet \<equiv>
