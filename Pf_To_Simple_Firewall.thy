@@ -3,16 +3,21 @@ imports PF
         Simple_Firewall.SimpleFw_Semantics
 begin
 
-fun and_each :: "anchor_rule \<Rightarrow> line list \<Rightarrow> line list" where
-"and_each _ [] = []"|
-"and_each r (l#ls) = (and l r)#(and_each r ls)"
+fun and_line :: "'a match_expr \<Rightarrow> 'a line \<Rightarrow> 'a line" where
+"and_line m Option =Option"|
+"and_line m (PfRule r) = (PfRule (r\<lparr>pf_rule2.get_match := (MatchAnd m (pf_rule2.get_match r))\<rparr>))"|
+"and_line m (Anchor r l) = (Anchor (r\<lparr>anchor_rule2.get_match := (MatchAnd m (anchor_rule2.get_match r))\<rparr>) l)"
 
-fun remove_anchors :: "line list \<Rightarrow> line list" where
+fun and_each :: "'a match_expr \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset" where
+"and_each _ [] = []"|
+"and_each m (l#ls) = (and_line m l)#(and_each m ls)"
+
+fun remove_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_anchors [] = []"|
-"remove_anchors ((Anchor rule lines) # rs) = (and_each rule lines) @ (remove_anchors rs)"|
+"remove_anchors ((Anchor r l) # rs) = (and_each (anchor_rule2.get_match r) l) @ (remove_anchors rs)"|
 "remove_anchors (r#rs) = r#(remove_anchors rs)"
 
-lemma remove_anchors_preserves_semantics : "\<forall> rules : pf rules = pf (remove_anchors rules)"
+(* lemma remove_anchors_preserves_semantics : "\<forall> rules : pf rules = pf (remove_anchors rules)" *)
 
 remove_quick :: "line list \<Rightarrow> line list" where
 "remove_quick [] = []"|
