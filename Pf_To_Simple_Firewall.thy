@@ -17,7 +17,68 @@ fun remove_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_anchors ((Anchor r l) # rs) = (and_each (anchor_rule2.get_match r) l) @ (remove_anchors rs)"|
 "remove_anchors (r#rs) = r#(remove_anchors rs)"
 
-(* lemma remove_anchors_preserves_semantics : "\<forall> rules : pf rules = pf (remove_anchors rules)" *)
+
+fun is_quick_rule :: "'a line \<Rightarrow> bool" where
+"is_quick_rule (PfRule r) = (get_quick r)"
+| "is_quick_rule _ = False"
+
+lemma pf_add_common_prefix : "pf l1 m p = pf l2 m p \<Longrightarrow> pf (l#l1) m p = pf (l#l2) m p"
+  show "(pf l1 m p = pf l2 m p)" is "?premise"
+proof (cases l)
+  case Option
+  then 
+  show "l = Option \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by auto
+next
+  show "l = PfRule r \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p"
+  proof(cases (matches m (pf_rule2.get_match r p)))
+  case (PfRule r)
+  have "\<not> (matches m (pf_rule2.get_match r) p) \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow>
+          l = (PfRule r) \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by simp
+  assume Matches:"(matches m (pf_rule2.get_match r) p)"
+  moreover assume "(pf_rule2.get_quick r)"
+  then have "(matches m (pf_rule2.get_match r) p) \<and> (pf_rule2.get_quick r) \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow>
+          l = (PfRule r) \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by simp
+  assume "\<not>(pf_rule2.get_quick r)"
+  then have "(matches m (pf_rule2.get_match r) p) \<and> \<not>(pf_rule2.get_quick r) \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow>
+          l = (PfRule r) \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p"
+    using \<open>get_quick r\<close> by blast
+  then show "pf l1 m p = pf l2 m p \<Longrightarrow> l = PfRule x2 \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by sledgehammer
+(*
+  then show "l = PfRule r \<Longrightarrow>
+          pf l1 m p = pf l2 m p \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by sorry
+next
+  case (Anchor a ls)
+  then show "l = Anchor a ls \<Longrightarrow>
+       pf l1 m p = pf l2 m p \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by sorry
+qed
+*)
+
+definition ruleset_equiv :: "'a ruleset \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
+"ruleset_equiv l1 l2 = (\<forall> m p.(pf l1 m p = pf l2 m p))"
+
+definition transform_preserves_semantics ::"('a ruleset \<Rightarrow> 'a ruleset) \<Rightarrow> bool" where
+"transform_preserves_semantics transform \<equiv> \<forall> (rules \<in>'a ruleset). (ruleset_equiv rules (transform rules))"
+
+lemma remove_anchors_preserves_semantics : "pf rules matcher packet = pf (remove_anchors rules) matcher packet"
+(*lemma remove_anchors_preserves_semantics : "transform_preserves_semantics remove_anchors"*)
+proof (induction rules)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a rules)
+  then show ?case
+  proof (cases a)
+    case Option
+    then show "pf rules matcher packet = pf (remove_anchors rules) matcher packet \<Longrightarrow> a = Option \<Longrightarrow> pf (a # rules) matcher packet = pf (remove_anchors (a # rules)) matcher packet" by auto
+  next
+    case (PfRule r)
+    moreover assume IH:"pf rules matcher packet = pf (remove_anchors rules) matcher packet"
+    from IH and pf_add_common_prefix have "pf (a#rules) matcher packet = pf (a#(remove_anchors rules)) matcher packet" by blast
+    then show "pf rules matcher packet = pf (remove_anchors rules) matcher packet \<Longrightarrow>
+          a = PfRule r \<Longrightarrow> pf (a # rules) matcher packet = pf (remove_anchors (a # rules)) matcher packet" by auto
+  next
+    case (Anchor m ls)
+    moreover assume "matches matcher (get_match m) packet"
 
 lemma and_each_preserves_length[simp] : "\<forall> mexp. length (and_each mexp rules) = length rules"
   by (induction rules, auto)
@@ -49,17 +110,24 @@ With remove_quick, if something matches the quick rule, these rules explicitly c
 TODO: check exact semantics of rewriting/matching rules (does only last rule or every matching rule get executed?)
 *)
 
-lemma "matches matcher matchexp p \<longrightarrow> filter ((and_each (MatchNot matchexp) rules)@rules2) matcher p d = filter rules2 matcher p d"
+lemma remove_match_not:"matches matcher matchexp p \<longrightarrow> filter ((and_each (MatchNot matchexp) rules)@rules2) matcher p d = filter rules2 matcher p d"
   apply(induction rules)
    apply(auto)
   apply(case_tac a,simp,simp,simp)
   done
 
-lemma remove_quick_preserves_semantics : "pf rules packet = pf (remove_quick rules) packet"
+(*
+lemma remove_quick_preserves_semantics : "pf rules matcher packet = pf (remove_quick rules) matcher packet"
   apply(induction rules)
    apply(auto)
   apply(case_tac a)
     apply(auto)
+*)
+
+lemma remove_quick_preserves_semantics : "pf rules matcher packet = pf (remove_quick rules) matcher packet"
+proof (induction rules)
+  show "pf [] matcher packet = pf (remove_quick []) matcher packet" by auto
+next
 
 
 (* induction on rules

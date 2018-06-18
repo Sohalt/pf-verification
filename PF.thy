@@ -56,6 +56,18 @@ fun action_to_decision :: "action \<Rightarrow> decision \<Rightarrow> decision"
 
 fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
 "filter [] _ _ d = d"
+| "filter (l#ls) m p d = (case l of 
+Option \<Rightarrow> filter ls m p d
+| (PfRule r) \<Rightarrow> (if (matches m (pf_rule2.get_match r) p)
+then
+(if (get_quick r) then (action_to_decision (get_action r) d)
+else filter ls m p (action_to_decision (get_action r) d))
+else filter ls m p d)
+| (Anchor r body) \<Rightarrow> (if (matches m (anchor_rule2.get_match r) p)
+then filter (body @ ls) m p d
+else filter ls m p d)
+)"
+(*
 | "filter (Option # rs) m p d = filter rs m p d"
 | "filter ((PfRule r) # rs) m p d = (if (matches m (pf_rule2.get_match r) p)
 then
@@ -64,7 +76,7 @@ else filter rs m p (action_to_decision (get_action r) d))
 else filter rs m p d)"
 | "filter ((Anchor r l) # rs) m p d = (if (matches m (anchor_rule2.get_match r) p)
 then filter (l @ rs) m p d
-else filter rs m p d)"
+else filter rs m p d)"*)
 
 fun pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
 "pf rules m packet = filter rules m packet Undecided"

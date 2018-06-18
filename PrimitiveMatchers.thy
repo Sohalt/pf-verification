@@ -1,6 +1,7 @@
 theory PrimitiveMatchers
   imports Primitives 
-Simple_Firewall.Simple_Packet
+          Simple_Firewall.Simple_Packet
+          Matching
 begin
 fun match_interface :: "direction option \<Rightarrow> iface option \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_interface (Some In) (Some iface) p = ((p_iiface p) = iface)" |
@@ -9,6 +10,12 @@ fun match_interface :: "direction option \<Rightarrow> iface option \<Rightarrow
 "match_interface (Some Out) None p = ((p_oiface p) \<noteq> [])" |
 "match_interface None (Some iface) p = ((p_iiface p = iface) \<or> (p_oiface p = iface))" |
 "match_interface None None p = True"
+
+fun match_iiface :: "iface \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_iiface iface p \<longleftrightarrow> (p_iiface p) = iface"
+
+fun match_oiface :: "iface \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_oiface iface p \<longleftrightarrow> (p_oiface p) = iface"
 
 fun match_af:: "afspec \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_af Inet _ = True" |
@@ -77,10 +84,25 @@ fun match_port :: "opspec list option \<Rightarrow> 16 word \<Rightarrow> bool" 
 "match_port None _ = True"|
 "match_port (Some ops) port = match_port_ops ops port"
 
-fun match_hosts:: "hosts \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+fun match_hosts :: "hosts \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_hosts AllHosts _ = True" |
 "match_hosts (FromTo from sports to dports) p = (match_hostspec from (p_src p) \<and> match_port sports (p_sport p) \<and> match_hostspec to (p_dst p) \<and> match_port dports (p_dport p))"
 
-fun match_filteropts:: "filteropt list \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+fun match_filteropts :: "filteropt list \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_filteropts _ _ = True"
+
+datatype 'i::len common_primitive =
+IIface "iface"
+| OIface "iface"
+| Af "afspec"
+| Proto "primitive_protocol list"
+| Hosts "hosts"
+
+fun matcher :: "'i::len common_primitive \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"matcher (IIface iface) p = match_iiface iface p"|
+"matcher (OIface iface) p = match_oiface iface p"|
+"matcher (Af af) p = match_af af p"|
+"matcher (Proto proto) p = match_proto proto p"|
+"matcher (Hosts hosts) p = match_hosts hosts p"
+
 end
