@@ -4,33 +4,12 @@ theory PF
           Simple_Firewall.Simple_Packet
           IP_Addresses.IPv4
           PrimitiveMatchers
+          Matching
 begin
 
 (* Block return semantically equal to Block (without return)*)
 datatype action = Pass | Match | Block
 
-(* Taken from Iptaples_Semantics/Firewall_Common.thy*)
-datatype 'a match_expr = Match 'a
-                       | MatchNot "'a match_expr"
-                       | MatchAnd "'a match_expr" "'a match_expr"
-                       | MatchAny
-
-definition MatchOr :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" where
-  "MatchOr m1 m2 = MatchNot (MatchAnd (MatchNot m1) (MatchNot m2))"
-(* end *)
-
-text\<open>A matcher (parameterized by the type of primitive @{typ 'a} and packet @{typ 'p})
-     is a function which just tells whether a given primitive and packet matches.\<close>
-type_synonym ('a, 'p) matcher = "'a \<Rightarrow> 'p \<Rightarrow> bool"
-
-
-text\<open>Given an @{typ "('a, 'p) matcher"} and a match expression, does a packet of type @{typ 'p}
-     match the match expression?\<close>
-fun matches :: "('a, 'p) matcher \<Rightarrow> 'a match_expr \<Rightarrow> 'p \<Rightarrow> bool" where
-"matches \<gamma> (MatchAnd e1 e2) p \<longleftrightarrow> matches \<gamma> e1 p \<and> matches \<gamma> e2 p" |
-"matches \<gamma> (MatchNot me) p \<longleftrightarrow> \<not> matches \<gamma> me p" |
-"matches \<gamma> (Match e) p \<longleftrightarrow> \<gamma> e p" |
-"matches _ MatchAny _ \<longleftrightarrow> True"
 
 record pf_rule = 
   r_Action :: action
@@ -70,17 +49,6 @@ datatype decision =
   | Reject
   | Undecided
 
-fun match_pfrule :: "pf_rule \<Rightarrow> (32 simple_packet) \<Rightarrow> bool" where
-"match_pfrule r p = 
-((match_interface (r_Direction r) (r_On r) p)
-\<and> (case (r_Af r) of Some(af) \<Rightarrow> (match_af af p) | None \<Rightarrow> True)
-\<and> (case (r_Proto r) of Some(proto) \<Rightarrow> (match_proto proto p) | None \<Rightarrow> True)
-\<and> (case (r_Hosts r) of Some(hosts) \<Rightarrow> (match_hosts hosts p) | None \<Rightarrow> True)
-\<and> (case (r_FilterOpts r) of (Some fo) \<Rightarrow> (match_filteropts fo p) | None \<Rightarrow> True))"
-
-fun match_anchorrule :: "anchor_rule \<Rightarrow> (32 simple_packet) \<Rightarrow> bool" where
-"match_anchorrule _ _ = True" (* TODO *)
-
 fun action_to_decision :: "action \<Rightarrow> decision \<Rightarrow> decision" where
 "action_to_decision Pass _ = Accept"|
 "action_to_decision Block _ = Reject"|
@@ -99,7 +67,7 @@ then filter (l @ rs) m p d
 else filter rs m p d)"
 
 fun pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
-"pf rules matcher packet = filter rules matcher packet Undecided"
+"pf rules m packet = filter rules m packet Undecided"
 
 definition test_packet :: "32 simple_packet" where
 "test_packet \<equiv>
