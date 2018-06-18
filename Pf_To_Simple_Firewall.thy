@@ -19,12 +19,58 @@ fun remove_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
 
 (* lemma remove_anchors_preserves_semantics : "\<forall> rules : pf rules = pf (remove_anchors rules)" *)
 
+lemma and_each_preserves_length[simp] : "\<forall> mexp. length (and_each mexp rules) = length rules"
+  by (induction rules, auto)
+
 fun remove_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_quick [] = []"|
-"remove_quick ((PfRule r)#ls) = (PfRule (r\<lparr>get_quick := False\<rparr>))#(if (get_quick r) then (and_each (MatchNot (pf_rule2.get_match r)) ls) else ls)"|
+"remove_quick ((PfRule r)#ls) = 
+(if (get_quick r)
+then
+(remove_quick (and_each (MatchNot (pf_rule2.get_match r)) ls))@[PfRule (r\<lparr>get_quick := False\<rparr>)]
+else
+((PfRule r)#(remove_quick ls)))"|
 "remove_quick (l#ls) = l#(remove_quick ls)"
 
-(* lemma remove_quick_preserves_semantics : "\<forall> rules : pf rules = pf (remove_quick rules)" *)
+
+fun remove_quick_alternate' :: "'a ruleset \<Rightarrow> 'a line list \<Rightarrow> 'a ruleset" where
+"remove_quick_alternate' [] quick = quick"|
+"remove_quick_alternate' ((PfRule r)#ls) quick = 
+(if (get_quick r)
+then remove_quick_alternate' ls (PfRule (r\<lparr>get_quick := False\<rparr>)#quick)
+else (PfRule r)#(remove_quick_alternate' ls quick))"|
+"remove_quick_alternate' (l#ls) quick = l#(remove_quick_alternate' ls quick)"
+
+fun remove_quick_alternate :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_quick_alternate rs = remove_quick_alternate' rs []"
+(* remove_quick_alternate only works because we ignore any state altering rules.
+If there would be rewriting/matching rules after the quick rule, that also match, they would take effect and might change the result.
+With remove_quick, if something matches the quick rule, these rules explicitly cannot match, because they are ANDed with the negation of the quick rule's match condition.
+TODO: check exact semantics of rewriting/matching rules (does only last rule or every matching rule get executed?)
+*)
+
+lemma "matches matcher matchexp p \<longrightarrow> filter ((and_each (MatchNot matchexp) rules)@rules2) matcher p d = filter rules2 matcher p d"
+  apply(induction rules)
+   apply(auto)
+  apply(case_tac a,simp,simp,simp)
+  done
+
+lemma remove_quick_preserves_semantics : "pf rules packet = pf (remove_quick rules) packet"
+  apply(induction rules)
+   apply(auto)
+  apply(case_tac a)
+    apply(auto)
+
+
+(* induction on rules
+case rule quick
+true:
+  case matches rule packet
+    true:
+      not matches rules packet
+*)
+
+
 
 (*
 fun pf_to_simplefw :: "'a ruleset \<Rightarrow> 'a ruleset" where
