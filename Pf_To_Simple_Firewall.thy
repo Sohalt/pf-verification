@@ -22,15 +22,36 @@ fun is_quick_rule :: "'a line \<Rightarrow> bool" where
 "is_quick_rule (PfRule r) = (get_quick r)"
 | "is_quick_rule _ = False"
 
-lemma pf_add_common_prefix : "pf l1 m p = pf l2 m p \<Longrightarrow> pf (l#l1) m p = pf (l#l2) m p"
-  show "(pf l1 m p = pf l2 m p)" is "?premise"
+lemma pf_add_common_prefix :
+  assumes "pf l1 m p = pf l2 m p"
+  shows "pf (l#l1) m p = pf (l#l2) m p"
 proof (cases l)
   case Option
-  then 
-  show "l = Option \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by auto
+  then show ?thesis
+    using assms
+    by auto
+next
+  case (PfRule r)
+  show ?thesis
+    proof (cases "matches m (pf_rule2.get_match r) p")
+      case matches: True
+      then show ?thesis
+        unfolding PfRule using assms
+        apply (auto simp: action_to_decision_cases split: action.splits)
+        sorry
+    next
+      case False
+      then show ?thesis
+        unfolding PfRule using assms by auto
+    qed
+next
+  case (Anchor x31 x32)
+  then show ?thesis sorry
+qed
+(*
 next
   show "l = PfRule r \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p"
-  proof(cases (matches m (pf_rule2.get_match r p)))
+  proof(cases "matches m (pf_rule2.get_match r p)")
   case (PfRule r)
   have "\<not> (matches m (pf_rule2.get_match r) p) \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow>
           l = (PfRule r) \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by simp
@@ -43,7 +64,7 @@ next
           l = (PfRule r) \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p"
     using \<open>get_quick r\<close> by blast
   then show "pf l1 m p = pf l2 m p \<Longrightarrow> l = PfRule x2 \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by sledgehammer
-(*
+*)(*
   then show "l = PfRule r \<Longrightarrow>
           pf l1 m p = pf l2 m p \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by sorry
 next
@@ -85,7 +106,7 @@ lemma and_each_preserves_length[simp] : "\<forall> mexp. length (and_each mexp r
 
 fun remove_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_quick [] = []"|
-"remove_quick ((PfRule r)#ls) = 
+"remove_quick ((PfRule r)#ls) =
 (if (get_quick r)
 then
 (remove_quick (and_each (MatchNot (pf_rule2.get_match r)) ls))@[PfRule (r\<lparr>get_quick := False\<rparr>)]
@@ -96,7 +117,7 @@ else
 
 fun remove_quick_alternate' :: "'a ruleset \<Rightarrow> 'a line list \<Rightarrow> 'a ruleset" where
 "remove_quick_alternate' [] quick = quick"|
-"remove_quick_alternate' ((PfRule r)#ls) quick = 
+"remove_quick_alternate' ((PfRule r)#ls) quick =
 (if (get_quick r)
 then remove_quick_alternate' ls (PfRule (r\<lparr>get_quick := False\<rparr>)#quick)
 else (PfRule r)#(remove_quick_alternate' ls quick))"|

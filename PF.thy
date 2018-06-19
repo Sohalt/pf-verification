@@ -5,13 +5,14 @@ theory PF
           IP_Addresses.IPv4
           PrimitiveMatchers
           Matching
+          "HOL-Library.Simps_Case_Conv"
 begin
 
 (* Block return semantically equal to Block (without return)*)
 datatype action = Pass | Match | Block
 
 
-record pf_rule = 
+record pf_rule =
   r_Action :: action
   r_Quick :: bool
   r_Direction :: "direction option"
@@ -37,7 +38,7 @@ record anchor_rule =
 record 'a anchor_rule2 =
   get_match :: "'a match_expr"
 
-datatype 'a line = 
+datatype 'a line =
   Option
   | PfRule "'a pf_rule2"
   | Anchor "'a anchor_rule2" "'a line list"
@@ -54,9 +55,14 @@ fun action_to_decision :: "action \<Rightarrow> decision \<Rightarrow> decision"
 "action_to_decision Block _ = Reject"|
 "action_to_decision action.Match d = d"
 
+case_of_simps action_to_decision_cases: action_to_decision.simps
+
+thm action_to_decision.simps
+thm action_to_decision_cases
+
 fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
 "filter [] _ _ d = d"
-| "filter (l#ls) m p d = (case l of 
+| "filter (l#ls) m p d = (case l of
 Option \<Rightarrow> filter ls m p d
 | (PfRule r) \<Rightarrow> (if (matches m (pf_rule2.get_match r) p)
 then
@@ -83,10 +89,10 @@ fun pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarr
 
 definition test_packet :: "32 simple_packet" where
 "test_packet \<equiv>
-\<lparr> 
-          p_iiface = ''eth1'', p_oiface = '''', 
-          p_src = 0, p_dst = 0, 
-          p_proto = TCP, p_sport = 0, p_dport = 0, 
+\<lparr>
+          p_iiface = ''eth1'', p_oiface = '''',
+          p_src = 0, p_dst = 0,
+          p_proto = TCP, p_sport = 0, p_dport = 0,
           p_tcp_flags = {TCP_SYN},
           p_payload = ''arbitrary payload''
           \<rparr>"
