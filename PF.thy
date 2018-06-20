@@ -60,6 +60,26 @@ case_of_simps action_to_decision_cases: action_to_decision.simps
 thm action_to_decision.simps
 thm action_to_decision_cases
 
+datatype decision_wrap =
+  Final decision
+  | Preliminary decision
+
+fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
+"filter _ _ _ (Final d) = Final d"
+| "filter [] _ _ d = d"
+| "filter (l#ls) m p (Preliminary d) = filter ls m p (case l of
+Option \<Rightarrow> (Preliminary d)
+| (PfRule r) \<Rightarrow> (if (matches m (pf_rule2.get_match r) p)
+then
+  (if (get_quick r) 
+    then (Final (action_to_decision (get_action r) d))
+    else (Preliminary (action_to_decision (get_action r) d)))
+else (Preliminary d))
+| (Anchor r body) \<Rightarrow> (if (matches m (anchor_rule2.get_match r) p)
+then filter (body) m p (Preliminary d)
+else (Preliminary d))
+)"
+(*
 fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
 "filter [] _ _ d = d"
 | "filter (l#ls) m p d = (case l of
@@ -73,6 +93,7 @@ else filter ls m p d)
 then filter (body @ ls) m p d
 else filter ls m p d)
 )"
+*)
 (*
 | "filter (Option # rs) m p d = filter rs m p d"
 | "filter ((PfRule r) # rs) m p d = (if (matches m (pf_rule2.get_match r) p)
