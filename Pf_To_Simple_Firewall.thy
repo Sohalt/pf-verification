@@ -71,57 +71,14 @@ qed
 qed
 
 
-lemma pf_add_common_prefix :
-  assumes "pf l1 m p = pf l2 m p"
-  shows "pf (l#l1) m p = pf (l#l2) m p"
-proof (cases l)
-  case Option
-  then show ?thesis
-    using assms
-    by auto
-next
-  case (PfRule r)
-  show ?thesis
-    proof (cases "matches m (pf_rule2.get_match r) p")
-      case matches: True
-      then show ?thesis
-        unfolding PfRule using assms
-        apply (auto simp: action_to_decision_cases split: action.splits)
-        sorry
-    next
-      case False
-      then show ?thesis
-        unfolding PfRule using assms by auto
-    qed
-next
-  case (Anchor x31 x32)
-  then show ?thesis sorry
-qed
-(*
-next
-  show "l = PfRule r \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p"
-  proof(cases "matches m (pf_rule2.get_match r p)")
-  case (PfRule r)
-  have "\<not> (matches m (pf_rule2.get_match r) p) \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow>
-          l = (PfRule r) \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by simp
-  assume Matches:"(matches m (pf_rule2.get_match r) p)"
-  moreover assume "(pf_rule2.get_quick r)"
-  then have "(matches m (pf_rule2.get_match r) p) \<and> (pf_rule2.get_quick r) \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow>
-          l = (PfRule r) \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by simp
-  assume "\<not>(pf_rule2.get_quick r)"
-  then have "(matches m (pf_rule2.get_match r) p) \<and> \<not>(pf_rule2.get_quick r) \<Longrightarrow> pf l1 m p = pf l2 m p \<Longrightarrow>
-          l = (PfRule r) \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p"
-    using \<open>get_quick r\<close> by blast
-  then show "pf l1 m p = pf l2 m p \<Longrightarrow> l = PfRule x2 \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by sledgehammer
-*)(*
-  then show "l = PfRule r \<Longrightarrow>
-          pf l1 m p = pf l2 m p \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by sorry
-next
-  case (Anchor a ls)
-  then show "l = Anchor a ls \<Longrightarrow>
-       pf l1 m p = pf l2 m p \<Longrightarrow> pf (l # l1) m p = pf (l # l2) m p" by sorry
-qed
-*)
+lemma pf_add_same_prefix :
+  assumes "\<forall> d. filter l1 m p d = filter l2 m p d"
+  shows "filter (l@l1) m p d = filter (l@l2) m p d"
+proof -
+    have "filter (l@l1) m p d = filter l1 m p (filter l m p d)" by (simp add: filter_chain)
+    moreover have "filter (l@l2) m p d = filter l2 m p (filter l m p d)" by (simp add: filter_chain)
+    ultimately show ?thesis using assms by auto
+  qed
 
 definition ruleset_equiv :: "'p itself \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
 "ruleset_equiv _ l1 l2 = (\<forall> m p::'p.(pf l1 m p = pf l2 m p))"
