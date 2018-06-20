@@ -106,7 +106,9 @@ then filter (l @ rs) m p d
 else filter rs m p d)"*)
 
 fun pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
-"pf rules m packet = filter rules m packet Undecided"
+"pf rules m packet = (case (filter rules m packet (Preliminary Undecided)) of
+(Final d) \<Rightarrow> d
+|(Preliminary d) \<Rightarrow> d)"
 
 definition test_packet :: "32 simple_packet" where
 "test_packet \<equiv>
