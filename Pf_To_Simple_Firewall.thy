@@ -74,11 +74,11 @@ next
 qed
 *)
 
-definition ruleset_equiv :: "'a ruleset \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
-"ruleset_equiv l1 l2 = (\<forall> m p.(pf l1 m p = pf l2 m p))"
+definition ruleset_equiv :: "'p itself \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
+"ruleset_equiv _ l1 l2 = (\<forall> m p::'p.(pf l1 m p = pf l2 m p))"
 
-definition transform_preserves_semantics ::"('a ruleset \<Rightarrow> 'a ruleset) \<Rightarrow> bool" where
-"transform_preserves_semantics transform \<equiv> \<forall> (rules \<in>'a ruleset). (ruleset_equiv rules (transform rules))"
+definition transform_preserves_semantics ::"'p itself \<Rightarrow> ('a ruleset \<Rightarrow> 'a ruleset) \<Rightarrow> bool" where
+"transform_preserves_semantics p transform \<equiv> \<forall> rules. (ruleset_equiv p rules (transform rules))"
 
 lemma remove_anchors_preserves_semantics : "pf rules matcher packet = pf (remove_anchors rules) matcher packet"
 (*lemma remove_anchors_preserves_semantics : "transform_preserves_semantics remove_anchors"*)
