@@ -43,6 +43,8 @@ datatype 'a line =
   | PfRule "'a pf_rule2"
   | Anchor "'a anchor_rule2" "'a line list"
 
+quickcheck_generator line constructors: Option, PfRule
+
 type_synonym 'a ruleset = "'a line list"
 
 datatype decision =
@@ -71,7 +73,7 @@ fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Righ
 Option \<Rightarrow> (Preliminary d)
 | (PfRule r) \<Rightarrow> (if (matches m (pf_rule2.get_match r) p)
 then
-  (if (get_quick r) 
+  (if (get_quick r)
     then (Final (action_to_decision (get_action r) d))
     else (Preliminary (action_to_decision (get_action r) d)))
 else (Preliminary d))
@@ -112,7 +114,14 @@ fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
 fun pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
 "pf rules m packet = unwrap_decision (filter rules m packet (Preliminary Undecided))"
 
-definition test_packet :: "('i::len, 'a) simple_packet_scheme" where
+definition pf' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> decision" where
+"pf' rules m = unwrap_decision (filter rules (\<lambda>a p. m a) () (Preliminary Undecided))"
+
+lemma "pf rules m packet = pf' rules (\<lambda>a. m a packet)"
+  (*quickcheck*) (* FIXME lars quickcheck bug *)
+  unfolding pf'_def unfolding pf'_def sorry
+
+definition test_packet :: "('i::len) simple_packet" where
 "test_packet \<equiv>
 \<lparr>
           p_iiface = ''eth1'', p_oiface = '''',
@@ -122,9 +131,11 @@ definition test_packet :: "('i::len, 'a) simple_packet_scheme" where
           p_payload = ''arbitrary payload''
           \<rparr>"
 
-value "pf [] matcher test_packet"
+value [simp] "pf [] matcher test_packet"
 
-value "pf [
+lemma "pf [] matcher test_packet = Undecided" by code_simp
+
+value [simp] "pf [
 PfRule \<lparr>
   get_action = Pass,
   get_quick = False,
@@ -132,7 +143,7 @@ PfRule \<lparr>
 \<rparr>
 ] matcher test_packet"
 
-value "pf [
+value [simp] "pf [
 PfRule \<lparr>
   get_action = Block,
   get_quick = False,
@@ -140,7 +151,7 @@ PfRule \<lparr>
 \<rparr>
 ] matcher test_packet"
 
-value "pf [
+value [simp] "pf [
 PfRule \<lparr>
   get_action = Match,
   get_quick = False,
@@ -148,7 +159,7 @@ PfRule \<lparr>
 \<rparr>
 ] matcher test_packet"
 
-value "pf [
+value [simp] "pf [
 PfRule \<lparr>
   get_action = Pass,
   get_quick = True,
@@ -161,7 +172,7 @@ PfRule \<lparr>
 \<rparr>
 ] matcher test_packet"
 
-value "pf [
+value [simp] "pf [
 PfRule \<lparr>
   get_action = Block,
   get_quick = True,

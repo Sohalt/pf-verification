@@ -119,11 +119,11 @@ qed
 
 
 lemma filter_add_same_prefix :
-  assumes "\<forall> d. filter l1 m p d = filter l2 m p d"
-  shows "\<forall> d. (filter (l@l1) m p d = filter (l@l2) m p d)"
+  assumes "\<And>d. filter l1 m p d = filter l2 m p d"
+  shows "filter (l@l1) m p d = filter (l@l2) m p d"
 proof -
-    have "\<forall> d. filter (l@l1) m p d = filter l1 m p (filter l m p d)" by (simp add: filter_chain)
-    moreover have "\<forall> d. filter (l@l2) m p d = filter l2 m p (filter l m p d)" by (simp add: filter_chain)
+    have "filter (l@l1) m p d = filter l1 m p (filter l m p d)" by (simp add: filter_chain)
+    moreover have "filter (l@l2) m p d = filter l2 m p (filter l m p d)" by (simp add: filter_chain)
     ultimately show ?thesis using assms by auto
   qed
 
@@ -154,15 +154,15 @@ fun line_matches :: "'a line \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<R
 lemma no_match_no_change : "\<forall> l\<in> set lines. \<not>(matches m
 *)
 
-lemma 
+lemma
   assumes "(pf ls m p) = decision.Accept"
   shows "(\<exists> l\<in> set ls. (l = (PfRule r) \<and> (matches m (pf_rule2.get_match r) p) \<and> (pf_rule2.get_action r) = Match))"
 proof(induction ls)
   case Nil
-  then show ?case using assms by blast
+  then show ?case using assms sorry (*by blast*)
 next
   case (Cons a ls)
-  then show ?case by blast
+  then show ?case sorry (*by blast*)
 qed
 
 lemma
@@ -176,11 +176,21 @@ next
   then show ?case sorry
 qed
 
-definition ruleset_equiv :: "'p itself \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
-"ruleset_equiv _ l1 l2 = (\<forall> m p::'p.(pf l1 m p = pf l2 m p))"
+definition ruleset_equiv :: "'a ruleset \<Rightarrow> 'a ruleset \<Rightarrow> bool" ("_ \<simeq> _") where
+"l1 \<simeq> l2 \<longleftrightarrow> pf' l1 = pf' l2"
 
-definition transform_preserves_semantics ::"'p itself \<Rightarrow> ('a ruleset \<Rightarrow> 'a ruleset) \<Rightarrow> bool" where
-"transform_preserves_semantics p transform \<equiv> \<forall> rules. (ruleset_equiv p rules (transform rules))"
+lemma ruleset_equivI[intro]: "(\<And>m. pf' l1 m = pf' l2 m) \<Longrightarrow> l1 \<simeq> l2"
+  unfolding ruleset_equiv_def by auto
+
+lemma ruleset_equiv_refl[intro, simp]: "l \<simeq> l" by auto
+
+definition ok_transformation ::"('a ruleset \<Rightarrow> 'a ruleset) \<Rightarrow> bool"  where
+"ok_transformation f \<longleftrightarrow> (\<forall> rules. rules \<simeq> f rules)"
+
+lemma ok_transformationI[intro]: "(\<And>rules. rules \<simeq> f rules) \<Longrightarrow> ok_transformation f"
+  unfolding ok_transformation_def by auto
+
+lemma id_transformation[intro, simp]: "ok_transformation id" by auto
 
 lemma remove_anchors_preserves_semantics : "pf rules matcher packet = pf (remove_anchors rules) matcher packet"
 (*lemma remove_anchors_preserves_semantics : "transform_preserves_semantics remove_anchors"*)
@@ -197,7 +207,7 @@ next
     case (PfRule r)
     then show ?thesis
       unfolding PfRule
-    by (metis append_Cons append_self_conv2 remove_anchors.simps(4))
+      sorry (*by (metis append_Cons append_self_conv2 remove_anchors.simps(4))*)
   next
     case (Anchor m ls)
     then show ?thesis
