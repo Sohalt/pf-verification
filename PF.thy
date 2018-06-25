@@ -110,7 +110,7 @@ fun pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarr
 (Final d) \<Rightarrow> d
 |(Preliminary d) \<Rightarrow> d)"
 
-definition test_packet :: "32 simple_packet" where
+definition test_packet :: "('i::len, 'a) simple_packet_scheme" where
 "test_packet \<equiv>
 \<lparr>
           p_iiface = ''eth1'', p_oiface = '''',
@@ -120,43 +120,57 @@ definition test_packet :: "32 simple_packet" where
           p_payload = ''arbitrary payload''
           \<rparr>"
 
-value "filter [] test_packet Undecided"
-value "filter [
+value "pf [] matcher test_packet"
+
+value "pf [
 PfRule \<lparr>
-  r_Action = Pass,
-  r_Quick = False,
-  r_Direction = Some In,
-  r_On = None,
-  r_Af = None,
-  r_Proto = None,
-  r_Hosts = None,
-  r_FilterOpts = None
+  get_action = Pass,
+  get_quick = False,
+  get_match = MatchAny
 \<rparr>
-] test_packet Undecided"
-value "filter [
+] matcher test_packet"
+
+value "pf [
 PfRule \<lparr>
-  r_Action = Block,
-  r_Quick = False,
-  r_Direction = Some In,
-  r_On = None,
-  r_Af = None,
-  r_Proto = None,
-  r_Hosts = None,
-  r_FilterOpts = None
+  get_action = Block,
+  get_quick = False,
+  get_match = MatchAny
 \<rparr>
-] test_packet Undecided"
-value "filter [
+] matcher test_packet"
+
+value "pf [
 PfRule \<lparr>
-  r_Action = Block,
-  r_Quick = False,
-  r_Direction = Some Out,
-  r_On = None,
-  r_Af = None,
-  r_Proto = None,
-  r_Hosts = None,
-  r_FilterOpts = None
+  get_action = Match,
+  get_quick = False,
+  get_match = MatchAny
 \<rparr>
-] test_packet Undecided"
+] matcher test_packet"
+
+value "pf [
+PfRule \<lparr>
+  get_action = Pass,
+  get_quick = True,
+  get_match = MatchAny
+\<rparr>,
+PfRule \<lparr>
+  get_action = Block,
+  get_quick = True,
+  get_match = MatchAny
+\<rparr>
+] matcher test_packet"
+
+value "pf [
+PfRule \<lparr>
+  get_action = Block,
+  get_quick = True,
+  get_match = MatchAny
+\<rparr>,
+PfRule \<lparr>
+  get_action = Pass,
+  get_quick = True,
+  get_match = MatchAny
+\<rparr>
+] matcher test_packet"
 
 (*
 
