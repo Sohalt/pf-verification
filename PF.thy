@@ -105,10 +105,12 @@ else filter rs m p d)"
 then filter (l @ rs) m p d
 else filter rs m p d)"*)
 
+fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
+"unwrap_decision (Final d) = d"
+|"unwrap_decision (Preliminary d) = d"
+
 fun pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
-"pf rules m packet = (case (filter rules m packet (Preliminary Undecided)) of
-(Final d) \<Rightarrow> d
-|(Preliminary d) \<Rightarrow> d)"
+"pf rules m packet = unwrap_decision (filter rules m packet (Preliminary Undecided))"
 
 definition test_packet :: "('i::len, 'a) simple_packet_scheme" where
 "test_packet \<equiv>
