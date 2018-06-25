@@ -62,23 +62,119 @@ next
   proof(cases "matches m (anchor_rule2.get_match r) p")
     case True
     then show ?thesis using Prem IH by auto
+  next
+    case False
+    then show ?thesis using Prem IH by auto
+  qed
+qed
+qed
+qed
+
+
+fun first_quick_match :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> 'a pf_rule2 option" where
+"first_quick_match [] _ _ = None"
+|"first_quick_match (Option#ls) m p = first_quick_match ls m p"
+|"first_quick_match ((PfRule r)#ls) m p =
+(if (matches m (pf_rule2.get_match r) p) \<and> (pf_rule2.get_quick r)
+then (Some r)
+else first_quick_match ls m p)"
+|"first_quick_match ((Anchor r b)#ls) m p =
+(if (matches m (anchor_rule2.get_match r) p)
+then first_quick_match (b@ls) m p
+else first_quick_match ls m p)"
+
+(*
+lemma first_quick_match_decides:
+  assumes "first_quick_match ls m p = Some r"
+  shows "pf ls m p = (action_to_decision (pf_rule2.get_action r) <last matching decision>)"
+*)
+
+(*
+lemma
+  assumes "(filter l m p d) = d2 \<and> d \<noteq> d2"
+  shows "\<forall> d. filter l m p d = d2"
+*)
+
+lemma pf_filter_equiv: "pf l1 m p = pf l2 m p \<longleftrightarrow> (\<forall> d. unwrap_decision (filter l1 m p d) = unwrap_decision (filter l2 m p d))"
+proof
+  assume "pf l1 m p = pf l2 m p"
+  then show "(\<forall> d. unwrap_decision (filter l1 m p d) = unwrap_decision (filter l2 m p d))"
+  proof(cases "pf l1 m p")
+    case Accept
+    then show ?thesis sorry
+(* l1 and l2 decide accept somewhere \<rightarrow> will do so no matter the starting state *)
+  next
+    case Reject
+    then show ?thesis sorry
+(* l1 and l2 decide reject somewhere \<rightarrow> will do so no matter the starting state *)
+  next
+    case Undecided
+    then show ?thesis sorry
+(* l1 and l2 don't alter initial decision state at all *)
+  qed
 next
-  case False
-then show ?thesis using Prem IH by auto
-qed
-qed
-qed
+  assume "(\<forall> d. unwrap_decision (filter l1 m p d) = unwrap_decision (filter l2 m p d))"
+  then show "pf l1 m p = pf l2 m p" by auto
 qed
 
 
-lemma pf_add_same_prefix :
+lemma filter_add_same_prefix :
   assumes "\<forall> d. filter l1 m p d = filter l2 m p d"
-  shows "filter (l@l1) m p d = filter (l@l2) m p d"
+  shows "\<forall> d. (filter (l@l1) m p d = filter (l@l2) m p d)"
 proof -
-    have "filter (l@l1) m p d = filter l1 m p (filter l m p d)" by (simp add: filter_chain)
-    moreover have "filter (l@l2) m p d = filter l2 m p (filter l m p d)" by (simp add: filter_chain)
+    have "\<forall> d. filter (l@l1) m p d = filter l1 m p (filter l m p d)" by (simp add: filter_chain)
+    moreover have "\<forall> d. filter (l@l2) m p d = filter l2 m p (filter l m p d)" by (simp add: filter_chain)
     ultimately show ?thesis using assms by auto
   qed
+
+lemma pf_add_equiv_prefix:
+  assumes "pf l1 m p = pf l2 m p" "pf l3 m p = pf l4 m p"
+  shows "pf (l1@l3) m p = pf (l2@l4) m p"
+  by (metis assms filter_chain pf_filter_equiv)
+
+
+lemma pf_add_same_prefix:
+  assumes "pf l1 m p = pf l2 m p"
+  shows "pf (l@l1) m p = pf (l@l2) m p"
+  by (meson assms filter_add_same_prefix pf_filter_equiv)
+(*
+proof(-)
+  have "\<forall> d. filter l1 m p d = filter l2 m p d" using assms by (meson pf_filter_equiv)
+  then have "\<forall> d. (filter (l@l1) m p d = filter (l@l2) m p d)" by (simp add: filter_add_same_prefix)
+  then show ?thesis by (meson pf_filter_equiv)
+qed
+*)
+
+fun line_matches :: "'a line \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> bool" where
+"line_matches Option _ _= False"
+|"line_matches (PfRule r) m p = (matches m (pf_rule2.get_match r) p)"
+|"line_matches (Anchor r l) m p = (matches m (anchor_rule2.get_match r) p)"
+
+(*
+lemma no_match_no_change : "\<forall> l\<in> set lines. \<not>(matches m
+*)
+
+lemma 
+  assumes "(pf ls m p) = decision.Accept"
+  shows "(\<exists> l\<in> set ls. (l = (PfRule r) \<and> (matches m (pf_rule2.get_match r) p) \<and> (pf_rule2.get_action r) = Match))"
+proof(induction ls)
+  case Nil
+  then show ?case using assms by blast
+next
+  case (Cons a ls)
+  then show ?case by blast
+qed
+
+lemma
+  assumes "(pf ls m p) = decision.Undecided"
+  shows "\<forall> d. unwrap_decision (filter ls m p d) = unwrap_decision d"
+proof(induction ls)
+  case Nil
+  then show ?case sorry
+next
+  case (Cons a ls)
+  then show ?case sorry
+qed
 
 definition ruleset_equiv :: "'p itself \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
 "ruleset_equiv _ l1 l2 = (\<forall> m p::'p.(pf l1 m p = pf l2 m p))"
@@ -92,20 +188,29 @@ proof (induction rules)
   case Nil
   then show ?case by auto
 next
-  case (Cons a rules)
+  case IH: (Cons a rules)
   then show ?case
   proof (cases a)
     case Option
-    then show "pf rules matcher packet = pf (remove_anchors rules) matcher packet \<Longrightarrow> a = Option \<Longrightarrow> pf (a # rules) matcher packet = pf (remove_anchors (a # rules)) matcher packet" by auto
+    then show ?thesis using IH by auto
   next
     case (PfRule r)
-    moreover assume IH:"pf rules matcher packet = pf (remove_anchors rules) matcher packet"
-    from IH and pf_add_common_prefix have "pf (a#rules) matcher packet = pf (a#(remove_anchors rules)) matcher packet" by blast
-    then show "pf rules matcher packet = pf (remove_anchors rules) matcher packet \<Longrightarrow>
-          a = PfRule r \<Longrightarrow> pf (a # rules) matcher packet = pf (remove_anchors (a # rules)) matcher packet" by auto
+    then show ?thesis
+      unfolding PfRule
+    by (metis append_Cons append_self_conv2 remove_anchors.simps(4))
   next
     case (Anchor m ls)
-    moreover assume "matches matcher (get_match m) packet"
+    then show ?thesis
+    proof (cases "matches matcher (anchor_rule2.get_match m) p")
+      case True
+      then show ?thesis sorry
+    next
+      case False
+      then show ?thesis sorry
+    qed
+  qed
+qed
+
 
 lemma and_each_preserves_length[simp] : "\<forall> mexp. length (and_each mexp rules) = length rules"
   by (induction rules, auto)
@@ -137,11 +242,29 @@ With remove_quick, if something matches the quick rule, these rules explicitly c
 TODO: check exact semantics of rewriting/matching rules (does only last rule or every matching rule get executed?)
 *)
 
-lemma remove_match_not:"matches matcher matchexp p \<longrightarrow> filter ((and_each (MatchNot matchexp) rules)@rules2) matcher p d = filter rules2 matcher p d"
-  apply(induction rules)
-   apply(auto)
-  apply(case_tac a,simp,simp,simp)
-  done
+lemma remove_match_not:
+  assumes "matches matcher matchexp p"
+  shows "pf ((and_each (MatchNot matchexp) rules)@rules2) matcher p = pf rules2 matcher p"
+proof(induction rules)
+  case Nil
+  then show ?case by auto
+next
+  case IH: (Cons a rules)
+  then show ?case
+  proof(cases a)
+case Option
+  then show ?thesis sorry
+next
+case (PfRule x2)
+then show ?thesis sorry
+next
+  case (Anchor x31 x32)
+  then show ?thesis sorry
+qed
+
+qed
+
+
 
 (*
 lemma remove_quick_preserves_semantics : "pf rules matcher packet = pf (remove_quick rules) matcher packet"
