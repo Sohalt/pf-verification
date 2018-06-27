@@ -95,10 +95,10 @@ lemma
   shows "\<forall> d. filter l m p d = d2"
 *)
 
-lemma pf_filter_equiv: "pf l1 m p = pf l2 m p \<longleftrightarrow> (\<forall> d. filter l1 m p d = filter l2 m p d)"
+lemma pf_filter_equiv: "pf l1 m p = pf l2 m p \<longleftrightarrow> (\<forall> d. unwrap_decision (filter l1 m p d) = unwrap_decision (filter l2 m p d))"
 proof
   assume "pf l1 m p = pf l2 m p"
-  then show "(\<forall> d. filter l1 m p d = filter l2 m p d)"
+  then show "(\<forall> d. unwrap_decision (filter l1 m p d) = unwrap_decision (filter l2 m p d))"
   proof(cases "pf l1 m p")
     case Accept
     then show ?thesis sorry
@@ -113,8 +113,8 @@ proof
 (* l1 and l2 don't alter initial decision state at all *)
   qed
 next
-  assume "(\<forall> d. filter l1 m p d = filter l2 m p d)"
-  then show "pf l1 m p = pf l2 m p" by auto
+  assume "(\<forall> d. unwrap_decision (filter l1 m p d) = unwrap_decision (filter l2 m p d))"
+  then show "pf l1 m p = pf l2 m p" unfolding pf_def by auto
 qed
 
 
