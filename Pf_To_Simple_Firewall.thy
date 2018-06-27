@@ -195,7 +195,7 @@ lemma ok_transformationI[intro]: "(\<And>rules. (rules \<simeq> (f rules))) \<Lo
 lemma id_transformation[intro, simp]: "ok_transformation id" by auto
 
 
-lemma and_each_false:
+lemma and_each_false[simp]:
   assumes "\<not>matches m e p"
   shows "filter (and_each e l) m p d = d"
 proof(induction l)
@@ -215,20 +215,17 @@ case Nil
 next
   case IH: (Cons a l)
   then show ?case
-  proof(cases a)
-    case Option
-    then show ?thesis using IH by (cases d, auto)
+  proof(cases d)
+    case (Final x1)
+    then show ?thesis by auto
   next
-    case (PfRule r)
-    then show ?thesis sorry
-next
-    case (Anchor x31 x32)
-    then show ?thesis sorry
-qed
+    case (Preliminary x2)
+    then show ?thesis unfolding Preliminary
+      by (cases a,auto simp add: IH assms)
+  qed
 qed
 
 lemma remove_anchors_preserves_semantics : "pf rules matcher packet = pf (remove_anchors rules) matcher packet"
-(*lemma remove_anchors_preserves_semantics : "transform_preserves_semantics remove_anchors"*)
 proof(-)
   have "\<And> d. (filter rules matcher packet d = filter (remove_anchors rules) matcher packet d)"
 proof (induction rules arbitrary: d)
@@ -237,6 +234,12 @@ proof (induction rules arbitrary: d)
 next
   case IH: (Cons a rules)
   then show ?case
+  proof(cases d)
+    case (Final x1)
+    then show ?thesis by auto
+  next
+    case (Preliminary x2)
+    then show ?thesis
   proof (cases a)
     case Option
     then show ?thesis unfolding Option using IH by (cases d, auto)
@@ -249,23 +252,18 @@ next
                filter (and_each (anchor_rule2.get_match r) ls) matcher packet d"
     proof(cases "matches matcher (anchor_rule2.get_match r) packet")
       case True
-      then show ?thesis using and_each_true True
+      then show ?thesis unfolding Preliminary using and_each_true
         sorry
     next
       case False
-      then show ?thesis
-      proof(cases d)
-        case (Final x1)
-        then show ?thesis by auto
-      next
-        case (Preliminary x2)
-        then show ?thesis unfolding Preliminary using False and_each_false
-          sorry
-      qed
+      then show ?thesis unfolding Preliminary using and_each_false
+        sorry
     qed  
+
     then show ?thesis
       (* using filter_add_equiv_prefix by auto *)
       by (metis Anchor IH.IH append_Cons append_Nil filter_chain remove_anchors.simps(2))
+  qed
   qed
 qed
   then show ?thesis
