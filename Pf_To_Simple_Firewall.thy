@@ -131,8 +131,6 @@ proof -
     ultimately show ?thesis using assms by auto
   qed
 
-lemma filter_refl[simp]: "filter l m p d = filter l m p d" by simp
-
 lemma filter_add_same_prefix :
   assumes "\<And>d. filter l1 m p d = filter l2 m p d"
   shows "filter (l@l1) m p d = filter (l@l2) m p d"
