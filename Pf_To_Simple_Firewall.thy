@@ -127,10 +127,6 @@ proof -
     ultimately show ?thesis using assms by auto
   qed
 
-lemma pf_add_equiv_prefix:
-  assumes "pf l1 m p = pf l2 m p" "pf l3 m p = pf l4 m p"
-  shows "pf (l1@l3) m p = pf (l2@l4) m p"
-  by (metis assms filter_chain pf_filter_equiv)
 
 
 lemma pf_add_same_prefix:
