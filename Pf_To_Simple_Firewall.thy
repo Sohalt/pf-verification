@@ -225,6 +225,9 @@ next
   qed
 qed
 
+lemma filter_foo: "filter [] m p (filter l m p (Preliminary d)) = filter l m p (Preliminary d)"
+  by (metis append.right_neutral filter_chain)
+
 lemma remove_anchors_preserves_semantics : "pf rules matcher packet = pf (remove_anchors rules) matcher packet"
 proof(-)
   have "\<And> d. (filter rules matcher packet d = filter (remove_anchors rules) matcher packet d)"
@@ -252,15 +255,17 @@ next
                filter (and_each (anchor_rule2.get_match r) ls) matcher packet d"
     proof(cases "matches matcher (anchor_rule2.get_match r) packet")
       case True
-      then show ?thesis unfolding Preliminary using and_each_true
-        sorry
+      then have "filter (and_each (anchor_rule2.get_match r) ls) matcher packet (Preliminary x2)
+                 = filter ls matcher packet (Preliminary x2)" by auto
+      moreover have "PF.filter [Anchor r ls] matcher packet (Preliminary x2)
+                 = filter ls matcher packet (Preliminary x2)" by (simp add: True filter_foo)
+      ultimately show ?thesis unfolding Preliminary
+        by simp
     next
       case False
-      then show ?thesis unfolding Preliminary using and_each_false
-        sorry
+      then show ?thesis unfolding Preliminary by auto
     qed  
-
-    then show ?thesis
+    then show ?thesis unfolding Anchor
       (* using filter_add_equiv_prefix by auto *)
       by (metis Anchor IH.IH append_Cons append_Nil filter_chain remove_anchors.simps(2))
   qed
@@ -335,8 +340,12 @@ lemma remove_quick_preserves_semantics : "pf rules matcher packet = pf (remove_q
 
 lemma remove_quick_preserves_semantics : "pf rules matcher packet = pf (remove_quick rules) matcher packet"
 proof (induction rules)
-  show "pf [] matcher packet = pf (remove_quick []) matcher packet" by auto
+  case Nil
+  then show ?case sorry
 next
+  case (Cons a rules)
+  then show ?case sorry
+qed
 
 
 (* induction on rules
