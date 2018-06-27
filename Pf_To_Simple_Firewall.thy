@@ -158,7 +158,7 @@ fun line_matches :: "'a line \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<R
 lemma no_match_no_change : "\<forall> l\<in> set lines. \<not>(matches m
 *)
 
-lemma
+lemma (* FIXME: this is not correct. *)
   assumes "(pf ls m p) = decision.Accept"
   shows "(\<exists> l\<in> set ls. (l = (PfRule r) \<and> (matches m (pf_rule2.get_match r) p) \<and> (pf_rule2.get_action r) = Match))"
 proof(induction ls)
