@@ -117,29 +117,37 @@ next
   then show "pf l1 m p = pf l2 m p" unfolding pf_def by auto
 qed
 
+lemma filter_to_pf:
+  assumes "\<forall> d. (filter l1 m p d = filter l2 m p d)"
+  shows "pf l1 m p = pf l2 m p" unfolding pf_def using assms by auto
+
+lemma filter_add_equiv_prefix :
+  assumes "filter l1 m p d = filter l2 m p d"
+          "\<And>d. filter l3 m p d = filter l4 m p d"
+  shows "filter (l1@l3) m p d = filter (l2@l4) m p d"
+proof -
+    have "filter (l1@l3) m p d = filter l3 m p (filter l1 m p d)" by (simp add: filter_chain)
+    moreover have "filter (l2@l4) m p d = filter l4 m p (filter l2 m p d)" by (simp add: filter_chain)
+    ultimately show ?thesis using assms by auto
+  qed
+
+lemma filter_refl[simp]: "filter l m p d = filter l m p d" by simp
 
 lemma filter_add_same_prefix :
   assumes "\<And>d. filter l1 m p d = filter l2 m p d"
   shows "filter (l@l1) m p d = filter (l@l2) m p d"
-proof -
-    have "filter (l@l1) m p d = filter l1 m p (filter l m p d)" by (simp add: filter_chain)
-    moreover have "filter (l@l2) m p d = filter l2 m p (filter l m p d)" by (simp add: filter_chain)
-    ultimately show ?thesis using assms by auto
-  qed
+  by (metis assms filter_add_equiv_prefix)
 
-
-
-lemma pf_add_same_prefix:
+lemma pf_add_same_prefix[intro]:
   assumes "pf l1 m p = pf l2 m p"
   shows "pf (l@l1) m p = pf (l@l2) m p"
-  by (meson assms filter_add_same_prefix pf_filter_equiv)
-(*
-proof(-)
-  have "\<forall> d. filter l1 m p d = filter l2 m p d" using assms by (meson pf_filter_equiv)
-  then have "\<forall> d. (filter (l@l1) m p d = filter (l@l2) m p d)" by (simp add: filter_add_same_prefix)
-  then show ?thesis by (meson pf_filter_equiv)
-qed
-*)
+  by (metis assms filter_chain pf_def pf_filter_equiv)
+
+lemma pf_add_same_prefix'[intro]:
+  assumes "pf l1 m p = pf l2 m p"
+  shows "pf (l#l1) m p = pf (l#l2) m p"
+  by (metis append_Cons append_Nil assms pf_add_same_prefix)
+
 
 fun line_matches :: "'a line \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> bool" where
 "line_matches Option _ _= False"
