@@ -119,7 +119,7 @@ qed
 
 lemma filter_to_pf:
   assumes "\<forall> d. (filter l1 m p d = filter l2 m p d)"
-  shows "pf l1 m p = pf l2 m p" unfolding pf_def using assms by auto
+  shows "pf l1 m p = pf l2 m p" unfolding pf_def using assms by simp
 
 lemma filter_add_equiv_prefix :
   assumes "filter l1 m p d = filter l2 m p d"
@@ -199,10 +199,10 @@ lemma and_each_false[simp]:
   assumes "\<not>matches m e p"
   shows "filter (and_each e l) m p d = d"
 proof(induction l)
-case Nil
+  case Nil
   then show ?case by (cases d, auto)
 next
-case (Cons a l)
+  case (Cons a l)
   then show ?case using assms
     by (cases a; cases d; auto)
 qed
@@ -211,7 +211,7 @@ lemma and_each_true[simp]:
   assumes "matches m e p"
   shows "filter (and_each e l) m p d = filter l m p d"
 proof(induction l arbitrary:d)
-case Nil
+  case Nil
   then show ?case by (cases d, auto)
 next
   case IH: (Cons a l)
@@ -281,7 +281,7 @@ qed
 qed
 
 
-lemma and_each_preserves_length[simp] : "\<forall> mexp. length (and_each mexp rules) = length rules"
+lemma and_each_preserves_length[simp] : "length (and_each mexp rules) = length rules"
   by (induction rules, auto)
 
 fun remove_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
@@ -303,7 +303,7 @@ then remove_quick_alternate' ls (PfRule (r\<lparr>get_quick := False\<rparr>)#qu
 else (PfRule r)#(remove_quick_alternate' ls quick))"|
 "remove_quick_alternate' (l#ls) quick = l#(remove_quick_alternate' ls quick)"
 
-fun remove_quick_alternate :: "'a ruleset \<Rightarrow> 'a ruleset" where
+definition remove_quick_alternate :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_quick_alternate rs = remove_quick_alternate' rs []"
 (* remove_quick_alternate only works because we ignore any state altering rules.
 If there would be rewriting/matching rules after the quick rule, that also match, they would take effect and might change the result.
