@@ -111,15 +111,105 @@ fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
 "unwrap_decision (Final d) = d"
 |"unwrap_decision (Preliminary d) = d"
 
-fun pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
+case_of_simps unwrap_decision_cases: unwrap_decision.simps
+
+thm unwrap_decision_cases
+
+definition pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
 "pf rules m packet = unwrap_decision (filter rules m packet (Preliminary Undecided))"
 
-definition pf' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> decision" where
-"pf' rules m = unwrap_decision (filter rules (\<lambda>a p. m a) () (Preliminary Undecided))"
+definition filter' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
+"filter' rules m d = filter rules (\<lambda>a p. m a) () d"
 
+lemma matches_equiv: "matches m me packet =
+       matches (\<lambda>a p. m a packet) me ()"
+  by (induction me, auto)
+
+(*
+lemma "\<And> d. filter rules m packet d = filter' rules (\<lambda>a. m a packet) d"
+  unfolding filter'_def
+  proof(induction rules)
+    case Nil
+    then show ?case by (cases d, auto)
+  next
+    case IH: (Cons a rules)
+    then show ?case
+    proof(cases a)
+      case Option
+      then show ?thesis using IH by (cases d, auto)
+    next
+      case (PfRule r)
+      then show ?thesis
+      proof(cases d)
+        case (Final x1)
+        then show ?thesis by auto
+      next
+        case (Preliminary x2)
+        then show ?thesis
+        proof(cases "matches m (pf_rule2.get_match r) packet")
+          case T: True
+          then show ?thesis sorry
+        next
+          case F: False
+          then have foo: "\<not>(matches (\<lambda>a p. m a packet) me ())" by (simp add:matches_equiv)
+          then show ?thesis
+          proof(cases "pf_rule2.get_quick r")
+            case True
+            then show ?thesis unfolding Preliminary PfRule 
+              apply(simp)
+              
+              apply(auto simp add:IH PfRule Preliminary F foo True)
+          next
+            case False
+            then show ?thesis sorry
+          qed
+
+        qed
+
+      qed
+
+    next
+      case (Anchor x31 x32)
+      then show ?thesis sorry
+    qed
+qed
+*)
+
+definition pf' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> decision" where
+"pf' rules m = unwrap_decision (filter' rules m (Preliminary Undecided))"
+
+(*
 lemma "pf rules m packet = pf' rules (\<lambda>a. m a packet)"
   (*quickcheck*) (* FIXME lars quickcheck bug *)
-  unfolding pf'_def unfolding pf'_def sorry
+  unfolding pf_def pf'_def
+  proof(induction rules)
+    case Nil
+    then show ?case by auto
+  next
+    case IH: (Cons a rules)
+    then show ?case
+    proof(cases a)
+      case Option
+      then show ?thesis using IH by auto
+    next
+      case (PfRule r)
+      then show ?thesis
+      proof(cases "matches m (pf_rule2.get_match r) p")
+        case True
+        then have "matches m (pf_rule2.get_match r) packet = matches (\<lambda>a p. m a packet) (pf_rule2.get_match r) ()" by (simp add:matches_equiv)
+        then show ?thesis sorry
+      next
+        case False
+        then show ?thesis sorry
+      qed
+
+    next
+      case (Anchor x31 x32)
+      then show ?thesis sorry
+    qed
+  qed
+*)
+
 
 definition test_packet :: "('i::len) simple_packet" where
 "test_packet \<equiv>
