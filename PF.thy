@@ -151,35 +151,33 @@ definition test_packet :: "('i::len) simple_packet" where
           p_payload = ''arbitrary payload''
           \<rparr>"
 
-value [simp] "pf [] matcher test_packet"
-
 lemma "pf [] matcher test_packet = Undecided" by code_simp
 
-value [simp] "pf [
+lemma "pf [
 PfRule \<lparr>
   get_action = Pass,
   get_quick = False,
   get_match = MatchAny
 \<rparr>
-] matcher test_packet"
+] matcher test_packet = Accept" by code_simp
 
-value [simp] "pf [
+lemma "pf [
 PfRule \<lparr>
   get_action = Block,
   get_quick = False,
   get_match = MatchAny
 \<rparr>
-] matcher test_packet"
+] matcher test_packet = Reject" by code_simp
 
-value [simp] "pf [
+lemma "pf [
 PfRule \<lparr>
   get_action = Match,
   get_quick = False,
   get_match = MatchAny
 \<rparr>
-] matcher test_packet"
+] matcher test_packet = Undecided" by code_simp
 
-value [simp] "pf [
+lemma "pf [
 PfRule \<lparr>
   get_action = Pass,
   get_quick = True,
@@ -190,9 +188,9 @@ PfRule \<lparr>
   get_quick = True,
   get_match = MatchAny
 \<rparr>
-] matcher test_packet"
+] matcher test_packet = Accept" by code_simp
 
-value [simp] "pf [
+lemma "pf [
 PfRule \<lparr>
   get_action = Block,
   get_quick = True,
@@ -203,7 +201,7 @@ PfRule \<lparr>
   get_quick = True,
   get_match = MatchAny
 \<rparr>
-] matcher test_packet"
+] matcher test_packet = Reject" by code_simp
 
 (*
 
