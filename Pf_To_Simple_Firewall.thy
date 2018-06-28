@@ -203,7 +203,8 @@ case Nil
   then show ?case by (cases d, auto)
 next
 case (Cons a l)
-  then show ?case using assms by (cases a, cases d, auto, cases d, auto, cases d, auto)
+  then show ?case using assms
+    by (cases a; cases d; auto)
 qed
 
 lemma and_each_true[simp]:
@@ -230,7 +231,7 @@ lemma filter_foo: "filter [] m p (filter l m p (Preliminary d)) = filter l m p (
 
 lemma remove_anchors_preserves_semantics : "pf rules matcher packet = pf (remove_anchors rules) matcher packet"
 proof(-)
-  have "\<And> d. (filter rules matcher packet d = filter (remove_anchors rules) matcher packet d)"
+  have "(filter rules matcher packet d = filter (remove_anchors rules) matcher packet d)" for d
 proof (induction rules arbitrary: d)
   case Nil
   then show ?case by auto
@@ -264,10 +265,14 @@ next
     next
       case False
       then show ?thesis unfolding Preliminary by auto
-    qed  
+    qed
+
+    then have "filter ([Anchor r ls] @ rules) matcher packet d = filter (and_each (get_match r) ls @ remove_anchors rules) matcher packet d"
+      apply (rule filter_add_equiv_prefix)
+      using IH by auto
+
     then show ?thesis unfolding Anchor
-      (* using filter_add_equiv_prefix by auto *)
-      by (metis Anchor IH.IH append_Cons append_Nil filter_chain remove_anchors.simps(2))
+      by simp
   qed
   qed
 qed
