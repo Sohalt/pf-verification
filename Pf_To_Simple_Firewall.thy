@@ -311,28 +311,58 @@ With remove_quick, if something matches the quick rule, these rules explicitly c
 TODO: check exact semantics of rewriting/matching rules (does only last rule or every matching rule get executed?)
 *)
 
-lemma remove_match_not:
+lemma pf_option_prefix[simp]:
+"pf (Option#l) m p = pf l m p"
+proof(induction l)
+  case Nil
+  then show ?case unfolding pf_def by simp
+next
+  case (Cons a l)
+  then show ?case unfolding pf_def by simp
+qed
+
+lemma pf_pfrule_prefix[simp]:
+  assumes "\<not>matches m (pf_rule2.get_match r) p"
+  shows "pf ((PfRule r)#l) m p = pf l m p"
+proof(induction l)
+case Nil
+then show ?case unfolding pf_def using assms by simp
+next
+  case (Cons a l)
+  then show ?case unfolding pf_def using assms by simp
+qed
+
+lemma pf_anchor_prefix[simp]:
+  assumes "\<not>matches m (anchor_rule2.get_match r) p"
+  shows "pf ((Anchor r b)#l) m p = pf l m p"
+proof(induction l)
+  case Nil
+  then show ?case unfolding pf_def using assms by simp
+next
+  case (Cons a l)
+  then show ?case unfolding pf_def using assms by simp
+qed
+
+lemma remove_match_not[simp]:
   assumes "matches matcher matchexp p"
   shows "pf ((and_each (MatchNot matchexp) rules)@rules2) matcher p = pf rules2 matcher p"
 proof(induction rules)
   case Nil
-  then show ?case by auto
+  then show ?case by simp
 next
   case IH: (Cons a rules)
   then show ?case
   proof(cases a)
-case Option
-  then show ?thesis sorry
-next
-case (PfRule x2)
-then show ?thesis sorry
-next
-  case (Anchor x31 x32)
-  then show ?thesis sorry
+    case Option
+    then show ?thesis unfolding Option by (auto simp: IH)
+  next
+    case (PfRule x2)
+    then show ?thesis unfolding PfRule using assms IH by simp
+  next
+    case (Anchor x31 x32)
+    then show ?thesis unfolding Anchor using assms IH by simp
+  qed
 qed
-
-qed
-
 
 
 (*
