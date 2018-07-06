@@ -433,7 +433,25 @@ else
 ((PfRule r)#(remove_single_quick ls)))"
 
 fun no_quick :: "'a ruleset \<Rightarrow> bool" where
-"no_quick rules = (\<nexists> l . l\<in>(set rules) \<and> is_quick_rule l)"
+"no_quick [] = True"
+|"no_quick ((PfRule r)#ls) = ((\<not> get_quick r) \<and> no_quick ls)"
+|"no_quick (_#ls) = no_quick ls"
+
+fun no_quick' :: "'a ruleset \<Rightarrow> bool" where
+"no_quick' rules = (\<nexists> r . (PfRule r)\<in>(set rules) \<and> get_quick r)"
+
+lemma no_quick_no_quick'_eq : "no_quick = no_quick'"
+proof
+  fix rules
+  show "no_quick rules = no_quick' rules"
+  proof(induction rules)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rules)
+    then show ?case by(cases a, auto)
+  qed
+qed
 (*
 fun remove_all_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_all_quick rules = (if no_quick rules then rules else (remove_all_quick (remove_single_quick rules)))"
