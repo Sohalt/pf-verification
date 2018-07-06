@@ -432,6 +432,11 @@ then
 else
 ((PfRule r)#(remove_single_quick ls)))"
 
+fun count_quick :: "'a ruleset \<Rightarrow> nat" where
+"count_quick [] = 0"
+|"count_quick ((PfRule r)#ls) = (if (get_quick r) then 1 else 0) + count_quick ls"
+|"count_quick (l#ls) = count_quick ls"
+
 fun no_quick :: "'a ruleset \<Rightarrow> bool" where
 "no_quick [] = True"
 |"no_quick ((PfRule r)#ls) = ((\<not> get_quick r) \<and> no_quick ls)"
@@ -451,6 +456,52 @@ proof
     case (Cons a rules)
     then show ?case by(cases a, auto)
   qed
+qed
+
+lemma no_quick_count_quick_0 : "count_quick rules = 0 \<longleftrightarrow> no_quick rules"
+proof(induction rules)
+case Nil
+  then show ?case by simp
+next
+  case IH: (Cons a rules)
+  then show ?case
+  proof(cases a)
+case Option
+  then show ?thesis using IH by auto
+next
+  case (PfRule r)
+  then show ?thesis
+  proof(cases "get_quick r")
+    case True
+    then show ?thesis unfolding PfRule using IH by simp
+  next
+    case False
+    then show ?thesis unfolding PfRule using IH by simp
+  qed
+next
+  case (Anchor x31 x32)
+then show ?thesis using IH by auto
+qed
+qed
+
+lemma and_each_quick_count_unchanged[simp]:
+"count_quick (and_each mexp rules) = count_quick rules"
+proof(induction rules)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a rules)
+  then show ?case by (cases a, auto)
+qed
+
+lemma count_quick_append[simp]:
+"count_quick (l1 @ l2) = count_quick l1 + count_quick l2"
+proof(induction l1)
+case Nil
+then show ?case by simp
+next
+  case (Cons a l1)
+  then show ?case by (cases a, auto)
 qed
 (*
 fun remove_all_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
