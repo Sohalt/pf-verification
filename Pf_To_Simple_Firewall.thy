@@ -463,33 +463,173 @@ next
   qed
 qed
 
+lemma quick_rule_decides[simp]:
+  assumes "matches matcher (pf_rule2.get_match r) packet"
+          "get_quick r"
+  shows "pf (PfRule r # ls) matcher packet = action_to_decision (pf_rule2.get_action r) decision.Undecided"
+  unfolding pf_def using assms by auto
 
-(*
-lemma remove_quick_preserves_semantics : "pf rules matcher packet = pf (remove_quick rules) matcher packet"
-  apply(induction rules)
-   apply(auto)
-  apply(case_tac a)
-    apply(auto)
-*)
 
-lemma remove_quick_preserves_semantics : "pf rules matcher packet = pf (remove_quick rules) matcher packet"
-proof (induction rules)
+fun line_matches :: "'a line \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> bool" where
+"line_matches Option _ _= False"
+|"line_matches (PfRule r) m p = (matches m (pf_rule2.get_match r) p)"
+|"line_matches (Anchor r l) m p = (matches m (anchor_rule2.get_match r) p)"
+
+fun no_line_matches :: "'a line list \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> bool" where
+"no_line_matches [] m p = True"
+|"no_line_matches (l#ls) m p = (\<not>line_matches l m p \<and> no_line_matches ls m p)"
+
+lemma remove_quick_only_restricts_matches:
+  assumes "no_line_matches lines m p"
+  shows "no_line_matches (remove_quick lines) m p"
+proof(induction lines)
   case Nil
-  then show ?case sorry
+  then show ?case by simp
 next
-  case (Cons a rules)
-  then show ?case sorry
+  case IH: (Cons a lines)
+  then show ?case
+  proof(cases a)
+    case Option
+    then show ?thesis using IH assms
+      apply(auto)
+      sorry
+  next
+    case (PfRule x2)
+    then show ?thesis using IH sorry
+  next
+    case (Anchor x31 x32)
+    then show ?thesis sorry
+  qed
 qed
 
 
-(* induction on rules
-case rule quick
-true:
-  case matches rule packet
-    true:
-      not matches rules packet
+fun is_preliminary :: "decision_wrap \<Rightarrow> bool" where
+"is_preliminary (Preliminary d) = True"
+|"is_preliminary (Final d) = False"
+
+
+lemma remove_quick_ok:
+  assumes "no_anchors rules"
+  shows "no_quick (remove_quick rules)"
+proof(induction rules)
+  case Nil
+  then show ?case by simp
+next
+  case IH: (Cons a rules)
+  then show ?case
+(*
+  proof(cases "is_quick_rule a")
+    case True
+    then show ?thesis sorry
+  next
+    case False
+    then show ?thesis sorry
+  qed
+*)
+  proof(cases a)
+    case Option
+    then show ?thesis using IH by auto
+  next
+    case (PfRule r)
+    then show ?thesis unfolding PfRule using IH
+      apply(auto) (* and_each doesn't affect quick: how do I write down that some function doesn't touch record fields? *)
+      sorry
+  next
+    case (Anchor x31 x32)
+    then show ?thesis sorry (* contr assms *)
+  qed
+qed
+
+
+lemma remove_quick_no_final_decision:
+  assumes "no_anchors rules"
+  shows "is_preliminary (filter (remove_quick rules) matcher packet (Preliminary d))"
+proof(induction rules arbitrary: d)
+  case Nil
+  then show ?case by simp
+next
+  case IH: (Cons a rules)
+  then show ?case
+  proof(cases a)
+    case Option
+    then show ?thesis using IH by simp
+  next
+    case (PfRule r)
+    then show ?thesis
+    proof(cases "pf_rule2.get_quick r")
+      case True
+      then show ?thesis unfolding PfRule using IH
+        sorry
+    next
+      case False
+      then show ?thesis unfolding PfRule using IH by auto
+    qed
+  next
+    case (Anchor x31 x32)
+    then show ?thesis sorry (* assms contradiction *)
+  qed
+qed
+
+(*
+proof (induction arbitrary: d rule:remove_quick.induct)
+  case 1
+  then show ?case by simp
+next
+  case (2 r ls)
+  then show ?case
+  proof(cases "get_quick r")
+    case Quick: True
+    then show ?thesis sorry
+  next
+    case NotQuick: False
+    then show ?thesis using 2
+    proof(cases "matches matcher (pf_rule2.get_match r) packet")
+      case True
+      then show ?thesis using 2 NotQuick by simp
+    next
+      case False
+      then show ?thesis using 2 NotQuick by simp
+    qed
+  qed
+next
+  case (3 ls)
+  then show ?case by simp
+next
+  case (4 vb vc va)
+  then show ?case sorry (* contradiction in assumption *)
+qed
 *)
 
+lemma remove_quick_preserves_semantics : "pf rules matcher packet = pf (remove_quick rules) matcher packet"
+proof (induction rules rule:remove_quick.induct)
+  case 1
+  then show ?case by simp
+next
+  case (2 r ls)
+  then show ?case
+  proof(cases "get_quick r")
+    case t: True
+    then show ?thesis
+    proof(cases "matches matcher (pf_rule2.get_match r) packet")
+      case True
+      then show ?thesis using t 2
+        apply auto
+        sorry
+    next
+      case False
+      then show ?thesis sorry
+    qed  
+  next
+    case False
+    then show ?thesis using 2 by auto
+  qed
+next
+  case ("3" ls)
+  then show ?case by simp
+next
+  case ("4" r b ls)
+  then show ?case sorry
+qed
 
 
 (*
