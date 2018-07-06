@@ -27,6 +27,22 @@ fun no_anchors :: "'a ruleset \<Rightarrow> bool" where
 |"no_anchors ((Anchor _ _)#ls) = False"
 |"no_anchors (_#ls) = no_anchors ls"
 
+fun no_anchors' :: "'a ruleset \<Rightarrow> bool" where
+"no_anchors' rules = (\<nexists> r b . Anchor r b\<in>(set rules))"
+
+lemma no_anchors_no_anchors'_eq : "no_anchors = no_anchors'"
+proof
+  fix rules
+  show "no_anchors rules = no_anchors' rules"
+  proof(induction rules)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rules)
+    then show ?case by(cases a, auto)
+  qed
+qed
+
 lemma no_anchors_0_anchors: "count_anchors rules = 0 \<longleftrightarrow> no_anchors rules"
 proof(induction rules)
   case Nil
@@ -101,10 +117,6 @@ next
     qed
   qed
 qed
-
-
-fun no_anchors' :: "'a ruleset \<Rightarrow> bool" where
-"no_anchors' rules = (\<nexists> r b . Anchor r b\<in>(set rules))"
 
 (* FIXME: using remove_anchors_only_subtracts'
 fun remove_all_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
