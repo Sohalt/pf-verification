@@ -503,6 +503,62 @@ next
   case (Cons a l1)
   then show ?case by (cases a, auto)
 qed
+
+lemma remove_single_quick_only_subtracts:
+  assumes "no_anchors rules"
+  shows "count_quick rules \<ge> count_quick (remove_single_quick rules)"
+proof(induction rule:remove_single_quick.induct)
+  case 1
+  then show ?case by simp
+next
+  case (2 ls)
+  then show ?case by simp
+next
+  case IH: (3 r ls)
+  then show ?case
+  proof(cases "get_quick r")
+    case True
+    then show ?thesis using IH by simp
+  next
+    case False
+    then show ?thesis using IH by simp
+  qed
+next
+  case (4 vb vc va)
+  then show ?case sorry (*assms*)
+qed
+
+
+lemma remove_single_quick_only_subtracts':
+  assumes "no_anchors rules"
+          "count_quick rules > 0"
+        shows "count_quick rules > count_quick (remove_single_quick rules)"
+proof(cases "count_quick rules")
+  case 0
+  then show ?thesis using assms by auto
+next
+  case (Suc nat)
+  then show ?thesis
+  proof(induction rules)
+    case Nil
+    then show ?case by auto
+  next
+    case IH: (Cons a rules)
+    then show ?case
+    proof(cases a)
+      case Option
+      then show ?thesis using IH by auto
+    next
+      case (PfRule x2)
+      then show ?thesis using IH by auto
+    next
+      case (Anchor x31 x32)
+      then show ?thesis sorry (* assms *)
+    qed
+  qed
+qed
+
+
 (*
 fun remove_all_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_all_quick rules = (if no_quick rules then rules else (remove_all_quick (remove_single_quick rules)))"
