@@ -106,8 +106,14 @@ qed
 fun no_anchors' :: "'a ruleset \<Rightarrow> bool" where
 "no_anchors' rules = (\<nexists> r b . Anchor r b\<in>(set rules))"
 
+(* FIXME: using remove_anchors_only_subtracts'
 fun remove_all_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
-"remove_all_anchors rules = (if \<not>no_anchors' rules then remove_all_anchors (remove_anchors rules) else rules)"
+"remove_all_anchors rules = (if \<not>no_anchors rules then remove_all_anchors (remove_anchors rules) else rules)"
+
+
+lemma remove_all_anchors_ok : "no_anchors (remove_all_anchors rules)"
+  sorry
+*)
 
 
 fun is_quick_rule :: "'a line \<Rightarrow> bool" where
