@@ -14,8 +14,19 @@ fun and_each :: "'a match_expr \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset
 
 fun remove_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_anchors [] = []"|
-"remove_anchors ((Anchor r l) # rs) = (and_each (anchor_rule2.get_match r) l) @ (remove_anchors rs)"|
+"remove_anchors ((Anchor r l) # rs) = (and_each (anchor_rule2.get_match r) (*remove_anchors l*)l) @ (remove_anchors rs)"|
 "remove_anchors (r#rs) = r#(remove_anchors rs)"
+
+fun no_anchors :: "'a ruleset \<Rightarrow> bool" where
+"no_anchors [] = True"
+|"no_anchors ((Anchor _ _)#ls) = False"
+|"no_anchors (_#ls) = no_anchors ls"
+
+fun no_anchors' :: "'a ruleset \<Rightarrow> bool" where
+"no_anchors' rules = (\<nexists> r b . Anchor r b\<in>(set rules))"
+
+fun remove_all_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_all_anchors rules = (if \<not>no_anchors' rules then remove_all_anchors (remove_anchors rules) else rules)"
 
 
 fun is_quick_rule :: "'a line \<Rightarrow> bool" where
