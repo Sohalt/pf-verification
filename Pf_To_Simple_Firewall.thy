@@ -633,6 +633,64 @@ fun no_line_matches :: "'a line list \<Rightarrow> ('a, 'p) matcher \<Rightarrow
 "no_line_matches [] m p = True"
 |"no_line_matches (l#ls) m p = (\<not>line_matches l m p \<and> no_line_matches ls m p)"
 
+lemma remove_suffix[simp]:
+  assumes "\<not>matches m (pf_rule2.get_match r) p"
+  shows "filter (l@[(PfRule r)]) m p d = filter l m p d"
+proof(cases "filter l m p d")
+  case (Final x1)
+  then show ?thesis by (simp add: filter_chain)
+next
+  case (Preliminary x2)
+  then show ?thesis using assms by (simp add:filter_chain)
+qed
+
+lemma remove_single_quick_preserves_semantics:
+  assumes "no_anchors rules"
+  shows "pf rules matcher packet = pf (remove_single_quick rules) matcher packet"
+proof(-)
+  have "(unwrap_decision (filter rules matcher packet d) = unwrap_decision (filter (remove_single_quick rules) matcher packet d))" for d
+  proof(induction rules arbitrary: d)
+    case Nil
+    then show ?case by simp
+  next
+    case IH: (Cons a rules)
+    then show ?case
+    proof(cases d)
+      case (Final x1)
+      then show ?thesis by simp
+    next
+      case (Preliminary x2)
+      then show ?thesis
+      proof(cases a)
+        case Option
+        then show ?thesis unfolding Option using Preliminary IH by auto
+      next
+        case (PfRule r)
+        then show ?thesis
+        proof(cases "get_quick r")
+          case Quick:True
+          then show ?thesis
+          proof(cases "matches matcher (pf_rule2.get_match r) packet")
+            case True
+            then show ?thesis unfolding PfRule Preliminary using Quick by (simp add:filter_chain)
+          next
+            case False
+            then show ?thesis unfolding PfRule Preliminary using Quick by auto
+          qed
+        next
+          case False
+          then show ?thesis unfolding PfRule using IH by (cases d, auto)
+        qed
+      next
+        case (Anchor x31 x32)
+        then show ?thesis sorry (* assms *)
+      qed
+    qed
+  qed
+  then show ?thesis by (simp add: pf_def)
+qed
+
+
 lemma remove_quick_only_restricts_matches:
   assumes "no_line_matches lines m p"
   shows "no_line_matches (remove_quick lines) m p"
