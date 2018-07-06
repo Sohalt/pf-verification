@@ -410,6 +410,23 @@ With remove_quick, if something matches the quick rule, these rules explicitly c
 TODO: check exact semantics of rewriting/matching rules (does only last rule or every matching rule get executed?)
 *)
 
+fun remove_single_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_single_quick [] = []"
+|"remove_single_quick (Option#ls) = Option#(remove_single_quick ls)"
+|"remove_single_quick ((PfRule r)#ls) =
+(if (get_quick r)
+then
+(and_each (MatchNot (pf_rule2.get_match r)) ls)@[PfRule (r\<lparr>get_quick := False\<rparr>)]
+else
+((PfRule r)#(remove_single_quick ls)))"
+
+fun no_quick :: "'a ruleset \<Rightarrow> bool" where
+"no_quick rules = (\<nexists> l . l\<in>(set rules) \<and> is_quick_rule l)"
+(*
+fun remove_all_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_all_quick rules = (if no_quick rules then rules else (remove_all_quick (remove_single_quick rules)))"
+*)
+
 lemma pf_option_prefix[simp]:
 "pf (Option#l) m p = pf l m p"
 proof(induction l)
