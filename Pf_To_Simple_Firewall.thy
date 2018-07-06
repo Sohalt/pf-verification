@@ -17,10 +17,91 @@ fun remove_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_anchors ((Anchor r l) # rs) = (and_each (anchor_rule2.get_match r) (*remove_anchors l*)l) @ (remove_anchors rs)"|
 "remove_anchors (r#rs) = r#(remove_anchors rs)"
 
+fun count_anchors :: "'a ruleset \<Rightarrow> nat" where
+"count_anchors [] = 0"
+|"count_anchors ((Anchor r b)#l) = 1 + count_anchors b + count_anchors l"
+|"count_anchors (_#l) = count_anchors l"
+
 fun no_anchors :: "'a ruleset \<Rightarrow> bool" where
 "no_anchors [] = True"
 |"no_anchors ((Anchor _ _)#ls) = False"
 |"no_anchors (_#ls) = no_anchors ls"
+
+lemma no_anchors_0_anchors: "count_anchors rules = 0 \<longleftrightarrow> no_anchors rules"
+proof(induction rules)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a rules)
+  then show ?case by (cases a,auto)
+qed
+
+lemma and_each_anchor_count_unchanged[simp]:
+"count_anchors (and_each mexp rules) = count_anchors rules"
+proof(induction rules)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a rules)
+  then show ?case by (cases a, auto)
+qed
+
+lemma count_anchors_append[simp]:
+"count_anchors (l1 @ l2) = count_anchors l1 + count_anchors l2"
+proof(induction l1)
+case Nil
+then show ?case by simp
+next
+  case (Cons a l1)
+  then show ?case by (cases a, auto)
+qed
+
+lemma remove_anchors_only_subtracts:
+"count_anchors rules \<ge> count_anchors (remove_anchors rules)"
+proof(induction rule: remove_anchors.induct)
+  case 1
+  then show ?case by simp
+next
+  case (2 r l rs)
+  then show ?case by simp
+next
+  case ("3_1" rs)
+  then show ?case by simp
+next
+  case ("3_2" v rs)
+  then show ?case by simp
+qed
+
+lemma remove_anchors_only_subtracts':
+  assumes "count_anchors rules > 0"
+  shows "count_anchors rules > count_anchors (remove_anchors rules)"
+proof(cases "count_anchors rules")
+  case 0
+  then show ?thesis using assms by auto
+next
+  case (Suc nat)
+  then show ?thesis
+  proof(induction rules)
+    case Nil
+    then show ?case by auto
+  next
+    case IH: (Cons a rules)
+    then show ?case
+    proof(cases a)
+      case Option
+      then show ?thesis using IH by auto
+    next
+      case (PfRule x2)
+      then show ?thesis using IH by auto
+    next
+      case (Anchor x31 x32)
+      then show ?thesis unfolding Anchor using remove_anchors_only_subtracts
+        apply(auto)
+        using le_imp_less_Suc by blast
+    qed
+  qed
+qed
+
 
 fun no_anchors' :: "'a ruleset \<Rightarrow> bool" where
 "no_anchors' rules = (\<nexists> r b . Anchor r b\<in>(set rules))"
