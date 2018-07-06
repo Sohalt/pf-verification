@@ -390,7 +390,8 @@ then
 (remove_quick (and_each (MatchNot (pf_rule2.get_match r)) ls))@[PfRule (r\<lparr>get_quick := False\<rparr>)]
 else
 ((PfRule r)#(remove_quick ls)))"|
-"remove_quick (l#ls) = l#(remove_quick ls)"
+"remove_quick (Option#ls) = Option#(remove_quick ls)"
+(* must not be called with anchors *)
 
 
 fun remove_quick_alternate' :: "'a ruleset \<Rightarrow> 'a line list \<Rightarrow> 'a ruleset" where
