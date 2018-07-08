@@ -376,7 +376,6 @@ next
       case False
       then show ?thesis unfolding Preliminary by auto
     qed
-
     then have "filter ([Anchor r ls] @ rules) matcher packet d = filter (and_each (get_match r) ls @ remove_anchors rules) matcher packet d"
       apply (rule filter_add_equiv_prefix)
       using IH by auto
@@ -702,9 +701,7 @@ next
   then show ?case
   proof(cases a)
     case Option
-    then show ?thesis using IH assms
-      apply(auto)
-      sorry
+    then show ?thesis using IH assms by auto
   next
     case (PfRule x2)
     then show ?thesis using IH sorry
