@@ -66,6 +66,24 @@ datatype decision_wrap =
   Final decision
   | Preliminary decision
 
+fun filter_spec :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
+"filter [] m p d = d"
+|"filter (Option#ls) m p d = filter ls m p d"
+|"filter ((PfRule r)#ls) m p d =
+(if (matches m (pf_rule2.get_match r) p)
+then
+(if (pf_rule2.get_quick r)
+then (action_to_decision (pf_rule2.get_action r) d)
+else (filter ls m p (action_to_decision (pf_rule2.get_action r) d)))
+else
+filter ls m p d)"
+|"filter ((Anchor r b)#ls) m p d =
+(if (matches m (anchor_rule2.get_match r) p)
+then
+(filter (b@ls) m p d)
+else
+filter ls m p d)"
+
 fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
 "filter _ _ _ (Final d) = Final d"
 | "filter [] _ _ d = d"
