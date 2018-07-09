@@ -109,11 +109,10 @@ termination
    apply rule
   apply (subst in_measure)
   apply (rule remove_anchors_only_subtracts')
-  sorry
+  using no_anchors_0_anchors by auto
 
 lemma remove_all_anchors_ok : "no_anchors (remove_all_anchors rules)"
   sorry
-
 
 fun is_quick_rule :: "'a line \<Rightarrow> bool" where
 "is_quick_rule (PfRule r) = (get_quick r)"
