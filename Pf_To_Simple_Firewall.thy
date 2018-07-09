@@ -622,7 +622,7 @@ lemma remove_single_quick_preserves_semantics:
   assumes "no_anchors rules"
   shows "pf rules matcher packet = pf (remove_single_quick rules) matcher packet"
 proof(-)
-  have "(unwrap_decision (filter rules matcher packet d) = unwrap_decision (filter (remove_single_quick rules) matcher packet d))" for d
+  from assms have "(unwrap_decision (filter rules matcher packet d) = unwrap_decision (filter (remove_single_quick rules) matcher packet d))" for d
   proof(induction rules arbitrary: d)
     case Nil
     then show ?case by simp
@@ -657,7 +657,7 @@ proof(-)
         qed
       next
         case (Anchor x31 x32)
-        then show ?thesis sorry (* assms *)
+        then show ?thesis using IH by auto
       qed
     qed
   qed
