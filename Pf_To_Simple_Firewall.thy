@@ -525,10 +525,18 @@ next
   qed
 qed
 
-(*
-fun remove_all_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
-"remove_all_quick rules = (if no_quick rules then rules else (remove_all_quick (remove_single_quick rules)))"
-*)
+
+function remove_all_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_all_quick rules = (if no_anchors rules then (if no_quick rules then rules else (remove_all_quick (remove_single_quick rules))) else undefined)"
+  by pat_completeness auto
+
+termination remove_all_quick
+  apply (relation "measure count_quick")
+   apply rule
+  apply (subst in_measure)
+  apply (rule remove_single_quick_only_subtracts')
+  using no_quick_count_quick_0 by auto
+
 
 lemma pf_option_prefix[simp]:
 "pf (Option#l) m p = pf l m p"
