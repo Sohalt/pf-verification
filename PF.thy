@@ -41,7 +41,7 @@ record 'a anchor_rule2 =
 datatype 'a line =
   Option
   | PfRule "'a pf_rule2"
-  | Anchor "'a anchor_rule2" "'a line list"
+  | is_Anchor: Anchor "'a anchor_rule2" "'a line list"
 
 quickcheck_generator line constructors: Option, PfRule
 

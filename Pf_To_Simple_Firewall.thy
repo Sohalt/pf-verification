@@ -22,26 +22,8 @@ fun count_anchors :: "'a ruleset \<Rightarrow> nat" where
 |"count_anchors ((Anchor r b)#l) = 1 + count_anchors b + count_anchors l"
 |"count_anchors (_#l) = count_anchors l"
 
-fun no_anchors :: "'a ruleset \<Rightarrow> bool" where
-"no_anchors [] = True"
-|"no_anchors ((Anchor _ _)#ls) = False"
-|"no_anchors (_#ls) = no_anchors ls"
-
-fun no_anchors' :: "'a ruleset \<Rightarrow> bool" where
-"no_anchors' rules = (\<nexists> r b . Anchor r b\<in>(set rules))"
-
-lemma no_anchors_no_anchors'_eq : "no_anchors = no_anchors'"
-proof
-  fix rules
-  show "no_anchors rules = no_anchors' rules"
-  proof(induction rules)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a rules)
-    then show ?case by(cases a, auto)
-  qed
-qed
+abbreviation no_anchors :: "'a ruleset \<Rightarrow> bool" where
+"no_anchors ls \<equiv> (\<forall>l \<in> set ls. \<not> is_Anchor l)"
 
 lemma no_anchors_0_anchors: "count_anchors rules = 0 \<longleftrightarrow> no_anchors rules"
 proof(induction rules)
@@ -118,14 +100,19 @@ next
   qed
 qed
 
-(* FIXME: using remove_anchors_only_subtracts'
-fun remove_all_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
+function remove_all_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_all_anchors rules = (if \<not>no_anchors rules then remove_all_anchors (remove_anchors rules) else rules)"
+by pat_completeness auto
 
+termination
+  apply (relation "measure count_anchors")
+   apply rule
+  apply (subst in_measure)
+  apply (rule remove_anchors_only_subtracts')
+  sorry
 
 lemma remove_all_anchors_ok : "no_anchors (remove_all_anchors rules)"
   sorry
-*)
 
 
 fun is_quick_rule :: "'a line \<Rightarrow> bool" where
@@ -537,7 +524,7 @@ proof(cases "count_quick rules")
   then show ?thesis using assms by auto
 next
   case (Suc nat)
-  then show ?thesis
+  then show ?thesis using \<open>no_anchors rules\<close>
   proof(induction rules)
     case Nil
     then show ?case by auto
@@ -556,7 +543,6 @@ next
     qed
   qed
 qed
-
 
 (*
 fun remove_all_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
@@ -827,7 +813,7 @@ next
     next
       case False
       then show ?thesis sorry
-    qed  
+    qed
   next
     case False
     then show ?thesis using 2 by auto
