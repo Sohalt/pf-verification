@@ -520,7 +520,7 @@ next
       then show ?thesis using IH by auto
     next
       case (Anchor x31 x32)
-      then show ?thesis sorry (* assms *)
+      then show ?thesis using IH by auto
     qed
   qed
 qed
