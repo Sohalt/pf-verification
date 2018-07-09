@@ -474,6 +474,7 @@ qed
 lemma remove_single_quick_only_subtracts:
   assumes "no_anchors rules"
   shows "count_quick rules \<ge> count_quick (remove_single_quick rules)"
+  using assms
 proof(induction rule:remove_single_quick.induct)
   case 1
   then show ?case by simp
@@ -492,7 +493,7 @@ next
   qed
 next
   case (4 vb vc va)
-  then show ?case sorry (*assms*)
+  then show ?case by auto
 qed
 
 
