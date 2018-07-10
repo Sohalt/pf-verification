@@ -59,9 +59,6 @@ fun action_to_decision :: "action \<Rightarrow> decision \<Rightarrow> decision"
 
 case_of_simps action_to_decision_cases: action_to_decision.simps
 
-thm action_to_decision.simps
-thm action_to_decision_cases
-
 datatype decision_wrap =
   Final decision
   | Preliminary decision
@@ -102,31 +99,6 @@ else (Preliminary d))
 
 case_of_simps filter_cases: filter.simps
 
-(*
-fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
-"filter [] _ _ d = d"
-| "filter (l#ls) m p d = (case l of
-Option \<Rightarrow> filter ls m p d
-| (PfRule r) \<Rightarrow> (if (matches m (pf_rule2.get_match r) p)
-then
-(if (get_quick r) then (action_to_decision (get_action r) d)
-else filter ls m p (action_to_decision (get_action r) d))
-else filter ls m p d)
-| (Anchor r body) \<Rightarrow> (if (matches m (anchor_rule2.get_match r) p)
-then filter (body @ ls) m p d
-else filter ls m p d)
-)"
-*)
-(*
-| "filter (Option # rs) m p d = filter rs m p d"
-| "filter ((PfRule r) # rs) m p d = (if (matches m (pf_rule2.get_match r) p)
-then
-(if (get_quick r) then (action_to_decision (get_action r) d)
-else filter rs m p (action_to_decision (get_action r) d))
-else filter rs m p d)"
-| "filter ((Anchor r l) # rs) m p d = (if (matches m (anchor_rule2.get_match r) p)
-then filter (l @ rs) m p d
-else filter rs m p d)"*)
 
 fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
 "unwrap_decision (Final d) = d"
@@ -134,7 +106,6 @@ fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
 
 case_of_simps unwrap_decision_cases: unwrap_decision.simps
 
-thm unwrap_decision_cases
 
 definition pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
 "pf rules m packet = unwrap_decision (filter rules m packet (Preliminary Undecided))"
@@ -153,7 +124,6 @@ definition pf' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow
 "pf' rules m = unwrap_decision (filter' rules m (Preliminary Undecided))"
 
 lemma "pf rules m packet = pf' rules (\<lambda>a. m a packet)"
-  (*quickcheck*) (* FIXME lars quickcheck bug *)
   unfolding pf_def pf'_def
   by simp
 
