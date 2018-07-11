@@ -466,6 +466,17 @@ proof(-)
   then show ?thesis by (simp add: pf_def)
 qed
 
+fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_matches [] = []"
+|"remove_matches ((PfRule r)#ls) = (if ((pf_rule2.get_action r) = action.Match) then remove_matches ls else (PfRule r)#remove_matches ls)"
+|"remove_matches (l#ls) = l#(remove_matches ls)"
+
+lemma remove_matches_ok:
+  assumes "no_quick rules"
+          "no_anchors rules"
+  shows "filter rules matcher packet (Preliminary start_decision) = filter (remove_matches rules) matcher packet (Preliminary start_decision)"
+  using assms
+  by (induction rules arbitrary:start_decision rule: remove_matches.induct; simp)
 (*
 fun pf_to_simplefw :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "pf_to_simplefw rules = (map to_simple_match (reverse (normalize_firewall (remove_quick (remove_anchors rules)))))"
