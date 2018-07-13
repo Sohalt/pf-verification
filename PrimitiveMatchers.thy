@@ -2,6 +2,7 @@ theory PrimitiveMatchers
   imports Primitives 
           Simple_Firewall.Simple_Packet
           Matching
+          "HOL-Library.Simps_Case_Conv"
 begin
 fun match_interface :: "direction option \<Rightarrow> iface option \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_interface (Some In) (Some iface) p = ((p_iiface p) = iface)" |
@@ -29,8 +30,192 @@ fun match_proto:: "primitive_protocol list \<Rightarrow> 32 simple_packet \<Righ
 fun match_address :: "address \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
 "match_address _ _ = True" -- TODO
 
-fun match_table :: "string \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
-"match_table name ip = True" (* TODO *)
+fun lookup_table :: "string \<Rightarrow> table" where
+"lookup_table _ = []" (* TODO *)
+
+fun decision :: "table_entry \<Rightarrow> bool" where
+"decision (TableEntry _) = True"
+|"decision (TableEntryNegated _) = False"
+
+case_of_simps decision_cases: decision.simps
+
+fun pfxm_length' :: "table_entry \<Rightarrow> nat" where
+"pfxm_length' (TableEntry t) = (case t of (IPv4 a) \<Rightarrow> pfxm_length a | (IPv6 a) \<Rightarrow> pfxm_length a)"
+|"pfxm_length' (TableEntryNegated t) = (case t of (IPv4 a) \<Rightarrow> pfxm_length a | (IPv6 a) \<Rightarrow> pfxm_length a)"
+
+fun matches_v4 :: "table_entry \<Rightarrow> 32 word \<Rightarrow> bool" where
+"matches_v4 t addr = (case (case t of (TableEntry t) \<Rightarrow> t | (TableEntryNegated t) \<Rightarrow> t) of (IPv4 a) \<Rightarrow> prefix_match_semantics a addr | (IPv6 a) \<Rightarrow> False)"
+
+fun match_table'_v4 :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
+"match_table'_v4 table addr =
+ fst (fold (\<lambda> t (d,pfxml).
+ if (matches_v4 t addr \<and> (pfxm_length' t > pfxml))
+ then ((decision t),(pfxm_length' t))
+ else (d,pfxml)) table (False,0::nat))"
+
+fun match_table_v4 :: "string \<Rightarrow> 32 word \<Rightarrow> bool" where
+"match_table_v4 name ip = match_table'_v4 (lookup_table name) ip"
+
+
+instantiation table_address :: linorder
+begin
+fun less_eq_table_address :: "table_address \<Rightarrow> table_address \<Rightarrow> bool" where
+"less_eq_table_address (IPv4 a) (IPv4 b) = (a \<le> b)"
+|"less_eq_table_address (IPv4 a) (IPv6 b) = True"
+|"less_eq_table_address (IPv6 a) (IPv4 b) = False"
+|"less_eq_table_address (IPv6 a) (IPv6 b) = (a \<le> b)"
+
+case_of_simps less_eq_table_address_cases: less_eq_table_address.simps
+
+fun less_table_address :: "table_address \<Rightarrow> table_address \<Rightarrow> bool" where
+"less_table_address (IPv4 a) (IPv4 b) = (a < b)"
+|"less_table_address (IPv4 a) (IPv6 b) = True"
+|"less_table_address (IPv6 a) (IPv4 b) = False"
+|"less_table_address (IPv6 a) (IPv6 b) = (a < b)"
+
+case_of_simps less_table_address_cases: less_table_address.simps
+thm less_table_address_cases
+
+instance by standard (auto simp add: less_eq_table_address_cases less_table_address_cases split: table_address.splits)
+end
+
+instantiation table_entry :: linorder
+begin
+fun less_eq_table_entry :: "table_entry \<Rightarrow> table_entry \<Rightarrow> bool" where
+"less_eq_table_entry (TableEntry a) (TableEntry b) = (a \<le> b)"
+|"less_eq_table_entry (TableEntry a) (TableEntryNegated b) = True"
+|"less_eq_table_entry (TableEntryNegated a) (TableEntry b) = False"
+|"less_eq_table_entry (TableEntryNegated a) (TableEntryNegated b) = (a \<le> b)"
+
+case_of_simps less_eq_table_entry_cases: less_eq_table_entry.simps
+
+fun less_table_entry :: "table_entry \<Rightarrow> table_entry \<Rightarrow> bool" where
+"less_table_entry (TableEntry a) (TableEntry b) = (a < b)"
+|"less_table_entry (TableEntry a) (TableEntryNegated b) = True"
+|"less_table_entry (TableEntryNegated a) (TableEntry b) = False"
+|"less_table_entry (TableEntryNegated a) (TableEntryNegated b) = (a < b)"
+
+case_of_simps less_table_entry_cases: less_table_entry.simps
+thm less_table_entry_cases
+
+instance by standard (auto simp add: less_eq_table_entry_cases less_table_entry_cases split: table_entry.splits)
+end
+
+
+fun match_table_v4_alt :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
+"match_table_v4_alt table addr =
+ (case (find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) addr) (sort (filter (\<lambda> t. isIPv4 (ta t)) table))) of
+ (Some t) \<Rightarrow> decision t |None \<Rightarrow> False)"
+
+fun f :: "table_entry \<Rightarrow> 32 word set \<Rightarrow> 32 word set" where
+"f t a = (case t of (TableEntry te) \<Rightarrow> a \<union> prefix_to_wordset (ip4 te) | (TableEntryNegated te) \<Rightarrow> a - prefix_to_wordset  (ip4 te))"
+
+fun table_to_set_v4 :: "table \<Rightarrow> 32 word set" where
+"table_to_set_v4 table =
+ foldr f
+ (sort (filter (\<lambda> t. isIPv4 (ta t)) table)) {}"
+
+definition match_table_v4_alt' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
+"match_table_v4_alt' table address \<longleftrightarrow> address \<in> table_to_set_v4 table"
+
+definition valid_table :: "table \<Rightarrow> bool" where
+"valid_table table \<longleftrightarrow> (\<forall> t \<in> set table . (case (ta t) of (IPv4 a) \<Rightarrow> valid_prefix a | (IPv6 a) \<Rightarrow> valid_prefix a))"
+
+
+lemma table_entry_matches_addr_in_set:
+  assumes "\<exists> te . Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntry te"
+  shows "address \<in> table_to_set_v4 table"
+proof(-)
+  obtain te where "Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntry te" using assms by blast
+  then have "(sort [t\<leftarrow>table . isIPv4 (ta t)]) = t1@[TableEntry te]@t2" sorry
+  then have "table_to_set_v4 table = foldr f (t1@[TableEntry te]) (foldr f t2 {})" by simp
+  then have "table_to_set_v4 table = foldr f t1 ((foldr f t2 {}) \<union> prefix_to_wordset (ip4 te))" by simp
+(* address not in range of any te in t1 \<rightarrow> even removing all of t1 (all TableEntryNegated) doesn't remove addr from foldr f t1 ((foldr f t2 {}) \<union> prefix_to_wordset (ip4 te)) *)
+  then show ?thesis sorry
+qed
+
+lemma table_entry_negated_matches_addr_not_in_set:
+  assumes "\<exists> te . Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntryNegated te"
+  shows "address \<notin> table_to_set_v4 table"
+proof(-)
+  obtain te where "Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntryNegated te" using assms by blast
+  then have "(sort [t\<leftarrow>table . isIPv4 (ta t)]) = t1@[TableEntryNegated te]@t2" sorry
+  then have "table_to_set_v4 table = foldr f (t1@[TableEntryNegated te]) (foldr f t2 {})" by simp
+  then have "table_to_set_v4 table = foldr f t1 ((foldr f t2 {}) - prefix_to_wordset (ip4 te))" by simp
+(* address not in range of any te in t1 \<rightarrow> even adding all of t1 (all TableEntry) doesn't add addr to foldr f t1 ((foldr f t2 {}) - prefix_to_wordset (ip4 te)) *)
+  show ?thesis sorry
+qed
+
+lemma match_table_v4:
+  assumes "valid_table table"
+  shows "match_table_v4_alt table address = match_table_v4_alt' table address"
+  using assms
+proof(cases "\<exists> x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]) . prefix_match_semantics (ip4 (ta x)) address")
+  case True
+  then have *: "(find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) address) (sort (filter (\<lambda> t. isIPv4 (ta t)) table))) =
+ Some (Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address})"
+    by (auto simp: sorted_find_Min)
+  show ?thesis
+  proof(cases "(Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address})")
+    case (TableEntry x1)
+    then have **:"match_table_v4_alt table address = True" using * by simp
+    have "match_table_v4_alt' table address = True" using TableEntry table_entry_matches_addr_in_set by (simp add:match_table_v4_alt'_def)
+    then show ?thesis using ** by simp
+  next
+    case (TableEntryNegated x2)
+    then have **:"match_table_v4_alt table address = False" using * by simp
+    have "match_table_v4_alt' table address = False" using TableEntryNegated table_entry_negated_matches_addr_not_in_set by (simp add:match_table_v4_alt'_def)
+    then show ?thesis using ** by simp
+  qed
+next
+  case False
+  then have "(find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) address) (sort (filter (\<lambda> t. isIPv4 (ta t)) table))) = None" by (auto simp add: find_None_iff)
+  then have *:"match_table_v4_alt table address = False" by auto
+  have "match_table_v4_alt' table address = False" sorry
+  then show ?thesis using * by simp
+qed
+
+(*
+
+proof(cases "match_table_v4_alt table address")
+  case True
+  then have "\<exists> a. find (\<lambda>t. prefix_match_semantics (ip4 (ta t)) address) (sort [t\<leftarrow>table . isIPv4 (ta t)]) = Some (TableEntry (IPv4 a)) \<and> prefix_match_semantics a address" apply(auto simp: decision_cases split:table_entry.splits)
+  then have "\<exists> a. (TableEntry (IPv4 a)) \<in> set table \<and> prefix_match_semantics a address" apply(simp)
+  then show ?thesis sorry
+next
+  case False
+  then show ?thesis sorry
+qed
+
+
+proof(induction "(sort (filter (\<lambda> t. isIPv4 (ta t)) table))")
+  case Nil
+  then show ?case by (simp add: match_table_v4_alt'_def)
+next
+  case IH: (Cons t tab)
+  have "valid_table (t#tab)" using IH by (simp add:foo)
+      then have vp: "valid_prefix (ip4 (ta t))"
+        by (metis Cons_eq_filterD IH.hyps(2) filter_sort list.set_intros(1) table_address.case_eq_if valid_table_def)
+    have *:"match_table_v4_alt table address =
+ (case find (\<lambda>t. prefix_match_semantics (ip4 (ta t)) address) (t#tab) of None \<Rightarrow> False | Some x \<Rightarrow> decision x)"
+      using IH by auto
+    have **:"match_table_v4_alt' table address =
+(address \<in>
+ foldr (\<lambda>t a. case t of
+ TableEntry te \<Rightarrow> a \<union> prefix_to_wordset (ip4 te)
+ | TableEntryNegated te \<Rightarrow> a - prefix_to_wordset (ip4 te))
+ (t#tab) {})"
+      using IH by (auto simp:match_table_v4_alt'_def)
+  then show ?case
+  proof(cases "prefix_match_semantics (ip4 (ta t)) address")
+    case True
+    then show ?thesis using vp * ** by (auto simp add: prefix_match_semantics_wordset split:table_entry.splits)
+  next
+    case False
+    then show ?thesis using vp * ** sorry
+  qed
+qed
+*)
 
 fun match_host :: "host \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
 "match_host (Address addr) ip = match_address addr ip"|
