@@ -1,6 +1,7 @@
 theory Primitives
   imports IP_Addresses.IPv4
     IP_Addresses.IPv6
+IP_Addresses.Prefix_Match
  Iptables_Semantics.L4_Protocol_Flags
 begin
 
@@ -51,8 +52,18 @@ datatype address =
   InterfaceName string
   | InterfaceGroup string
   | Hostname string
-  | Ipv4 ipv4addr
-  | Ipv6 ipv6addr
+  | Ipv4 "32 prefix_match"
+  | Ipv6 ipv6addr "128 prefix_match"
+
+datatype table_address =
+  isIPv4: IPv4 (ip4:"32 prefix_match")
+  | isIPv6: IPv6 (ip6:"128 prefix_match")
+
+datatype table_entry =
+TableEntry (ta: table_address)
+| TableEntryNegated (ta: table_address)
+
+type_synonym table = "table_entry list"
 
 datatype host =
   Address address
