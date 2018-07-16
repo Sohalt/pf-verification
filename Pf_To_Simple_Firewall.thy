@@ -112,8 +112,7 @@ termination
   using no_anchors_0_anchors by auto
 
 lemma remove_all_anchors_ok : "no_anchors (remove_all_anchors rules)"
-  sorry
-
+by (induction rules rule: remove_all_anchors.induct) (metis remove_all_anchors.elims)
 
 lemma filter_to_pf:
   assumes "\<forall> d. (filter l1 m p d = filter l2 m p d)"

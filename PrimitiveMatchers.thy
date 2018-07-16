@@ -1,5 +1,5 @@
 theory PrimitiveMatchers
-  imports Primitives 
+  imports Primitives
           Simple_Firewall.Simple_Packet
           Matching
           "HOL-Library.Simps_Case_Conv"
@@ -102,18 +102,19 @@ instance by standard (auto simp add: less_eq_table_entry_cases less_table_entry_
 end
 
 
-fun match_table_v4_alt :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
+definition match_table_v4_alt :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
 "match_table_v4_alt table addr =
- (case (find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) addr) (*(sort_key (\<lambda> t.(ip4 (ta t)))*) (sort (filter (\<lambda> t. isIPv4 (ta t)) table))) of
+ (case (find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) addr) table) of
  (Some t) \<Rightarrow> decision t |None \<Rightarrow> False)"
 
 fun f :: "table_entry \<Rightarrow> 32 word set \<Rightarrow> 32 word set" where
 "f t a = (case t of (TableEntry te) \<Rightarrow> a \<union> prefix_to_wordset (ip4 te) | (TableEntryNegated te) \<Rightarrow> a - prefix_to_wordset  (ip4 te))"
 
-fun table_to_set_v4 :: "table \<Rightarrow> 32 word set" where
-"table_to_set_v4 table =
- foldr f
- (sort (filter (\<lambda> t. isIPv4 (ta t)) table)) {}"
+definition table_to_set_v4 :: "table \<Rightarrow> 32 word set" where
+"table_to_set_v4 table = {word. match_table_v4_alt table word}"
+
+lemma "table_to_set_v4 table = foldr f (sort (filter (\<lambda> t. isIPv4 (ta t)) table)) {}"
+  sorry
 
 definition match_table_v4_alt' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
 "match_table_v4_alt' table address \<longleftrightarrow> address \<in> table_to_set_v4 table"
@@ -132,6 +133,37 @@ proof(-)
     then show ?thesis sorry
 qed
 
+lemma find_split:
+  assumes "find P xs = Some x"
+  shows "\<exists>xs1 xs2. xs = xs1 @ x # xs2 \<and> (\<forall>x \<in> set xs1. \<not> P x)"
+using assms apply (induction xs) apply (auto split: if_splits)
+apply fastforce
+  sorry
+
+lemma
+  assumes "sorted table" "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)"
+  assumes "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) table = Some (TableEntry te)"
+  shows "address \<in> table_to_set_v4 table"
+using assms proof (induction table rule: sorted.induct)
+  case Nil
+  then show ?case sorry
+next
+  case (Cons xs x)
+  show ?case
+    proof (cases "prefix_match_semantics (ip4 (ta x)) address")
+      case True
+      then show ?thesis
+        unfolding table_to_set_v4_def match_table_v4_alt_def
+        using Cons(5)
+        by simp
+    next
+      case False
+      then have "address \<in> table_to_set_v4 xs" sorry
+      then show ?thesis
+        unfolding table_to_set_v4_def match_table_v4_alt_def
+        using False by auto
+    qed
+qed
 
 lemma table_entry_matches_addr_in_set:
   assumes "\<exists> te . Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntry te"
@@ -228,7 +260,7 @@ next
 qed
 *)
 
-(* TODO ipv4 ipv6 versions 
+(* TODO ipv4 ipv6 versions
 fun match_host :: "host \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
 "match_host (Address addr) ip = match_address addr ip"|
 "match_host (NotAddress addr) ip = (\<not> (match_address addr ip))"|
@@ -283,7 +315,7 @@ fun match_port :: "opspec list option \<Rightarrow> 16 word \<Rightarrow> bool" 
 "match_port None _ = True"|
 "match_port (Some ops) port = match_port_ops ops port"
 
-(* TODO ipv4 ipv6 versions 
+(* TODO ipv4 ipv6 versions
 fun match_hosts :: "hosts \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_hosts AllHosts _ = True" |
 "match_hosts (FromTo from sports to dports) p = (match_hostspec from (p_src p) \<and> match_port sports (p_sport p) \<and> match_hostspec to (p_dst p) \<and> match_port dports (p_dport p))"
@@ -299,7 +331,7 @@ IIface "iface"
 | Proto "primitive_protocol list"
 | Hosts "hosts"
 
-(* TODO ipv4 ipv6 versions 
+(* TODO ipv4 ipv6 versions
 fun matcher :: "'i::len common_primitive \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "matcher (IIface iface) p = match_iiface iface p"|
 "matcher (OIface iface) p = match_oiface iface p"|

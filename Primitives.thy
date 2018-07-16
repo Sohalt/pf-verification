@@ -48,7 +48,7 @@ datatype afspec =
   Inet
   | Inet6
 
-datatype address = 
+datatype address =
   InterfaceName string
   | InterfaceGroup string
   | Hostname string
@@ -61,7 +61,7 @@ datatype table_address =
 
 datatype table_entry =
 TableEntry (ta: table_address)
-| TableEntryNegated (ta: table_address)
+| is_Negated: TableEntryNegated (ta: table_address)
 
 type_synonym table = "table_entry list"
 
@@ -79,7 +79,7 @@ datatype hostspec =
   | Host "host list"
   | Route string
 
-datatype hosts = 
+datatype hosts =
 AllHosts
 | FromTo hostspec "opspec list option" hostspec "opspec list option"
 end
