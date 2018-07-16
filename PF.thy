@@ -106,8 +106,6 @@ fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
 
 case_of_simps unwrap_decision_cases: unwrap_decision.simps
 
-
-
 lemma filter_chain:
   shows "filter (l1@l2) m p d = filter l2 m p (filter l1 m p d)"
 proof(induction l1 arbitrary: d)
@@ -154,6 +152,28 @@ next
   qed
 qed
 qed
+qed
+
+lemma "filter_spec rules m p start_decision = unwrap_decision (filter rules m p (Preliminary start_decision))"
+proof(induction rules m p start_decision rule: filter_spec.induct)
+  case (1 m p d)
+  then show ?case by simp
+next
+  case (2 ls m p d)
+  then show ?case by simp
+next
+  case (3 r ls m p d)
+  then show ?case by simp
+next
+  case IH: (4 r b ls m p d)
+  then show ?case
+  proof(cases "matches m (anchor_rule2.get_match r) p")
+    case True
+    then show ?thesis using IH by (auto simp: filter_chain)
+  next
+    case False
+    then show ?thesis using IH by auto
+  qed
 qed
 
 definition pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
