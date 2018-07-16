@@ -114,53 +114,6 @@ termination
 lemma remove_all_anchors_ok : "no_anchors (remove_all_anchors rules)"
   sorry
 
-lemma filter_chain:
-  shows "filter (l1@l2) m p d = filter l2 m p (filter l1 m p d)"
-proof(induction l1 arbitrary: d)
-  case Nil
-  then show ?case
-  proof(cases d)
-    case (Final x1)
-    then show ?thesis by simp
-  next
-    case (Preliminary x2)
-    then show ?thesis by simp
-  qed
-next
-  case IH:(Cons a l1)
-  then show ?case
-  proof(cases d)
-    case (Final x1)
-    then show ?thesis by simp
-  next
-    case Prem: (Preliminary x2)
-    then show ?thesis
-    proof(cases a)
-      case Option
-then show ?thesis using Prem IH by simp
-next
-case (PfRule r)
-  then show ?thesis
-    proof(cases "matches m (pf_rule2.get_match r) p")
-    case True
-    then show ?thesis unfolding PfRule using Prem IH by auto
-  next
-    case False
-    then show ?thesis using Prem IH by auto
-  qed
-next
-  case (Anchor r l)
-  then show ?thesis
-  proof(cases "matches m (anchor_rule2.get_match r) p")
-    case True
-    then show ?thesis using Prem IH by auto
-  next
-    case False
-    then show ?thesis using Prem IH by auto
-  qed
-qed
-qed
-qed
 
 lemma filter_to_pf:
   assumes "\<forall> d. (filter l1 m p d = filter l2 m p d)"
