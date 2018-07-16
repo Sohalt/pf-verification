@@ -356,10 +356,29 @@ termination remove_all_quick
   apply (rule remove_single_quick_only_subtracts')
   using no_quick_count_quick_0 by auto
 
+lemma andeach_no_anchors:
+  assumes "no_anchors rules"
+  shows "no_anchors (and_each m rules)"
+  using assms
+proof(induction rules)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a rules)
+  then show ?case by (cases a) auto
+qed
+
+lemma remove_single_quick_preserves_no_anchors:
+  assumes "no_anchors rules"
+  shows "no_anchors (remove_single_quick rules)"
+  using assms
+  by (induction rules rule:remove_single_quick.induct) (auto simp: andeach_no_anchors)
+
 lemma remove_all_quick_ok:
   assumes "no_anchors rules"
   shows "no_quick (remove_all_quick rules)"
-  sorry
+  using assms
+  by (induction rules rule:remove_all_quick.induct) (metis remove_all_quick.elims remove_single_quick_preserves_no_anchors)
 
 lemma remove_suffix[simp]:
   assumes "\<not>matches m (pf_rule2.get_match r) p"
