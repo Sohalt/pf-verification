@@ -104,7 +104,7 @@ end
 
 fun match_table_v4_alt :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
 "match_table_v4_alt table addr =
- (case (find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) addr) (sort (filter (\<lambda> t. isIPv4 (ta t)) table))) of
+ (case (find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) addr) (*(sort_key (\<lambda> t.(ip4 (ta t)))*) (sort (filter (\<lambda> t. isIPv4 (ta t)) table))) of
  (Some t) \<Rightarrow> decision t |None \<Rightarrow> False)"
 
 fun f :: "table_entry \<Rightarrow> 32 word set \<Rightarrow> 32 word set" where
