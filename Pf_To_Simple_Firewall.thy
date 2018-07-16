@@ -283,8 +283,8 @@ qed
 lemma count_quick_append[simp]:
 "count_quick (l1 @ l2) = count_quick l1 + count_quick l2"
 proof(induction l1)
-case Nil
-then show ?case by simp
+  case Nil
+  then show ?case by simp
 next
   case (Cons a l1)
   then show ?case by (cases a, auto)
