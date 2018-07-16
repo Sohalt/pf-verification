@@ -121,6 +121,17 @@ definition match_table_v4_alt' :: "table \<Rightarrow> 32 word \<Rightarrow> boo
 definition valid_table :: "table \<Rightarrow> bool" where
 "valid_table table \<longleftrightarrow> (\<forall> t \<in> set table . (case (ta t) of (IPv4 a) \<Rightarrow> valid_prefix a | (IPv6 a) \<Rightarrow> valid_prefix a))"
 
+lemma foo:
+  assumes "\<exists> a. Min {x \<in> set l. P x} = a"
+      and "sorted l"
+    shows "\<exists> l1 l2. l = l1@a#l2 \<and> (\<forall> x \<in> (set l1). \<not>P x)"
+  using assms
+proof(-)
+  have "{x \<in> set l. P x} \<subseteq> set l" by auto
+  obtain a where "Min {x \<in> set l. P x} = a" using assms by blast
+    then show ?thesis sorry
+qed
+
 
 lemma table_entry_matches_addr_in_set:
   assumes "\<exists> te . Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntry te"
