@@ -228,6 +228,7 @@ next
 qed
 *)
 
+(* TODO ipv4 ipv6 versions 
 fun match_host :: "host \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
 "match_host (Address addr) ip = match_address addr ip"|
 "match_host (NotAddress addr) ip = (\<not> (match_address addr ip))"|
@@ -244,6 +245,8 @@ fun match_hostspec:: "hostspec \<Rightarrow> ('i::len word) \<Rightarrow> bool" 
 "match_hostspec Self _ = True" | (* TODO: unknown *)
 "match_hostspec (Host hostlist) ip = match_hostlist hostlist ip" |
 "match_hostspec (Route route) _ = True" (* TODO: unknown *)
+
+*)
 
 fun lookup_port :: "identifier \<Rightarrow> 16 word" where
 "lookup_port (Name n) = 0" | -- TODO
@@ -280,9 +283,11 @@ fun match_port :: "opspec list option \<Rightarrow> 16 word \<Rightarrow> bool" 
 "match_port None _ = True"|
 "match_port (Some ops) port = match_port_ops ops port"
 
+(* TODO ipv4 ipv6 versions 
 fun match_hosts :: "hosts \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_hosts AllHosts _ = True" |
 "match_hosts (FromTo from sports to dports) p = (match_hostspec from (p_src p) \<and> match_port sports (p_sport p) \<and> match_hostspec to (p_dst p) \<and> match_port dports (p_dport p))"
+*)
 
 fun match_filteropts :: "filteropt list \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_filteropts _ _ = True"
@@ -294,11 +299,13 @@ IIface "iface"
 | Proto "primitive_protocol list"
 | Hosts "hosts"
 
+(* TODO ipv4 ipv6 versions 
 fun matcher :: "'i::len common_primitive \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "matcher (IIface iface) p = match_iiface iface p"|
 "matcher (OIface iface) p = match_oiface iface p"|
 "matcher (Af af) p = match_af af p"|
 "matcher (Proto proto) p = match_proto proto p"|
 "matcher (Hosts hosts) p = match_hosts hosts p"
+*)
 
 end
