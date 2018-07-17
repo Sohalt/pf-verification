@@ -111,7 +111,7 @@ fun f :: "table_entry \<Rightarrow> 32 word set \<Rightarrow> 32 word set" where
 "f t a = (case t of (TableEntry te) \<Rightarrow> a \<union> prefix_to_wordset (ip4 te) | (TableEntryNegated te) \<Rightarrow> a - prefix_to_wordset  (ip4 te))"
 
 definition table_to_set_v4 :: "table \<Rightarrow> 32 word set" where
-"table_to_set_v4 table = foldr f (sort (filter (\<lambda> t. isIPv4 (ta t)) table)) {}"
+"table_to_set_v4 table = foldr f table {}"
 
 definition table_to_set_v4' :: "table \<Rightarrow> 32 word set" where
 "table_to_set_v4' table = {word. match_table_v4_alt table word}"
@@ -158,30 +158,41 @@ next
   qed
 qed
 
-lemma
-  assumes "sorted table" "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)"
+
+(* TODO cleanup *)
+lemma find_some_table_entry_addr_in_table_to_set:
+  assumes "sorted table" "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)" "valid_table table"
   assumes "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) table = Some (TableEntry te)"
   shows "address \<in> table_to_set_v4 table"
 using assms proof (induction table rule: sorted.induct)
   case Nil
-  then show ?case sorry
+  then show ?case by simp
 next
   case (Cons xs x)
+  then have vp: "valid_prefix (ip4 (ta x))" unfolding valid_table_def
+        by (simp add: table_address.case_eq_if)
   show ?case
     proof (cases "prefix_match_semantics (ip4 (ta x)) address")
       case True
-      then show ?thesis
-        unfolding table_to_set_v4_def match_table_v4_alt_def
-        using Cons(5)
-        by simp
+      then have "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) (x # xs) = Some x" by auto
+      then have *:"x = TableEntry te" using Cons by auto
+      then have "address \<in> prefix_to_wordset (ip4 (ta x))" using vp True prefix_match_semantics_wordset Cons(4) Cons(5) unfolding valid_table_def by auto
+      then show ?thesis unfolding table_to_set_v4_def using * by auto
     next
       case False
-      then have "address \<in> table_to_set_v4 xs" sorry
+      then have "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) xs = Some (TableEntry te)" using Cons by auto
+      moreover have "valid_table xs" using Cons(5) by (simp add:valid_table_def)
+      ultimately have *:"address \<in> table_to_set_v4 xs" using Cons by simp
       then show ?thesis
-        unfolding table_to_set_v4_def match_table_v4_alt_def
-        using False by auto
+      proof(cases x)
+        case (TableEntry x1)
+        then show ?thesis using * unfolding table_to_set_v4_def by auto
+      next
+        case (TableEntryNegated x2)
+        then show ?thesis unfolding table_to_set_v4_def using vp False prefix_match_semantics_wordset TableEntryNegated * table_to_set_v4_def by auto
+      qed
     qed
-qed
+  qed
 
 lemma table_entry_matches_addr_in_set:
   assumes "\<exists> te . Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntry te"
