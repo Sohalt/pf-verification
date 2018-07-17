@@ -33,29 +33,8 @@ fun match_address :: "address \<Rightarrow> ('i::len word) \<Rightarrow> bool" w
 fun lookup_table :: "string \<Rightarrow> table" where
 "lookup_table _ = []" (* TODO *)
 
-fun decision :: "table_entry \<Rightarrow> bool" where
-"decision (TableEntry _) = True"
-|"decision (TableEntryNegated _) = False"
-
-case_of_simps decision_cases: decision.simps
-
-fun pfxm_length' :: "table_entry \<Rightarrow> nat" where
-"pfxm_length' (TableEntry t) = (case t of (IPv4 a) \<Rightarrow> pfxm_length a | (IPv6 a) \<Rightarrow> pfxm_length a)"
-|"pfxm_length' (TableEntryNegated t) = (case t of (IPv4 a) \<Rightarrow> pfxm_length a | (IPv6 a) \<Rightarrow> pfxm_length a)"
-
-fun matches_v4 :: "table_entry \<Rightarrow> 32 word \<Rightarrow> bool" where
-"matches_v4 t addr = (case (case t of (TableEntry t) \<Rightarrow> t | (TableEntryNegated t) \<Rightarrow> t) of (IPv4 a) \<Rightarrow> prefix_match_semantics a addr | (IPv6 a) \<Rightarrow> False)"
-
-fun match_table'_v4 :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
-"match_table'_v4 table addr =
- fst (fold (\<lambda> t (d,pfxml).
- if (matches_v4 t addr \<and> (pfxm_length' t > pfxml))
- then ((decision t),(pfxm_length' t))
- else (d,pfxml)) table (False,0::nat))"
-
-fun match_table_v4 :: "string \<Rightarrow> 32 word \<Rightarrow> bool" where
-"match_table_v4 name ip = match_table'_v4 (lookup_table name) ip"
-
+definition decision :: "table_entry \<Rightarrow> bool" where
+"decision te = (\<not>is_Negated te)"
 
 instantiation table_address :: linorder
 begin
@@ -107,34 +86,17 @@ definition match_table_v4_alt :: "table \<Rightarrow> 32 word \<Rightarrow> bool
  (case (find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) addr) table) of
  (Some t) \<Rightarrow> decision t |None \<Rightarrow> False)"
 
-fun f :: "table_entry \<Rightarrow> 32 word set \<Rightarrow> 32 word set" where
-"f t a = (case t of (TableEntry te) \<Rightarrow> a \<union> prefix_to_wordset (ip4 te) | (TableEntryNegated te) \<Rightarrow> a - prefix_to_wordset  (ip4 te))"
+abbreviation foldf :: "table_entry \<Rightarrow> 32 word set \<Rightarrow> 32 word set" where
+"foldf t a \<equiv> (case t of (TableEntry te) \<Rightarrow> a \<union> prefix_to_wordset (ip4 te) | (TableEntryNegated te) \<Rightarrow> a - prefix_to_wordset  (ip4 te))"
 
 definition table_to_set_v4 :: "table \<Rightarrow> 32 word set" where
-"table_to_set_v4 table = foldr f table {}"
-
-definition table_to_set_v4' :: "table \<Rightarrow> 32 word set" where
-"table_to_set_v4' table = {word. match_table_v4_alt table word}"
-
-lemma "table_to_set_v4 table = table_to_set_v4 table"
-  sorry
+"table_to_set_v4 table = foldr foldf table {}"
 
 definition match_table_v4_alt' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
 "match_table_v4_alt' table address \<longleftrightarrow> address \<in> table_to_set_v4 table"
 
 definition valid_table :: "table \<Rightarrow> bool" where
 "valid_table table \<longleftrightarrow> (\<forall> t \<in> set table . (case (ta t) of (IPv4 a) \<Rightarrow> valid_prefix a | (IPv6 a) \<Rightarrow> valid_prefix a))"
-
-lemma foo:
-  assumes "\<exists> a. Min {x \<in> set l. P x} = a"
-      and "sorted l"
-    shows "\<exists> l1 l2. l = l1@a#l2 \<and> (\<forall> x \<in> (set l1). \<not>P x)"
-  using assms
-proof(-)
-  have "{x \<in> set l. P x} \<subseteq> set l" by auto
-  obtain a where "Min {x \<in> set l. P x} = a" using assms by blast
-    then show ?thesis sorry
-qed
 
 lemma find_split:
   assumes "find P xs = Some x"
@@ -159,135 +121,75 @@ next
 qed
 
 
-(* TODO cleanup *)
-lemma find_some_table_entry_addr_in_table_to_set:
-  assumes "sorted table" "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)" "valid_table table"
-  assumes "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) table = Some (TableEntry te)"
-  shows "address \<in> table_to_set_v4 table"
-using assms proof (induction table rule: sorted.induct)
+lemma find_Some_decision_addr_in_set:
+  assumes "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)" "valid_table table"
+  assumes "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) table = Some te"
+  shows "decision te = (address \<in> table_to_set_v4 table)"
+  using assms proof(induction table)
   case Nil
   then show ?case by simp
 next
-  case (Cons xs x)
-  then have vp: "valid_prefix (ip4 (ta x))" unfolding valid_table_def
-        by (simp add: table_address.case_eq_if)
+  case (Cons x xs)
+  have vp: "valid_prefix (ip4 (ta x))" using Cons(2) Cons(3) unfolding valid_table_def
+        by (auto simp add: table_address.case_eq_if)
   show ?case
-    proof (cases "prefix_match_semantics (ip4 (ta x)) address")
-      case True
-      then have "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) (x # xs) = Some x" by auto
-      then have *:"x = TableEntry te" using Cons by auto
-      then have "address \<in> prefix_to_wordset (ip4 (ta x))" using vp True prefix_match_semantics_wordset Cons(4) Cons(5) unfolding valid_table_def by auto
-      then show ?thesis unfolding table_to_set_v4_def using * by auto
+  proof(cases "prefix_match_semantics (ip4 (ta x)) address")
+    case True
+    then have *:"find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) (x # xs) = Some x" by auto
+    have **:"address \<in> prefix_to_wordset (ip4 (ta x))" using vp True prefix_match_semantics_wordset unfolding valid_table_def by auto
+    then show ?thesis
+    proof(cases x)
+      case (TableEntry x1)
+      then show ?thesis unfolding table_to_set_v4_def decision_def using Cons * ** by auto
     next
-      case False
-      then have "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) xs = Some (TableEntry te)" using Cons by auto
-      moreover have "valid_table xs" using Cons(5) by (simp add:valid_table_def)
-      ultimately have *:"address \<in> table_to_set_v4 xs" using Cons by simp
+      case (TableEntryNegated x2)
+      then show ?thesis unfolding table_to_set_v4_def decision_def using Cons * ** by auto
+    qed
+  next
+    case False
+    then have *: "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) xs = Some te" using Cons by auto
+    have vt: "valid_table xs" using Cons(3) by (simp add:valid_table_def)
       then show ?thesis
       proof(cases x)
         case (TableEntry x1)
-        then show ?thesis using * unfolding table_to_set_v4_def by auto
+        then have "decision te = (address \<in> table_to_set_v4 xs)" using * vt Cons by auto
+        then show ?thesis unfolding table_to_set_v4_def using False vp prefix_match_semantics_wordset TableEntry by auto
       next
         case (TableEntryNegated x2)
-        then show ?thesis unfolding table_to_set_v4_def using vp False prefix_match_semantics_wordset TableEntryNegated * table_to_set_v4_def by auto
+        then have "decision te = (address \<in> table_to_set_v4 xs)" using * vt Cons by auto
+        then show ?thesis unfolding table_to_set_v4_def using False vp prefix_match_semantics_wordset TableEntryNegated by auto
       qed
-    qed
   qed
-
-lemma table_entry_matches_addr_in_set:
-  assumes "\<exists> te . Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntry te"
-  shows "address \<in> table_to_set_v4 table"
-proof(-)
-  obtain te where "Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntry te" using assms by blast
-  then have "(sort [t\<leftarrow>table . isIPv4 (ta t)]) = t1@[TableEntry te]@t2" sorry
-  then have "table_to_set_v4 table = foldr f (t1@[TableEntry te]) (foldr f t2 {})" unfolding table_to_set_v4_def by simp
-  then have "table_to_set_v4 table = foldr f t1 ((foldr f t2 {}) \<union> prefix_to_wordset (ip4 te))" by simp
-(* address not in range of any te in t1 \<rightarrow> even removing all of t1 (all TableEntryNegated) doesn't remove addr from foldr f t1 ((foldr f t2 {}) \<union> prefix_to_wordset (ip4 te)) *)
-  then show ?thesis sorry
 qed
 
-lemma table_entry_negated_matches_addr_not_in_set:
-  assumes "\<exists> te . Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntryNegated te"
+lemma find_None_addr_not_in_set:
+  assumes "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)" "valid_table table"
+  assumes "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) table = None"
   shows "address \<notin> table_to_set_v4 table"
-proof(-)
-  obtain te where "Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntryNegated te" using assms by blast
-  then have "(sort [t\<leftarrow>table . isIPv4 (ta t)]) = t1@[TableEntryNegated te]@t2" sorry
-  then have "table_to_set_v4 table = foldr f (t1@[TableEntryNegated te]) (foldr f t2 {})" unfolding table_to_set_v4_def by simp
-  then have "table_to_set_v4 table = foldr f t1 ((foldr f t2 {}) - prefix_to_wordset (ip4 te))" by simp
-(* address not in range of any te in t1 \<rightarrow> even adding all of t1 (all TableEntry) doesn't add addr to foldr f t1 ((foldr f t2 {}) - prefix_to_wordset (ip4 te)) *)
-  show ?thesis sorry
+  using assms
+proof(induction table)
+  case Nil
+  then show ?case unfolding table_to_set_v4_def by simp
+next
+  case (Cons a table)
+  then have *:"\<not>prefix_match_semantics (ip4 (ta a)) address" by auto
+  moreover have "prefix_match_semantics (ip4 (ta a)) address = (address \<in> prefix_to_wordset (ip4 (ta a)))"
+    using prefix_match_semantics_wordset Cons unfolding valid_table_def by (auto simp add: table_address.case_eq_if)
+  ultimately show ?case using Cons unfolding valid_table_def
+    by (simp add: table_entry.case_eq_if table_to_set_v4_def)
 qed
 
 lemma match_table_v4:
-  assumes "valid_table table"
+  assumes "valid_table table" "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)"
   shows "match_table_v4_alt table address = match_table_v4_alt' table address"
   using assms
-proof(cases "\<exists> x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]) . prefix_match_semantics (ip4 (ta x)) address")
-  case True
-  then have *: "(find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) address) (sort (filter (\<lambda> t. isIPv4 (ta t)) table))) =
- Some x \<and> x = (sort (filter (\<lambda> t. isIPv4 (ta t)) table)) ! i \<and> (\<forall> j. j<i \<and> (\<not> prefix_match_semantics (ip4 (ta ((sort (filter (\<lambda> t. isIPv4 (ta t)) table)) ! j))) address))"
-    sorry
-  show ?thesis
-  proof(cases "(Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address})")
-    case (TableEntry x1)
-    then have **:"match_table_v4_alt table address = True" using * by simp
-    have "match_table_v4_alt' table address = True" using TableEntry table_entry_matches_addr_in_set by (simp add:match_table_v4_alt'_def)
-    then show ?thesis using ** by simp
-  next
-    case (TableEntryNegated x2)
-    then have **:"match_table_v4_alt table address = False" using * by simp
-    have "match_table_v4_alt' table address = False" using TableEntryNegated table_entry_negated_matches_addr_not_in_set by (simp add:match_table_v4_alt'_def)
-    then show ?thesis using ** by simp
-  qed
+proof(cases "find (\<lambda>t. prefix_match_semantics (ip4 (ta t)) address) table")
+  case None
+  then show ?thesis unfolding match_table_v4_alt_def match_table_v4_alt'_def using find_None_addr_not_in_set assms by simp
 next
-  case False
-  then have "(find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) address) (sort (filter (\<lambda> t. isIPv4 (ta t)) table))) = None" by (auto simp add: find_None_iff)
-  then have *:"match_table_v4_alt table address = False" by auto
-  have "match_table_v4_alt' table address = False" sorry
-  then show ?thesis using * by simp
+  case (Some a)
+  then show ?thesis unfolding match_table_v4_alt_def match_table_v4_alt'_def using find_Some_decision_addr_in_set assms by simp
 qed
-
-(*
-
-proof(cases "match_table_v4_alt table address")
-  case True
-  then have "\<exists> a. find (\<lambda>t. prefix_match_semantics (ip4 (ta t)) address) (sort [t\<leftarrow>table . isIPv4 (ta t)]) = Some (TableEntry (IPv4 a)) \<and> prefix_match_semantics a address" apply(auto simp: decision_cases split:table_entry.splits)
-  then have "\<exists> a. (TableEntry (IPv4 a)) \<in> set table \<and> prefix_match_semantics a address" apply(simp)
-  then show ?thesis sorry
-next
-  case False
-  then show ?thesis sorry
-qed
-
-
-proof(induction "(sort (filter (\<lambda> t. isIPv4 (ta t)) table))")
-  case Nil
-  then show ?case by (simp add: match_table_v4_alt'_def)
-next
-  case IH: (Cons t tab)
-  have "valid_table (t#tab)" using IH by (simp add:foo)
-      then have vp: "valid_prefix (ip4 (ta t))"
-        by (metis Cons_eq_filterD IH.hyps(2) filter_sort list.set_intros(1) table_address.case_eq_if valid_table_def)
-    have *:"match_table_v4_alt table address =
- (case find (\<lambda>t. prefix_match_semantics (ip4 (ta t)) address) (t#tab) of None \<Rightarrow> False | Some x \<Rightarrow> decision x)"
-      using IH by auto
-    have **:"match_table_v4_alt' table address =
-(address \<in>
- foldr (\<lambda>t a. case t of
- TableEntry te \<Rightarrow> a \<union> prefix_to_wordset (ip4 te)
- | TableEntryNegated te \<Rightarrow> a - prefix_to_wordset (ip4 te))
- (t#tab) {})"
-      using IH by (auto simp:match_table_v4_alt'_def)
-  then show ?case
-  proof(cases "prefix_match_semantics (ip4 (ta t)) address")
-    case True
-    then show ?thesis using vp * ** by (auto simp add: prefix_match_semantics_wordset split:table_entry.splits)
-  next
-    case False
-    then show ?thesis using vp * ** sorry
-  qed
-qed
-*)
 
 (* TODO ipv4 ipv6 versions
 fun match_host :: "host \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
