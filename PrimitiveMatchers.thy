@@ -81,10 +81,14 @@ instance by standard (auto simp add: less_eq_table_entry_cases less_table_entry_
 end
 
 
-definition match_table_v4_alt :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
-"match_table_v4_alt table addr =
+definition match_table_v4_inner :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
+"match_table_v4_inner table addr =
  (case (find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) addr) table) of
  (Some t) \<Rightarrow> decision t |None \<Rightarrow> False)"
+
+definition match_table_v4 :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
+"match_table_v4 table addr = match_table_v4_inner (sort [t \<leftarrow> table. isIPv4 (ta t)]) addr"
+
 
 abbreviation foldf :: "table_entry \<Rightarrow> 32 word set \<Rightarrow> 32 word set" where
 "foldf t a \<equiv> (case t of (TableEntry te) \<Rightarrow> a \<union> prefix_to_wordset (ip4 te) | (TableEntryNegated te) \<Rightarrow> a - prefix_to_wordset  (ip4 te))"
@@ -92,8 +96,12 @@ abbreviation foldf :: "table_entry \<Rightarrow> 32 word set \<Rightarrow> 32 wo
 definition table_to_set_v4 :: "table \<Rightarrow> 32 word set" where
 "table_to_set_v4 table = foldr foldf table {}"
 
-definition match_table_v4_alt' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
-"match_table_v4_alt' table address \<longleftrightarrow> address \<in> table_to_set_v4 table"
+definition match_table_v4'_inner :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
+"match_table_v4'_inner table address \<longleftrightarrow> address \<in> table_to_set_v4 table"
+
+definition match_table_v4' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
+"match_table_v4' table address = match_table_v4'_inner (sort [t \<leftarrow> table. isIPv4 (ta t)]) address"
+
 
 definition valid_table :: "table \<Rightarrow> bool" where
 "valid_table table \<longleftrightarrow> (\<forall> t \<in> set table . (case (ta t) of (IPv4 a) \<Rightarrow> valid_prefix a | (IPv6 a) \<Rightarrow> valid_prefix a))"
@@ -179,16 +187,27 @@ next
     by (simp add: table_entry.case_eq_if table_to_set_v4_def)
 qed
 
-lemma match_table_v4:
+lemma match_table_v4_inner:
   assumes "valid_table table" "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)"
-  shows "match_table_v4_alt table address = match_table_v4_alt' table address"
+  shows "match_table_v4_inner table address = match_table_v4'_inner table address"
   using assms
 proof(cases "find (\<lambda>t. prefix_match_semantics (ip4 (ta t)) address) table")
   case None
-  then show ?thesis unfolding match_table_v4_alt_def match_table_v4_alt'_def using find_None_addr_not_in_set assms by simp
+  then show ?thesis unfolding match_table_v4_inner_def match_table_v4'_inner_def using find_None_addr_not_in_set assms by simp
 next
   case (Some a)
-  then show ?thesis unfolding match_table_v4_alt_def match_table_v4_alt'_def using find_Some_decision_addr_in_set assms by simp
+  then show ?thesis unfolding match_table_v4_inner_def match_table_v4'_inner_def using find_Some_decision_addr_in_set assms by simp
+qed
+
+lemma match_table_v4:
+  assumes "valid_table table"
+  shows "match_table_v4 table address = match_table_v4' table address"
+  using assms
+proof(-)
+  have "\<And>t. t \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]) \<Longrightarrow> isIPv4 (ta t)" by auto
+  moreover have "valid_table (sort [t\<leftarrow>table . isIPv4 (ta t)])" using assms by (simp add: valid_table_def)
+  ultimately show ?thesis unfolding match_table_v4_def match_table_v4'_def using match_table_v4_inner
+    by blast
 qed
 
 (* TODO ipv4 ipv6 versions
