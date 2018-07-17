@@ -139,9 +139,24 @@ qed
 lemma find_split:
   assumes "find P xs = Some x"
   shows "\<exists>xs1 xs2. xs = xs1 @ x # xs2 \<and> (\<forall>x \<in> set xs1. \<not> P x)"
-using assms apply (induction xs) apply (auto split: if_splits)
-apply fastforce
-  sorry
+  using assms
+proof(induction xs)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a xs')
+  show ?case
+  proof(cases "P a")
+    case True
+      have "a#xs' = []@a#xs' \<and> (\<forall>x \<in> set []. \<not> P x)" by auto
+      then show ?thesis sorry
+  next
+    case False
+    then obtain xs1 xs2 where "xs' = xs1 @ x # xs2 \<and> (\<forall>x\<in>set xs1. \<not> P x)" using Cons by auto
+    then have "a#xs' = (a#xs1)@x#xs2 \<and> (\<forall>x\<in>set (a#xs1). \<not> P x)" using False by auto
+    then show ?thesis sorry
+  qed
+qed
 
 lemma
   assumes "sorted table" "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)"
