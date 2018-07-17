@@ -111,9 +111,12 @@ fun f :: "table_entry \<Rightarrow> 32 word set \<Rightarrow> 32 word set" where
 "f t a = (case t of (TableEntry te) \<Rightarrow> a \<union> prefix_to_wordset (ip4 te) | (TableEntryNegated te) \<Rightarrow> a - prefix_to_wordset  (ip4 te))"
 
 definition table_to_set_v4 :: "table \<Rightarrow> 32 word set" where
-"table_to_set_v4 table = {word. match_table_v4_alt table word}"
+"table_to_set_v4 table = foldr f (sort (filter (\<lambda> t. isIPv4 (ta t)) table)) {}"
 
-lemma "table_to_set_v4 table = foldr f (sort (filter (\<lambda> t. isIPv4 (ta t)) table)) {}"
+definition table_to_set_v4' :: "table \<Rightarrow> 32 word set" where
+"table_to_set_v4' table = {word. match_table_v4_alt table word}"
+
+lemma "table_to_set_v4 table = table_to_set_v4 table"
   sorry
 
 definition match_table_v4_alt' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
@@ -171,7 +174,7 @@ lemma table_entry_matches_addr_in_set:
 proof(-)
   obtain te where "Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntry te" using assms by blast
   then have "(sort [t\<leftarrow>table . isIPv4 (ta t)]) = t1@[TableEntry te]@t2" sorry
-  then have "table_to_set_v4 table = foldr f (t1@[TableEntry te]) (foldr f t2 {})" by simp
+  then have "table_to_set_v4 table = foldr f (t1@[TableEntry te]) (foldr f t2 {})" unfolding table_to_set_v4_def by simp
   then have "table_to_set_v4 table = foldr f t1 ((foldr f t2 {}) \<union> prefix_to_wordset (ip4 te))" by simp
 (* address not in range of any te in t1 \<rightarrow> even removing all of t1 (all TableEntryNegated) doesn't remove addr from foldr f t1 ((foldr f t2 {}) \<union> prefix_to_wordset (ip4 te)) *)
   then show ?thesis sorry
@@ -183,7 +186,7 @@ lemma table_entry_negated_matches_addr_not_in_set:
 proof(-)
   obtain te where "Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address} = TableEntryNegated te" using assms by blast
   then have "(sort [t\<leftarrow>table . isIPv4 (ta t)]) = t1@[TableEntryNegated te]@t2" sorry
-  then have "table_to_set_v4 table = foldr f (t1@[TableEntryNegated te]) (foldr f t2 {})" by simp
+  then have "table_to_set_v4 table = foldr f (t1@[TableEntryNegated te]) (foldr f t2 {})" unfolding table_to_set_v4_def by simp
   then have "table_to_set_v4 table = foldr f t1 ((foldr f t2 {}) - prefix_to_wordset (ip4 te))" by simp
 (* address not in range of any te in t1 \<rightarrow> even adding all of t1 (all TableEntry) doesn't add addr to foldr f t1 ((foldr f t2 {}) - prefix_to_wordset (ip4 te)) *)
   show ?thesis sorry
@@ -196,8 +199,8 @@ lemma match_table_v4:
 proof(cases "\<exists> x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]) . prefix_match_semantics (ip4 (ta x)) address")
   case True
   then have *: "(find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) address) (sort (filter (\<lambda> t. isIPv4 (ta t)) table))) =
- Some (Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address})"
-    by (auto simp: sorted_find_Min)
+ Some x \<and> x = (sort (filter (\<lambda> t. isIPv4 (ta t)) table)) ! i \<and> (\<forall> j. j<i \<and> (\<not> prefix_match_semantics (ip4 (ta ((sort (filter (\<lambda> t. isIPv4 (ta t)) table)) ! j))) address))"
+    sorry
   show ?thesis
   proof(cases "(Min {x \<in> set (sort [t\<leftarrow>table . isIPv4 (ta t)]). prefix_match_semantics (ip4 (ta x)) address})")
     case (TableEntry x1)
