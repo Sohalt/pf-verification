@@ -77,5 +77,41 @@ fun common_matcher :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 32
 "common_matcher _ (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags  (p_tcp_flags p))"|
 "common_matcher _ (Extra _) _ = TernaryUnknown"
 
+(* normalize matches to representation closest to simple_matcher *)
+
+fun match_or :: "'a list \<Rightarrow> 'a match_expr" where
+"match_or [] = MatchNot MatchAny" |
+"match_or (x#xs) = MatchOr (Match x) (match_or xs)"
+
+fun partition_ip_set :: "'i::len word set \<Rightarrow> 'i prefix_match list" where
+"partition_ip_set _ = []" (* TODO *)
+
+lemma partition_ip_set : "a \<in> addrs \<longleftrightarrow> (\<exists> pfxm \<in> (set (partition_ip_set addrs)). prefix_match_semantics pfxm a)"
+  sorry
+
+fun remove_table :: "pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+"remove_table ctx (Match (Src (Hostspec (Table name)))) = match_or (map (\<lambda>a. (Src (Hostspec (Address (IPv4 a))))) (partition_ip_set (table_to_set_v4 (lookup_table ctx name))))" |
+"remove_table ctx (Match (Dst (Table name))) = match_or (map (\<lambda>a. (Dst (Address (IPv4 a)))) (partition_ip_set (table_to_set_v4 (lookup_table ctx name))))" |
+"remove_table _ m = m"
+
+fun normalize_ports' :: "16 opspec \<Rightarrow> 16 opspec list" where
+"normalize_ports' (Unary (Eq p)) = [(Binary (RangeIncl p p))]" |
+"normalize_ports' (Unary (NEq p)) = [(Binary (RangeIncl 0 (p - 1))) (Binary (RangeIncl (p + 1) max_word))]" |
+"normalize_ports' (Unary (GtEq p)) = [(Binary (RangeIncl p max_word))]" |
+"normalize_ports' (Unary (Gt p)) = [(Binary (RangeIncl (p + 1) max_word))]" |
+"normalize_ports' (Unary (LtEq p)) = [(Binary (RangeIncl 0 p))]" |
+"normalize_ports' (Unary (Lt p)) = [(Binary (RangeIncl 0 (p - 1)))]" |
+"normalize_ports' (Binary (RangeIncl from to)) = [(Binary (RangeIncl from to))]" |
+"normalize_ports' (Binary (RangeExcl from to)) = [(Binary (RangeIncl (from + 1) (to -1)))]" |
+"normalize_ports' (Binary (RangeComp from to)) = [(Binary (RangeIncl 0 from)) (Binary (RangeIncl to max_word))]"
+
+fun normalize_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+"normalize_ports (Match (Src_Ports ports)) = match_or (map (\<lambda>p. (Src_Ports p)) (normalize_ports' ports))" |
+"normalize_ports (Match (Dst_Ports ports)) = match_or (map (\<lambda>p. (Dst_Ports p)) (normalize_ports' ports))" |
+"normalize_ports m = m"
+
+lemma normalize_ports : "matches \<gamma> m p \<longleftrightarrow> matches \<gamma> (normalize_ports m) p"
+proof
+
 
 end
