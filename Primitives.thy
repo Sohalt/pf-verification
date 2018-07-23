@@ -67,12 +67,8 @@ datatype hostspec =
   | Table string
 
 datatype hostspec_from =
-  AnyHost
-  | NoRoute
+  Hostspec hostspec
   | UrpfFailed
-  | Address address
-  | Route string
-  | Table string
 
 datatype hosts =
 AllHosts

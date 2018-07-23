@@ -3,6 +3,7 @@ theory PrimitiveMatchers
           Simple_Firewall.Simple_Packet
           Iptables_Semantics.Ternary
           Matching
+          Tables
 begin
 fun match_interface :: "iface \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_interface iface p = (((p_iiface p) = iface) \<or> ((p_oiface p) = iface))"
@@ -19,29 +20,6 @@ fun match_af:: "afspec \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 fun match_proto:: "primitive_protocol \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_proto proto p \<longleftrightarrow> p_proto p = proto"
 
-
-
-(* TODO ipv4 ipv6 versions
-fun match_host :: "host \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
-"match_host (Address addr) ip = match_address addr ip"|
-"match_host (NotAddress addr) ip = (\<not> (match_address addr ip))"|
-"match_host (Table t) ip = match_table t ip"
-
-fun match_hostlist :: "host list \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
-"match_hostlist [] _ = False" |
-"match_hostlist (h#hs) ip = (match_host h ip \<or> match_hostlist hs ip)"
-
-fun match_hostspec:: "hostspec \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
-"match_hostspec AnyHost _ = True" |
-"match_hostspec NoRoute _ = True" | (* TODO: unknown *)
-"match_hostspec UrpfFailed _ = True" | (* TODO: unknown *)
-"match_hostspec Self _ = True" | (* TODO: unknown *)
-"match_hostspec (Host hostlist) ip = match_hostlist hostlist ip" |
-"match_hostspec (Route route) _ = True" (* TODO: unknown *)
-
-*)
-
-(* fun match_unary_op :: "(identifier \<Rightarrow> 'a) \<Rightarrow> unary_op \<Rightarrow> 'a \<Rightarrow> bool" where *)
 fun match_unary_op :: "unary_op \<Rightarrow> nat \<Rightarrow> bool" where
 "match_unary_op (Eq i) x = (x = i)" |
 "match_unary_op (NEq i) x = (x \<noteq> i)" |
@@ -50,7 +28,6 @@ fun match_unary_op :: "unary_op \<Rightarrow> nat \<Rightarrow> bool" where
 "match_unary_op (Gt i) x = (x > i)" |
 "match_unary_op (GtEq i) x = (x \<ge> i)"
 
-(* fun match_binary_op :: "(identifier \<Rightarrow> 'a) \<Rightarrow> binary_op \<Rightarrow> 'a \<Rightarrow> bool" where *)
 fun match_binary_op :: "binary_op \<Rightarrow> nat \<Rightarrow> bool" where
 "match_binary_op (RangeIncl l u) x = (l \<le> x \<and> x \<le> u)"|
 "match_binary_op (RangeExcl l u) x = (l < x \<and> x < u)"|
@@ -63,15 +40,25 @@ fun match_op :: "opspec \<Rightarrow> nat \<Rightarrow> bool" where
 definition match_port :: "opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
 "match_port operator port = match_op operator (unat port)"
 
-(* TODO ipv4 ipv6 versions
-fun match_hosts :: "hosts \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_hosts AllHosts _ = True" |
-"match_hosts (FromTo from sports to dports) p = (match_hostspec from (p_src p) \<and> match_port sports (p_sport p) \<and> match_hostspec to (p_dst p) \<and> match_port dports (p_dport p))"
-*)
+(* TODO ipv6 *)
+fun match_hosts :: "hostspec \<Rightarrow> 32 word \<Rightarrow> ternaryvalue" where
+"match_hosts AnyHost _ = bool_to_ternary True" |
+"match_hosts (Address addr) p_addr =
+(case addr of
+ (IPv4 a) \<Rightarrow> bool_to_ternary (prefix_match_semantics a p_addr)
+| (IPv6 _) \<Rightarrow> TernaryUnknown)"|
+"match_hosts NoRoute _ = TernaryUnknown" |
+"match_hosts (Route _) _ = TernaryUnknown" |
+"match_hosts (Table name) p_addr = bool_to_ternary (match_table_v4 (lookup_table name) p_addr)"
+
+
+fun match_hosts_src :: "hostspec_from \<Rightarrow> 32 word \<Rightarrow> ternaryvalue" where
+"match_hosts_src (Hostspec h) a = match_hosts h a" |
+"match_hosts_src UrpfFailed a = TernaryUnknown"
 
 fun common_matcher :: "common_primitive \<Rightarrow> 32 simple_packet \<Rightarrow> ternaryvalue" where
-"common_matcher (Src hosts) p = TernaryUnknown"| (* FIXME *)
-"common_matcher (Dst hosts) p = TernaryUnknown"| (* FIXME *)
+"common_matcher (Src hosts) p = match_hosts_src hosts (p_src p)"|
+"common_matcher (Dst hosts) p = match_hosts hosts (p_dst p)"|
 "common_matcher (Src_OS _) _ = TernaryUnknown"|
 "common_matcher (Src_Ports ports) p = bool_to_ternary (match_port ports (p_sport p))"|
 "common_matcher (Dst_Ports ports) p = bool_to_ternary (match_port ports (p_dport p))"|
