@@ -6,30 +6,29 @@ IP_Addresses.Prefix_Match
 begin
 
 (* names for users, groups, ports get resolved to numbers in the pfctl dump *)
-type_alias identifier = nat
+datatype ('i::len0) unary_op =
+  Eq "'i word"
+  | NEq "'i word"
+  | Lt "'i word"
+  | LtEq "'i word"
+  | Gt "'i word"
+  | GtEq "'i word"
 
-datatype unary_op =
-  Eq identifier
-  | NEq identifier
-  | Lt identifier
-  | LtEq identifier
-  | Gt identifier
-  | GtEq identifier
+datatype 'i binary_op =
+  RangeIncl "'i word" "'i word"
+  | RangeExcl "'i word" "'i word"
+  | RangeComp "'i word" "'i word"
 
-datatype binary_op =
-  RangeIncl nat nat
-  | RangeExcl nat nat
-  | RangeComp nat nat
+datatype 'i opspec =
+  Unary "'i unary_op"
+  | Binary "'i binary_op"
 
-datatype opspec =
-  Unary unary_op
-  | Binary binary_op
-
-
+(*
 datatype filteropt =
   User "opspec list"
   | Group "opspec list"
   | Flags ipt_tcp_flags (* taken from iptables_semantics *)
+*)
 
 (*
   | IcmpType icmp_type
@@ -68,16 +67,12 @@ datatype hostspec_from =
   Hostspec hostspec
   | UrpfFailed
 
-datatype hosts =
-AllHosts
-| FromTo hostspec "opspec list option" hostspec "opspec list option"
-
 datatype common_primitive = 
 is_Src: Src (src_sel: hostspec_from) |
 is_Src_OS: Src_OS (src_os_sel: string) |
 is_Dst: Dst (dst_sel: hostspec) |
-is_Src_Ports: Src_Ports (src_ports_sel: opspec) |
-is_Dst_Ports: Dst_Ports (dst_ports_sel: opspec) |
+is_Src_Ports: Src_Ports (src_ports_sel: "16 opspec") |
+is_Dst_Ports: Dst_Ports (dst_ports_sel: "16 opspec") |
 is_Direction: Direction (direction_sel: direction) |
 is_Interface: Interface (interface_sel: ifspec) |
 is_Address_Family: Address_Family (address_family_sel: afspec) |

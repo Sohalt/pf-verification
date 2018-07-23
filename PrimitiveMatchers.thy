@@ -20,7 +20,7 @@ fun match_af:: "afspec \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 fun match_proto:: "primitive_protocol \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_proto proto p \<longleftrightarrow> p_proto p = proto"
 
-fun match_unary_op :: "unary_op \<Rightarrow> nat \<Rightarrow> bool" where
+fun match_unary_op :: "'i unary_op \<Rightarrow> 'i word \<Rightarrow> bool" where
 "match_unary_op (Eq i) x = (x = i)" |
 "match_unary_op (NEq i) x = (x \<noteq> i)" |
 "match_unary_op (Lt i) x = (x < i)" |
@@ -28,17 +28,17 @@ fun match_unary_op :: "unary_op \<Rightarrow> nat \<Rightarrow> bool" where
 "match_unary_op (Gt i) x = (x > i)" |
 "match_unary_op (GtEq i) x = (x \<ge> i)"
 
-fun match_binary_op :: "binary_op \<Rightarrow> nat \<Rightarrow> bool" where
+fun match_binary_op :: "'i binary_op \<Rightarrow> 'i word \<Rightarrow> bool" where
 "match_binary_op (RangeIncl l u) x = (l \<le> x \<and> x \<le> u)"|
 "match_binary_op (RangeExcl l u) x = (l < x \<and> x < u)"|
 "match_binary_op (RangeComp l u) x = ((l \<le> u) \<and> \<not>(l \<le> x \<and> x \<le> u))"
 
-fun match_op :: "opspec \<Rightarrow> nat \<Rightarrow> bool" where
+fun match_op :: "'i opspec \<Rightarrow> 'i word \<Rightarrow> bool" where
 "match_op (Unary operator) x = match_unary_op operator x" |
 "match_op (Binary operator) x = match_binary_op operator x"
 
-definition match_port :: "opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
-"match_port operator port = match_op operator (unat port)"
+definition match_port :: "16 opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
+"match_port operator port = match_op operator port"
 
 record pfcontext = 
   get_tables :: "string \<rightharpoonup> table"
