@@ -11,29 +11,10 @@ begin
 (* Block return semantically equal to Block (without return)*)
 datatype action = Pass | Match | Block
 
-
-record pf_rule =
-  r_Action :: action
-  r_Quick :: bool
-  r_Direction :: "direction option"
-  r_On :: "iface option"
-  r_Af :: "afspec option"
-  r_Proto :: "primitive_protocol list option"
-  r_Hosts :: "hosts option"
-  r_FilterOpts :: "filteropt list option"
-
 record 'a pf_rule2 =
   get_action :: action
   get_quick :: bool
   get_match :: "'a match_expr"
-
-record anchor_rule =
-  Direction :: "direction option"
-  On :: "iface option"
-  Af :: "afspec option"
-  Proto :: "protocol list option"
-  Hosts :: "hosts option"
-  r_FilterOpts :: "filteropt list option"
 
 record 'a anchor_rule2 =
   get_match :: "'a match_expr"

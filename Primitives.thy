@@ -39,8 +39,6 @@ datatype filteropt =
 
 datatype direction = In | Out
 
-type_synonym iface = string
-
 datatype ifspec =
   InterfaceName string
   | InterfaceGroup string
