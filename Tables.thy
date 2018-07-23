@@ -10,26 +10,26 @@ definition valid_table :: "table \<Rightarrow> bool" where
 definition decision :: "table_entry \<Rightarrow> bool" where
 "decision te = (\<not>is_Negated te)"
 
-instantiation table_address :: linorder
+instantiation address :: linorder
 begin
-fun less_eq_table_address :: "table_address \<Rightarrow> table_address \<Rightarrow> bool" where
-"less_eq_table_address (IPv4 a) (IPv4 b) = (a \<le> b)"
-|"less_eq_table_address (IPv4 a) (IPv6 b) = True"
-|"less_eq_table_address (IPv6 a) (IPv4 b) = False"
-|"less_eq_table_address (IPv6 a) (IPv6 b) = (a \<le> b)"
+fun less_eq_address :: "address \<Rightarrow> address \<Rightarrow> bool" where
+"less_eq_address (IPv4 a) (IPv4 b) = (a \<le> b)"
+|"less_eq_address (IPv4 a) (IPv6 b) = True"
+|"less_eq_address (IPv6 a) (IPv4 b) = False"
+|"less_eq_address (IPv6 a) (IPv6 b) = (a \<le> b)"
 
-case_of_simps less_eq_table_address_cases: less_eq_table_address.simps
+case_of_simps less_eq_address_cases: less_eq_address.simps
 
-fun less_table_address :: "table_address \<Rightarrow> table_address \<Rightarrow> bool" where
-"less_table_address (IPv4 a) (IPv4 b) = (a < b)"
-|"less_table_address (IPv4 a) (IPv6 b) = True"
-|"less_table_address (IPv6 a) (IPv4 b) = False"
-|"less_table_address (IPv6 a) (IPv6 b) = (a < b)"
+fun less_address :: "address \<Rightarrow> address \<Rightarrow> bool" where
+"less_address (IPv4 a) (IPv4 b) = (a < b)"
+|"less_address (IPv4 a) (IPv6 b) = True"
+|"less_address (IPv6 a) (IPv4 b) = False"
+|"less_address (IPv6 a) (IPv6 b) = (a < b)"
 
-case_of_simps less_table_address_cases: less_table_address.simps
-thm less_table_address_cases
+case_of_simps less_address_cases: less_address.simps
+thm less_address_cases
 
-instance by standard (auto simp add: less_eq_table_address_cases less_table_address_cases split: table_address.splits)
+instance by standard (auto simp add: less_eq_address_cases less_address_cases split: address.splits)
 end
 
 instantiation table_entry :: linorder
@@ -88,7 +88,7 @@ lemma find_Some_decision_addr_in_set:
 next
   case (Cons x xs)
   have vp: "valid_prefix (ip4 (ta x))" using Cons(2) Cons(3) unfolding valid_table_def
-        by (auto simp add: table_address.case_eq_if)
+        by (auto simp add: address.case_eq_if)
   show ?case
   proof(cases "prefix_match_semantics (ip4 (ta x)) address")
     case True
@@ -131,7 +131,7 @@ next
   case (Cons a table)
   then have *:"\<not>prefix_match_semantics (ip4 (ta a)) address" by auto
   moreover have "prefix_match_semantics (ip4 (ta a)) address = (address \<in> prefix_to_wordset (ip4 (ta a)))"
-    using prefix_match_semantics_wordset Cons unfolding valid_table_def by (auto simp add: table_address.case_eq_if)
+    using prefix_match_semantics_wordset Cons unfolding valid_table_def by (auto simp add: address.case_eq_if)
   ultimately show ?case using Cons unfolding valid_table_def
     by (simp add: table_entry.case_eq_if table_to_set_v4_def)
 qed
@@ -192,7 +192,7 @@ lemma find_Some_decision_addr_in_set_v6:
 next
   case (Cons x xs)
   have vp: "valid_prefix (ip6 (ta x))" using Cons(2) Cons(3) unfolding valid_table_def
-    by (metis list.set_intros(1) table_address.case_eq_if table_address.distinct_disc(1))
+    by (metis list.set_intros(1) address.case_eq_if address.distinct_disc(1))
   show ?case
   proof(cases "prefix_match_semantics (ip6 (ta x)) address")
     case True
@@ -236,7 +236,7 @@ next
   then have *:"\<not>prefix_match_semantics (ip6 (ta a)) address" by auto
   moreover have "prefix_match_semantics (ip6 (ta a)) address = (address \<in> prefix_to_wordset (ip6 (ta a)))"
     using prefix_match_semantics_wordset Cons unfolding valid_table_def
-    by (metis list.set_intros(1) table_address.case_eq_if table_address.distinct_disc(1))
+    by (metis list.set_intros(1) address.case_eq_if address.distinct_disc(1))
   ultimately show ?case using Cons unfolding valid_table_def
     by (simp add: table_entry.case_eq_if table_to_set_v6_def)
 qed
@@ -268,7 +268,4 @@ qed
 fun lookup_table :: "string \<Rightarrow> table" where
 "lookup_table _ = []" (* TODO *)
 
-fun match_table :: "string \<Rightarrow> addr \<Rightarrow> bool" where
-"match_table name (IPv4 addr) = match_table_v4 (lookup_table name) addr"
-|"match_table name (IPv6 addr) = match_table_v6 (lookup_table name) addr"
 end

@@ -50,16 +50,12 @@ datatype afspec =
   | Inet6
 
 datatype address =
-  Ipv4 "32 prefix_match"
-  | Ipv6 ipv6addr "128 prefix_match"
-
-datatype table_address =
   isIPv4: IPv4 (ip4:"32 prefix_match")
   | isIPv6: IPv6 (ip6:"128 prefix_match")
 
 datatype table_entry =
-TableEntry (ta: table_address)
-| is_Negated: TableEntryNegated (ta: table_address)
+TableEntry (ta: address)
+| is_Negated: TableEntryNegated (ta: address)
 
 type_synonym table = "table_entry list"
 
