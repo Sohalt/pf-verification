@@ -169,7 +169,7 @@ qed
 lemma filter_foo: "filter [] m p (filter l m p (Preliminary d)) = filter l m p (Preliminary d)"
   by (metis append.right_neutral filter_chain)
 
-lemma remove_anchors_preserves_semantics : "pf rules matcher packet = pf (remove_anchors rules) matcher packet"
+lemma remove_anchors_preserves_semantics : "pf (remove_anchors rules) matcher packet = pf rules matcher packet"
 proof(-)
   have "(filter rules matcher packet d = filter (remove_anchors rules) matcher packet d)" for d
 proof (induction rules arbitrary: d)
@@ -219,7 +219,24 @@ qed
     by (simp add: filter_to_pf)
 qed
 
+lemma remove_all_anchors_remove_anchors_idempotent:"pf (remove_all_anchors (remove_anchors rules)) matcher packet = pf (remove_all_anchors rules) matcher packet"
+  by (metis le0 le_antisym no_anchors_0_anchors remove_all_anchors.simps remove_anchors_only_subtracts remove_anchors_preserves_semantics)
 
+lemma remove_all_anchors_preserves_semantics : "pf rules matcher packet = pf (remove_all_anchors rules) matcher packet"
+proof(induction rules rule: remove_all_anchors.induct)
+  case (1 rules)
+  then show ?case
+  proof(cases "no_anchors rules")
+    case True
+    then show ?thesis by simp
+  next
+    case False
+    then have "pf (remove_anchors rules) matcher packet = pf (remove_all_anchors (remove_anchors rules)) matcher packet" by (simp add: 1)
+    moreover have "pf (remove_all_anchors (remove_anchors rules)) matcher packet =  pf (remove_all_anchors rules) matcher packet"
+      by (meson remove_all_anchors_remove_anchors_idempotent)
+    ultimately show ?thesis by (simp add: remove_anchors_preserves_semantics)
+    qed
+qed
 
 
 fun remove_single_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
