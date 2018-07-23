@@ -5,10 +5,8 @@ IP_Addresses.Prefix_Match
  Iptables_Semantics.L4_Protocol_Flags
 begin
 
-
-datatype identifier =
-  Name string
-  | Number nat
+(* names for users, groups, ports get resolved to numbers in the pfctl dump *)
+type_alias identifier = nat
 
 datatype unary_op =
   Eq identifier
@@ -41,18 +39,18 @@ datatype filteropt =
 
 datatype direction = In | Out
 
-type_synonym iface =
-  string
+type_synonym iface = string
+
+datatype ifspec =
+  InterfaceName string
+  | InterfaceGroup string
 
 datatype afspec =
   Inet
   | Inet6
 
 datatype address =
-  InterfaceName string
-  | InterfaceGroup string
-  | Hostname string
-  | Ipv4 "32 prefix_match"
+  Ipv4 "32 prefix_match"
   | Ipv6 ipv6addr "128 prefix_match"
 
 datatype table_address =
@@ -65,21 +63,36 @@ TableEntry (ta: table_address)
 
 type_synonym table = "table_entry list"
 
-datatype host =
-  Address address
-  | NotAddress address
-  | Table string
-  (* TODO cidr *)
-
 datatype hostspec =
   AnyHost
   | NoRoute
-  | UrpfFailed
-  | Self
-  | Host "host list"
+  | Address address
   | Route string
+  | Table string
+
+datatype hostspec_from =
+  AnyHost
+  | NoRoute
+  | UrpfFailed
+  | Address address
+  | Route string
+  | Table string
 
 datatype hosts =
 AllHosts
 | FromTo hostspec "opspec list option" hostspec "opspec list option"
+
+datatype common_primitive = 
+is_Src: Src (src_sel: hostspec_from) |
+is_Src_OS: Src_OS (src_os_sel: string) |
+is_Dst: Dst (dst_sel: hostspec) |
+is_Src_Ports: Src_Ports (src_ports_sel: opspec) |
+is_Dst_Ports: Dst_Ports (dst_ports_sel: opspec) |
+is_Direction: Direction (direction_sel: direction) |
+is_Interface: Interface (interface_sel: ifspec) |
+is_Address_Family: Address_Family (address_family_sel: afspec) |
+is_Protocol: Protocol (protocol_sel: primitive_protocol) |
+is_L4_Flags: L4_Flags (l4_flags_sel: ipt_tcp_flags) |
+is_Extra: Extra (extra_sel: string)
+
 end

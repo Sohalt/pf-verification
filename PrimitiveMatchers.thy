@@ -1,33 +1,24 @@
 theory PrimitiveMatchers
   imports Primitives
           Simple_Firewall.Simple_Packet
+          Iptables_Semantics.Ternary
           Matching
 begin
-fun match_interface :: "direction option \<Rightarrow> iface option \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_interface (Some In) (Some iface) p = ((p_iiface p) = iface)" |
-"match_interface (Some In) None p = ((p_iiface p) \<noteq> [])" |
-"match_interface (Some Out) (Some iface) p = ((p_oiface p) = iface)" |
-"match_interface (Some Out) None p = ((p_oiface p) \<noteq> [])" |
-"match_interface None (Some iface) p = ((p_iiface p = iface) \<or> (p_oiface p = iface))" |
-"match_interface None None p = True"
+fun match_interface :: "iface \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_interface iface p = (((p_iiface p) = iface) \<or> ((p_oiface p) = iface))"
 
-fun match_iiface :: "iface \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_iiface iface p \<longleftrightarrow> (p_iiface p) = iface"
-
-fun match_oiface :: "iface \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_oiface iface p \<longleftrightarrow> (p_oiface p) = iface"
+fun match_direction :: "direction \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_direction In p \<longleftrightarrow> (p_iiface p) \<noteq> ''''"|
+"match_direction Out p \<longleftrightarrow> (p_oiface p) \<noteq> ''''"
 
 fun match_af:: "afspec \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_af Inet _ = True" |
-"match_af Inet6 _ = False" (* TODO ipv6 *)
+"match_af Inet p = True" (* (len_of (TYPE ('i)) = 32)" *)
+|"match_af Inet6 p = False" (* TODO ipv6 *)
 
 (* uses protocol from Simple_Firewall.L4_Protocol, pf doesn't have "ProtoAny" (no protocol specified means "ProtoAny") *)
-fun match_proto:: "primitive_protocol list \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_proto [] _ = False"|
-"match_proto (p#ps) pkt = ((p_proto pkt = p) \<or> match_proto ps pkt)"
+fun match_proto:: "primitive_protocol \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+"match_proto proto p \<longleftrightarrow> p_proto p = proto"
 
-fun match_address :: "address \<Rightarrow> ('i::len word) \<Rightarrow> bool" where
-"match_address _ _ = True" -- TODO
 
 
 (* TODO ipv4 ipv6 versions
@@ -50,40 +41,27 @@ fun match_hostspec:: "hostspec \<Rightarrow> ('i::len word) \<Rightarrow> bool" 
 
 *)
 
-fun lookup_port :: "identifier \<Rightarrow> 16 word" where
-"lookup_port (Name n) = 0" | -- TODO
-"lookup_port (Number n) = of_nat n"
-
 (* fun match_unary_op :: "(identifier \<Rightarrow> 'a) \<Rightarrow> unary_op \<Rightarrow> 'a \<Rightarrow> bool" where *)
-fun match_unary_op :: "(identifier \<Rightarrow> 16 word) \<Rightarrow> unary_op \<Rightarrow> 16 word \<Rightarrow> bool" where
-"match_unary_op lookup (Eq i) x = (x = lookup i)" |
-"match_unary_op lookup (NEq i) x = (x \<noteq> lookup i)" |
-"match_unary_op lookup (Lt i) x = (x < lookup i)" |
-"match_unary_op lookup (LtEq i) x = (x \<le> lookup i)" |
-"match_unary_op lookup (Gt i) x = (x > lookup i)" |
-"match_unary_op lookup (GtEq i) x = (x \<ge> lookup i)"
+fun match_unary_op :: "unary_op \<Rightarrow> nat \<Rightarrow> bool" where
+"match_unary_op (Eq i) x = (x = i)" |
+"match_unary_op (NEq i) x = (x \<noteq> i)" |
+"match_unary_op (Lt i) x = (x < i)" |
+"match_unary_op (LtEq i) x = (x \<le> i)" |
+"match_unary_op (Gt i) x = (x > i)" |
+"match_unary_op (GtEq i) x = (x \<ge> i)"
 
 (* fun match_binary_op :: "(identifier \<Rightarrow> 'a) \<Rightarrow> binary_op \<Rightarrow> 'a \<Rightarrow> bool" where *)
-fun match_binary_op :: "binary_op \<Rightarrow> 16 word \<Rightarrow> bool" where
-"match_binary_op (RangeIncl l u) x = (of_nat l \<le> x \<and> x \<le> of_nat u)"|
-"match_binary_op (RangeExcl l u) x = (of_nat l < x \<and> x < of_nat u)"|
-"match_binary_op (RangeComp l u) x = ((l \<le> u) \<and> \<not>(of_nat l \<le> x \<and> x \<le> of_nat u))"
+fun match_binary_op :: "binary_op \<Rightarrow> nat \<Rightarrow> bool" where
+"match_binary_op (RangeIncl l u) x = (l \<le> x \<and> x \<le> u)"|
+"match_binary_op (RangeExcl l u) x = (l < x \<and> x < u)"|
+"match_binary_op (RangeComp l u) x = ((l \<le> u) \<and> \<not>(l \<le> x \<and> x \<le> u))"
 
-(* fun match_op :: "(identifier \<Rightarrow> 'i) \<Rightarrow> opspec \<Rightarrow> 'i \<Rightarrow> bool" where *)
-fun match_op :: "(identifier \<Rightarrow> 16 word) \<Rightarrow> opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
-"match_op lookup (Unary operator) x = match_unary_op lookup operator x" |
-"match_op lookup (Binary operator) x = match_binary_op operator x"
+fun match_op :: "opspec \<Rightarrow> nat \<Rightarrow> bool" where
+"match_op (Unary operator) x = match_unary_op operator x" |
+"match_op (Binary operator) x = match_binary_op operator x"
 
-fun match_op_port :: "opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
-"match_op_port opspec p = match_op lookup_port opspec p"
-
-fun match_port_ops :: "opspec list \<Rightarrow> 16 word \<Rightarrow> bool" where
-"match_port_ops [] _ = False" |
-"match_port_ops (operator#ops) p = (match_op_port operator p \<or> match_port_ops ops p)"
-
-fun match_port :: "opspec list option \<Rightarrow> 16 word \<Rightarrow> bool" where
-"match_port None _ = True"|
-"match_port (Some ops) port = match_port_ops ops port"
+definition match_port :: "opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
+"match_port operator port = match_op operator (unat port)"
 
 (* TODO ipv4 ipv6 versions
 fun match_hosts :: "hosts \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
@@ -91,23 +69,19 @@ fun match_hosts :: "hosts \<Rightarrow> 32 simple_packet \<Rightarrow> bool" whe
 "match_hosts (FromTo from sports to dports) p = (match_hostspec from (p_src p) \<and> match_port sports (p_sport p) \<and> match_hostspec to (p_dst p) \<and> match_port dports (p_dport p))"
 *)
 
-fun match_filteropts :: "filteropt list \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_filteropts _ _ = True"
+fun common_matcher :: "common_primitive \<Rightarrow> 32 simple_packet \<Rightarrow> ternaryvalue" where
+"common_matcher (Src hosts) p = TernaryUnknown"| (* FIXME *)
+"common_matcher (Dst hosts) p = TernaryUnknown"| (* FIXME *)
+"common_matcher (Src_OS _) _ = TernaryUnknown"|
+"common_matcher (Src_Ports ports) p = bool_to_ternary (match_port ports (p_sport p))"|
+"common_matcher (Dst_Ports ports) p = bool_to_ternary (match_port ports (p_dport p))"|
+"common_matcher (Direction dir) p = bool_to_ternary (match_direction dir p)"|
+"common_matcher (Interface (InterfaceName interface)) p = bool_to_ternary (match_interface interface p)"|
+"common_matcher (Interface (InterfaceGroup _)) p = TernaryUnknown"|
+"common_matcher (Address_Family af) p = bool_to_ternary (match_af af p)"|
+"common_matcher (Protocol proto) p = bool_to_ternary (match_proto proto p)"|
+"common_matcher (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags  (p_tcp_flags p))"|
+"common_matcher (Extra _) _ = TernaryUnknown"
 
-datatype 'i::len common_primitive =
-IIface "iface"
-| OIface "iface"
-| Af "afspec"
-| Proto "primitive_protocol list"
-| Hosts "hosts"
-
-(* TODO ipv4 ipv6 versions
-fun matcher :: "'i::len common_primitive \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"matcher (IIface iface) p = match_iiface iface p"|
-"matcher (OIface iface) p = match_oiface iface p"|
-"matcher (Af af) p = match_af af p"|
-"matcher (Proto proto) p = match_proto proto p"|
-"matcher (Hosts hosts) p = match_hosts hosts p"
-*)
 
 end
