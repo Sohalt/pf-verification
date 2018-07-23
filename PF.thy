@@ -11,18 +11,18 @@ begin
 (* Block return semantically equal to Block (without return)*)
 datatype action = Pass | Match | Block
 
-record 'a pf_rule2 =
+record 'a pf_rule =
   get_action :: action
   get_quick :: bool
   get_match :: "'a match_expr"
 
-record 'a anchor_rule2 =
+record 'a anchor_rule =
   get_match :: "'a match_expr"
 
 datatype 'a line =
   Option
-  | PfRule "'a pf_rule2"
-  | is_Anchor: Anchor "'a anchor_rule2" "'a line list"
+  | PfRule "'a pf_rule"
+  | is_Anchor: Anchor "'a anchor_rule" "'a line list"
 
 quickcheck_generator line constructors: Option, PfRule
 
@@ -48,15 +48,15 @@ fun filter_spec :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \
 "filter_spec [] m p d = d"
 |"filter_spec (Option#ls) m p d = filter_spec ls m p d"
 |"filter_spec ((PfRule r)#ls) m p d =
-(if (matches m (pf_rule2.get_match r) p)
+(if (matches m (pf_rule.get_match r) p)
 then
-(if (pf_rule2.get_quick r)
-then (action_to_decision (pf_rule2.get_action r) d)
-else (filter_spec ls m p (action_to_decision (pf_rule2.get_action r) d)))
+(if (pf_rule.get_quick r)
+then (action_to_decision (pf_rule.get_action r) d)
+else (filter_spec ls m p (action_to_decision (pf_rule.get_action r) d)))
 else
 filter_spec ls m p d)"
 |"filter_spec ((Anchor r b)#ls) m p d =
-(if (matches m (anchor_rule2.get_match r) p)
+(if (matches m (anchor_rule.get_match r) p)
 then
 (filter_spec (b@ls) m p d)
 else
@@ -67,13 +67,13 @@ fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Righ
 | "filter [] _ _ d = d"
 | "filter (l#ls) m p (Preliminary d) = filter ls m p (case l of
 Option \<Rightarrow> (Preliminary d)
-| (PfRule r) \<Rightarrow> (if (matches m (pf_rule2.get_match r) p)
+| (PfRule r) \<Rightarrow> (if (matches m (pf_rule.get_match r) p)
 then
   (if (get_quick r)
     then (Final (action_to_decision (get_action r) d))
     else (Preliminary (action_to_decision (get_action r) d)))
 else (Preliminary d))
-| (Anchor r body) \<Rightarrow> (if (matches m (anchor_rule2.get_match r) p)
+| (Anchor r body) \<Rightarrow> (if (matches m (anchor_rule.get_match r) p)
 then filter (body) m p (Preliminary d)
 else (Preliminary d))
 )"
@@ -114,7 +114,7 @@ then show ?thesis using Prem IH by simp
 next
 case (PfRule r)
   then show ?thesis
-    proof(cases "matches m (pf_rule2.get_match r) p")
+    proof(cases "matches m (pf_rule.get_match r) p")
     case True
     then show ?thesis unfolding PfRule using Prem IH by auto
   next
@@ -124,7 +124,7 @@ case (PfRule r)
 next
   case (Anchor r l)
   then show ?thesis
-  proof(cases "matches m (anchor_rule2.get_match r) p")
+  proof(cases "matches m (anchor_rule.get_match r) p")
     case True
     then show ?thesis using Prem IH by auto
   next
@@ -148,7 +148,7 @@ next
 next
   case IH: (4 r b ls m p d)
   then show ?case
-  proof(cases "matches m (anchor_rule2.get_match r) p")
+  proof(cases "matches m (anchor_rule.get_match r) p")
     case True
     then show ?thesis using IH by (auto simp: filter_chain)
   next

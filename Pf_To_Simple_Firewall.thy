@@ -5,8 +5,8 @@ begin
 
 fun and_line :: "'a match_expr \<Rightarrow> 'a line \<Rightarrow> 'a line" where
 "and_line m Option =Option"|
-"and_line m (PfRule r) = (PfRule (r\<lparr>pf_rule2.get_match := (MatchAnd m (pf_rule2.get_match r))\<rparr>))"|
-"and_line m (Anchor r l) = (Anchor (r\<lparr>anchor_rule2.get_match := (MatchAnd m (anchor_rule2.get_match r))\<rparr>) l)"
+"and_line m (PfRule r) = (PfRule (r\<lparr>pf_rule.get_match := (MatchAnd m (pf_rule.get_match r))\<rparr>))"|
+"and_line m (Anchor r l) = (Anchor (r\<lparr>anchor_rule.get_match := (MatchAnd m (anchor_rule.get_match r))\<rparr>) l)"
 
 fun and_each :: "'a match_expr \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset" where
 "and_each _ [] = []"|
@@ -14,7 +14,7 @@ fun and_each :: "'a match_expr \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset
 
 fun remove_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_anchors [] = []"|
-"remove_anchors ((Anchor r l) # rs) = (and_each (anchor_rule2.get_match r) l) @ (remove_anchors rs)"|
+"remove_anchors ((Anchor r l) # rs) = (and_each (anchor_rule.get_match r) l) @ (remove_anchors rs)"|
 "remove_anchors (r#rs) = r#(remove_anchors rs)"
 
 fun count_anchors :: "'a ruleset \<Rightarrow> nat" where
@@ -193,10 +193,10 @@ next
   next
     case (Anchor r ls)
     then have "filter [(Anchor r ls)] matcher packet d =
-               filter (and_each (anchor_rule2.get_match r) ls) matcher packet d"
-    proof(cases "matches matcher (anchor_rule2.get_match r) packet")
+               filter (and_each (anchor_rule.get_match r) ls) matcher packet d"
+    proof(cases "matches matcher (anchor_rule.get_match r) packet")
       case True
-      then have "filter (and_each (anchor_rule2.get_match r) ls) matcher packet (Preliminary x2)
+      then have "filter (and_each (anchor_rule.get_match r) ls) matcher packet (Preliminary x2)
                  = filter ls matcher packet (Preliminary x2)" by auto
       moreover have "PF.filter [Anchor r ls] matcher packet (Preliminary x2)
                  = filter ls matcher packet (Preliminary x2)" by (simp add: True filter_foo)
@@ -245,7 +245,7 @@ fun remove_single_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
 |"remove_single_quick ((PfRule r)#ls) =
 (if (get_quick r)
 then
-(and_each (MatchNot (pf_rule2.get_match r)) ls)@[PfRule (r\<lparr>get_quick := False\<rparr>)]
+(and_each (MatchNot (pf_rule.get_match r)) ls)@[PfRule (r\<lparr>get_quick := False\<rparr>)]
 else
 ((PfRule r)#(remove_single_quick ls)))"
 
@@ -398,7 +398,7 @@ lemma remove_all_quick_ok:
   by (induction rules rule:remove_all_quick.induct) (metis remove_all_quick.elims remove_single_quick_preserves_no_anchors)
 
 lemma remove_suffix[simp]:
-  assumes "\<not>matches m (pf_rule2.get_match r) p"
+  assumes "\<not>matches m (pf_rule.get_match r) p"
   shows "filter (l@[(PfRule r)]) m p d = filter l m p d"
 proof(cases "filter l m p d")
   case (Final x1)
@@ -434,7 +434,7 @@ proof(-)
         proof(cases "get_quick r")
           case Quick:True
           then show ?thesis
-          proof(cases "matches matcher (pf_rule2.get_match r) packet")
+          proof(cases "matches matcher (pf_rule.get_match r) packet")
             case True
             then show ?thesis unfolding PfRule Preliminary using Quick by (simp add:filter_chain)
           next
@@ -456,7 +456,7 @@ qed
 
 fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_matches [] = []"
-|"remove_matches ((PfRule r)#ls) = (if ((pf_rule2.get_action r) = action.Match) then remove_matches ls else (PfRule r)#remove_matches ls)"
+|"remove_matches ((PfRule r)#ls) = (if ((pf_rule.get_action r) = action.Match) then remove_matches ls else (PfRule r)#remove_matches ls)"
 |"remove_matches (l#ls) = l#(remove_matches ls)"
 
 lemma remove_matches_ok:
