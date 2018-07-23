@@ -264,8 +264,4 @@ proof(-)
     by blast
 qed
 
-(* table matching *)
-fun lookup_table :: "string \<Rightarrow> table" where
-"lookup_table _ = []" (* TODO *)
-
 end

@@ -40,35 +40,42 @@ fun match_op :: "opspec \<Rightarrow> nat \<Rightarrow> bool" where
 definition match_port :: "opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
 "match_port operator port = match_op operator (unat port)"
 
+record pfcontext = 
+  get_tables :: "string \<rightharpoonup> table"
+(*  get_routes :: "routes option" *)
+
+definition lookup_table :: "pfcontext \<Rightarrow> string \<Rightarrow> table" where
+"lookup_table ctx name = (case (get_tables ctx) name of (Some t) \<Rightarrow> t | None \<Rightarrow> [])"
+
 (* TODO ipv6 *)
-fun match_hosts :: "hostspec \<Rightarrow> 32 word \<Rightarrow> ternaryvalue" where
-"match_hosts AnyHost _ = bool_to_ternary True" |
-"match_hosts (Address addr) p_addr =
+fun match_hosts :: "pfcontext \<Rightarrow> hostspec \<Rightarrow> 32 word \<Rightarrow> ternaryvalue" where
+"match_hosts _ AnyHost _ = bool_to_ternary True" |
+"match_hosts _ (Address addr) p_addr =
 (case addr of
  (IPv4 a) \<Rightarrow> bool_to_ternary (prefix_match_semantics a p_addr)
 | (IPv6 _) \<Rightarrow> TernaryUnknown)"|
-"match_hosts NoRoute _ = TernaryUnknown" |
-"match_hosts (Route _) _ = TernaryUnknown" |
-"match_hosts (Table name) p_addr = bool_to_ternary (match_table_v4 (lookup_table name) p_addr)"
+"match_hosts ctx NoRoute _ = TernaryUnknown" |
+"match_hosts ctx (Route _) _ = TernaryUnknown" |
+"match_hosts ctx (Table name) p_addr = bool_to_ternary (match_table_v4 (lookup_table ctx name) p_addr)"
 
 
-fun match_hosts_src :: "hostspec_from \<Rightarrow> 32 word \<Rightarrow> ternaryvalue" where
-"match_hosts_src (Hostspec h) a = match_hosts h a" |
-"match_hosts_src UrpfFailed a = TernaryUnknown"
+fun match_hosts_src :: "pfcontext \<Rightarrow> hostspec_from \<Rightarrow> 32 word \<Rightarrow> ternaryvalue" where
+"match_hosts_src ctx (Hostspec h) a = match_hosts ctx h a" |
+"match_hosts_src ctx UrpfFailed a = TernaryUnknown"
 
-fun common_matcher :: "common_primitive \<Rightarrow> 32 simple_packet \<Rightarrow> ternaryvalue" where
-"common_matcher (Src hosts) p = match_hosts_src hosts (p_src p)"|
-"common_matcher (Dst hosts) p = match_hosts hosts (p_dst p)"|
-"common_matcher (Src_OS _) _ = TernaryUnknown"|
-"common_matcher (Src_Ports ports) p = bool_to_ternary (match_port ports (p_sport p))"|
-"common_matcher (Dst_Ports ports) p = bool_to_ternary (match_port ports (p_dport p))"|
-"common_matcher (Direction dir) p = bool_to_ternary (match_direction dir p)"|
-"common_matcher (Interface (InterfaceName interface)) p = bool_to_ternary (match_interface interface p)"|
-"common_matcher (Interface (InterfaceGroup _)) p = TernaryUnknown"|
-"common_matcher (Address_Family af) p = bool_to_ternary (match_af af p)"|
-"common_matcher (Protocol proto) p = bool_to_ternary (match_proto proto p)"|
-"common_matcher (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags  (p_tcp_flags p))"|
-"common_matcher (Extra _) _ = TernaryUnknown"
+fun common_matcher :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 32 simple_packet \<Rightarrow> ternaryvalue" where
+"common_matcher ctx (Src hosts) p = match_hosts_src ctx hosts (p_src p)"|
+"common_matcher ctx (Dst hosts) p = match_hosts ctx hosts (p_dst p)"|
+"common_matcher _ (Src_OS _) _ = TernaryUnknown"|
+"common_matcher _ (Src_Ports ports) p = bool_to_ternary (match_port ports (p_sport p))"|
+"common_matcher _ (Dst_Ports ports) p = bool_to_ternary (match_port ports (p_dport p))"|
+"common_matcher _ (Direction dir) p = bool_to_ternary (match_direction dir p)"|
+"common_matcher _ (Interface (InterfaceName interface)) p = bool_to_ternary (match_interface interface p)"|
+"common_matcher ctx (Interface (InterfaceGroup _)) p = TernaryUnknown"|
+"common_matcher _ (Address_Family af) p = bool_to_ternary (match_af af p)"|
+"common_matcher _ (Protocol proto) p = bool_to_ternary (match_proto proto p)"|
+"common_matcher _ (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags  (p_tcp_flags p))"|
+"common_matcher _ (Extra _) _ = TernaryUnknown"
 
 
 end
