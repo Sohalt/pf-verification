@@ -18,38 +18,31 @@ fun matches :: "('a, 'p) matcher \<Rightarrow> 'a match_expr \<Rightarrow> 'p \<
 "matches _ MatchAny _ \<longleftrightarrow> True"
 
 fun filter_spec :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
-"filter_spec [] m p d = d"
-|"filter_spec (Option#ls) m p d = filter_spec ls m p d"
-|"filter_spec ((PfRule r)#ls) m p d =
-(if (matches m (pf_rule.get_match r) p)
-then
-(if (pf_rule.get_quick r)
-then (action_to_decision (pf_rule.get_action r) d)
-else (filter_spec ls m p (action_to_decision (pf_rule.get_action r) d)))
-else
-filter_spec ls m p d)"
-|"filter_spec ((Anchor r b)#ls) m p d =
-(if (matches m (anchor_rule.get_match r) p)
-then
-(filter_spec (b@ls) m p d)
-else
-filter_spec ls m p d)"
+"filter_spec [] m p d = d" |
+"filter_spec (Option#ls) m p d = filter_spec ls m p d" |
+"filter_spec ((PfRule r)#ls) m p d = (if (matches m (pf_rule.get_match r) p)
+                                       then (if (pf_rule.get_quick r)
+                                              then (action_to_decision (pf_rule.get_action r) d)
+                                              else (filter_spec ls m p (action_to_decision (pf_rule.get_action r) d)))
+                                       else filter_spec ls m p d)" |
+"filter_spec ((Anchor r b)#ls) m p d = (if (matches m (anchor_rule.get_match r) p)
+                                         then (filter_spec (b@ls) m p d)
+                                         else filter_spec ls m p d)"
 
 fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
-"filter _ _ _ (Final d) = Final d"
-| "filter [] _ _ d = d"
-| "filter (l#ls) m p (Preliminary d) = filter ls m p (case l of
-Option \<Rightarrow> (Preliminary d)
-| (PfRule r) \<Rightarrow> (if (matches m (pf_rule.get_match r) p)
-then
-  (if (get_quick r)
-    then (Final (action_to_decision (get_action r) d))
-    else (Preliminary (action_to_decision (get_action r) d)))
-else (Preliminary d))
-| (Anchor r body) \<Rightarrow> (if (matches m (anchor_rule.get_match r) p)
-then filter (body) m p (Preliminary d)
-else (Preliminary d))
-)"
+"filter _ _ _ (Final d) = Final d" |
+"filter [] _ _ d = d" |
+"filter (l#ls) m p (Preliminary d) =
+  filter ls m p (case l of
+                  Option \<Rightarrow> (Preliminary d)
+                  | (PfRule r) \<Rightarrow> (if (matches m (pf_rule.get_match r) p)
+                                               then (if (get_quick r)
+                                                      then (Final (action_to_decision (get_action r) d))
+                                                      else (Preliminary (action_to_decision (get_action r) d)))
+                                               else (Preliminary d))
+                  | (Anchor r body) \<Rightarrow> (if (matches m (anchor_rule.get_match r) p)
+                                                    then filter (body) m p (Preliminary d)
+                                                    else (Preliminary d)))"
 
 case_of_simps filter_cases: filter.simps
 
