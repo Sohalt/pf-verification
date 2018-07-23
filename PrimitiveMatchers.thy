@@ -2,10 +2,10 @@ theory PrimitiveMatchers
   imports Primitives
           Simple_Firewall.Simple_Packet
           Iptables_Semantics.Ternary
-          Matching
           Tables
+          Firewall_Common
 begin
-fun match_interface :: "iface \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
+fun match_interface :: "string \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_interface iface p = (((p_iiface p) = iface) \<or> ((p_oiface p) = iface))"
 
 fun match_direction :: "direction \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
