@@ -1,48 +1,21 @@
 theory PF
-  imports Iptables_Semantics.L4_Protocol_Flags
-          Simple_Firewall.L4_Protocol
-          Simple_Firewall.Simple_Packet
-          IP_Addresses.IPv4
-          PrimitiveMatchers
-          Matching
+  imports 
           "HOL-Library.Simps_Case_Conv"
+          Firewall_Common
 begin
 
-(* Block return semantically equal to Block (without return)*)
-datatype action = Pass | Match | Block
+text\<open>A matcher (parameterized by the type of primitive @{typ 'a} and packet @{typ 'p})
+     is a function which just tells whether a given primitive and packet matches.\<close>
+type_synonym ('a, 'p) matcher = "'a \<Rightarrow> 'p \<Rightarrow> bool"
 
-record 'a pf_rule =
-  get_action :: action
-  get_quick :: bool
-  get_match :: "'a match_expr"
 
-record 'a anchor_rule =
-  get_match :: "'a match_expr"
-
-datatype 'a line =
-  Option
-  | PfRule "'a pf_rule"
-  | is_Anchor: Anchor "'a anchor_rule" "'a line list"
-
-quickcheck_generator line constructors: Option, PfRule
-
-type_synonym 'a ruleset = "'a line list"
-
-datatype decision =
-  Accept
-  | Reject
-  | Undecided
-
-fun action_to_decision :: "action \<Rightarrow> decision \<Rightarrow> decision" where
-"action_to_decision Pass _ = Accept"|
-"action_to_decision Block _ = Reject"|
-"action_to_decision action.Match d = d"
-
-case_of_simps action_to_decision_cases: action_to_decision.simps
-
-datatype decision_wrap =
-  Final decision
-  | Preliminary decision
+text\<open>Given an @{typ "('a, 'p) matcher"} and a match expression, does a packet of type @{typ 'p}
+     match the match expression?\<close>
+fun matches :: "('a, 'p) matcher \<Rightarrow> 'a match_expr \<Rightarrow> 'p \<Rightarrow> bool" where
+"matches \<gamma> (MatchAnd e1 e2) p \<longleftrightarrow> matches \<gamma> e1 p \<and> matches \<gamma> e2 p" |
+"matches \<gamma> (MatchNot me) p \<longleftrightarrow> \<not> matches \<gamma> me p" |
+"matches \<gamma> (Match e) p \<longleftrightarrow> \<gamma> e p" |
+"matches _ MatchAny _ \<longleftrightarrow> True"
 
 fun filter_spec :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
 "filter_spec [] m p d = d"
@@ -178,7 +151,7 @@ lemma "pf rules m packet = pf' rules (\<lambda>a. m a packet)"
   by simp
 
 
-
+(*
 definition test_packet :: "('i::len) simple_packet" where
 "test_packet \<equiv>
 \<lparr>
@@ -240,6 +213,7 @@ PfRule \<lparr>
   get_match = MatchAny
 \<rparr>
 ] matcher test_packet = Reject" by code_simp
+*)
 
 (*
 
