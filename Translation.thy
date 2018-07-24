@@ -35,4 +35,40 @@ lemma normalize_ports :
   unfolding match_port_def using linorder_not_less
   by (induction spec rule: normalize_ports'.induct) (auto simp add: inc_le word_Suc_le minus_one_helper3 minus_one_helper5)
 
+fun normalize_match' :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 32 intermediate_primitive" where
+"normalize_match' _ (common_primitive.Src UrpfFailed) = Unknown" |
+"normalize_match' _ (common_primitive.Src (Hostspec (Address (IPv4 a)))) = (intermediate_primitive.Src (prefix_to_wordinterval a))" |
+"normalize_match' _ (common_primitive.Src (Hostspec (Address (IPv6 a)))) = Unknown" | (* FIXME *)
+"normalize_match' ctx (common_primitive.Src (Hostspec (Table t))) = (intermediate_primitive.Src (table_to_wordinterval_v4 (lookup_table ctx t)))" |
+"normalize_match' _ (common_primitive.Src (Hostspec AnyHost)) = (intermediate_primitive.Src wordinterval_UNIV)" |
+"normalize_match' ctx (common_primitive.Src (Hostspec NoRoute)) = Unknown" | (* TODO use ctx *)
+"normalize_match' ctx (common_primitive.Src (Hostspec (Route r))) = Unknown" | (* TODO use ctx *)
+"normalize_match' _ (common_primitive.Dst (Address (IPv4 a))) = (intermediate_primitive.Dst (prefix_to_wordinterval a))" |
+"normalize_match' _ (common_primitive.Dst (Address (IPv6 a))) = Unknown" | (* FIXME *)
+"normalize_match' ctx (common_primitive.Dst (Table t)) = (intermediate_primitive.Dst (table_to_wordinterval_v4 (lookup_table ctx t)))" |
+"normalize_match' _ (common_primitive.Dst AnyHost) = (intermediate_primitive.Dst wordinterval_UNIV)" |
+"normalize_match' ctx (common_primitive.Dst NoRoute) = Unknown" | (* TODO use ctx *)
+"normalize_match' ctx (common_primitive.Dst (Route r)) = Unknown" | (* TODO use ctx *)
+"normalize_match' _ (common_primitive.Src_OS _) = Unknown" |
+"normalize_match' _ (common_primitive.Src_Ports opspec) = (intermediate_primitive.Src_Ports (normalize_ports' opspec))" |
+"normalize_match' _ (common_primitive.Dst_Ports opspec) = (intermediate_primitive.Dst_Ports (normalize_ports' opspec))" |
+"normalize_match' _ (common_primitive.Address_Family Inet) = Unknown" | (* TODO True *)
+"normalize_match' _ (common_primitive.Address_Family Inet6) = Unknown" |  (* TODO False *)
+(* (intermediate_primitive.IIface ''+'') doesn't work:
+  ''+'' also matches empty string :(
+  would need wildcard for non_empty *)
+"normalize_match' _ (common_primitive.Direction In) = Unknown" |
+"normalize_match' _ (common_primitive.Direction Out) = Unknown" |
+"normalize_match' ctx (common_primitive.Interface (InterfaceGroup g)) = Unknown" | (* TODO use ctx *)
+"normalize_match' _ (common_primitive.Interface (InterfaceName i)) = Unknown" |
+"normalize_match' _ (common_primitive.Protocol p) = (intermediate_primitive.Protocol p)" |
+"normalize_match' _ (common_primitive.L4_Flags _) = Unknown" |
+"normalize_match' _ (common_primitive.Extra _) = Unknown"
+
+fun normalize_match :: "common_primitive match_expr \<Rightarrow> 'i intermediate_primitive match_expr" where
+"normalize_match MatchAny = MatchAny" |
+"normalize_match (MatchNot m) = (MatchNot (normalize_match m))" |
+"normalize_match (MatchAnd m1 m2) = (MatchAnd (normalize_match m1) (normalize_match m2))" |
+"normalize_match (Match m) = (MatchAny)"
+
 end
