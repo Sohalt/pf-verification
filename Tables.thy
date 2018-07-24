@@ -78,29 +78,21 @@ abbreviation foldf_wi_v4 :: "table_entry \<Rightarrow> 32 wordinterval \<Rightar
 "foldf_wi_v4 t a \<equiv> (case t of (TableEntry te) \<Rightarrow> wordinterval_union a (prefix_to_wordinterval (ip4 te))
  | (TableEntryNegated te) \<Rightarrow> wordinterval_setminus a (prefix_to_wordinterval (ip4 te)))"
 
+definition table_to_wordinterval_v4_inner :: "table \<Rightarrow> 32 wordinterval" where
+"table_to_wordinterval_v4_inner table = foldr foldf_wi_v4 table Empty_WordInterval"
+
 definition table_to_wordinterval_v4 :: "table \<Rightarrow> 32 wordinterval" where
-"table_to_wordinterval_v4 table = foldr foldf_wi_v4 table Empty_WordInterval"
+"table_to_wordinterval_v4 table = table_to_wordinterval_v4_inner (sort [t \<leftarrow> table. isIPv4 (ta t)])"
 
-definition match_table_v4''_inner :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
-"match_table_v4''_inner table address \<longleftrightarrow> wordinterval_element address (table_to_wordinterval_v4 table)"
-
-lemma table_to_wordinterval_v4: "wordinterval_to_set (table_to_wordinterval_v4 table) = table_to_set_v4 table"
-  unfolding table_to_set_v4_def table_to_wordinterval_v4_def
+lemma table_to_wordinterval_v4: "wordinterval_to_set (table_to_wordinterval_v4_inner table) = table_to_set_v4 table"
+  unfolding table_to_set_v4_def table_to_wordinterval_v4_inner_def
   by (induction table ) (auto split:table_entry.splits)
-
-lemma match_table_v4''_inner: "match_table_v4'_inner table addr = match_table_v4''_inner table addr"
-  unfolding match_table_v4'_inner_def match_table_v4''_inner_def
-  by (simp add: table_to_wordinterval_v4)
 
 definition match_table_v4' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
 "match_table_v4' table address = match_table_v4'_inner (sort [t \<leftarrow> table. isIPv4 (ta t)]) address"
 
-definition match_table_v4'' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
-"match_table_v4'' table address = match_table_v4''_inner (sort [t \<leftarrow> table. isIPv4 (ta t)]) address"
-
-lemma match_table_v4'': "match_table_v4' table addr = match_table_v4'' table addr"
-  unfolding match_table_v4'_def match_table_v4''_def
-  by (simp add: match_table_v4''_inner)
+lemma match_table_v4': "match_table_v4' table addr = wordinterval_element addr (table_to_wordinterval_v4 table)"
+  unfolding match_table_v4'_def table_to_wordinterval_v4_def match_table_v4'_inner_def using table_to_wordinterval_v4 by auto
 
 lemma find_Some_decision_addr_in_set:
   assumes "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)" "valid_table table"
@@ -182,6 +174,11 @@ proof(-)
   ultimately show ?thesis unfolding match_table_v4_def match_table_v4'_def using match_table_v4_inner
     by blast
 qed
+
+lemma match_table_v4_wordinterval:
+  assumes "valid_table table"
+  shows "match_table_v4 table address = wordinterval_element address (table_to_wordinterval_v4 table)"
+  using assms match_table_v4 match_table_v4' by simp
 
 (* IPv6 *)
 definition match_table_v6_inner :: "table \<Rightarrow> 128 word \<Rightarrow> bool" where
