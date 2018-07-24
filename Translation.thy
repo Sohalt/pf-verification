@@ -32,36 +32,7 @@ value "0 < (0::16 word)"
 
 lemma normalize_ports :
 "match_port spec p \<longleftrightarrow> wordinterval_element p (normalize_ports' spec)"
-  unfolding match_port_def
-proof(induction spec rule: normalize_ports'.induct)
-case (1 p)
-then show ?case by simp
-next
-  case (2 p)
-  then show ?case by simp
-next
-case (3 p)
-  then show ?case by simp
-next
-case (4 p)
-  then show ?case apply (auto simp add: inc_le word_Suc_le)
-    using linorder_not_less by blast
-next
-  case (5 p)
-  then show ?case by simp
-next
-  case (6 p)
-  then show ?case by (auto simp add: minus_one_helper3 minus_one_helper5)
-next
-  case (7 "from" to)
-  then show ?case by simp
-next
-  case (8 "from" to)
-  then show ?case apply (auto simp add: inc_le word_Suc_le minus_one_helper3 minus_one_helper5)
-    using linorder_not_less by blast
-next
-  case (9 "from" to)
-  then show ?case by auto
-qed
+  unfolding match_port_def using linorder_not_less
+  by (induction spec rule: normalize_ports'.induct) (auto simp add: inc_le word_Suc_le minus_one_helper3 minus_one_helper5)
 
 end
