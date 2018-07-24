@@ -12,9 +12,9 @@ fun match_direction :: "direction \<Rightarrow> 32 simple_packet \<Rightarrow> b
 "match_direction In p \<longleftrightarrow> (p_iiface p) \<noteq> ''''"|
 "match_direction Out p \<longleftrightarrow> (p_oiface p) \<noteq> ''''"
 
-fun match_af:: "afspec \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_af Inet p = True" (* (len_of (TYPE ('i)) = 32)" *)
-|"match_af Inet6 p = False" (* TODO ipv6 *)
+fun match_af:: "afspec \<Rightarrow> 'i::len0 simple_packet \<Rightarrow> bool" where
+"match_af Inet p \<longleftrightarrow> len_of TYPE ('i) = 32" (* (len_of (TYPE ('i)) = 32)" *)
+|"match_af Inet6 p \<longleftrightarrow> len_of TYPE ('i) = 128" (* TODO ipv6 *)
 
 (* uses protocol from Simple_Firewall.L4_Protocol, pf doesn't have "ProtoAny" (no protocol specified means "ProtoAny") *)
 fun match_proto:: "primitive_protocol \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
@@ -40,7 +40,7 @@ fun match_op :: "'i opspec \<Rightarrow> 'i word \<Rightarrow> bool" where
 definition match_port :: "16 opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
 "match_port operator port = match_op operator port"
 
-record pfcontext = 
+record pfcontext =
   get_tables :: "string \<rightharpoonup> table"
 (*  get_routes :: "routes option" *)
 
@@ -94,16 +94,16 @@ fun remove_table :: "pfcontext \<Rightarrow> common_primitive match_expr \<Right
 "remove_table ctx (Match (Dst (Table name))) = match_or (map (\<lambda>a. (Dst (Address (IPv4 a)))) (partition_ip_set (table_to_set_v4 (lookup_table ctx name))))" |
 "remove_table _ m = m"
 
-fun normalize_ports' :: "16 opspec \<Rightarrow> 16 opspec list" where
+fun normalize_ports' :: "_ word opspec \<Rightarrow> _ word opspec list" where
 "normalize_ports' (Unary (Eq p)) = [(Binary (RangeIncl p p))]" |
-"normalize_ports' (Unary (NEq p)) = [(Binary (RangeIncl 0 (p - 1))) (Binary (RangeIncl (p + 1) max_word))]" |
+"normalize_ports' (Unary (NEq p)) = [(Binary (RangeIncl 0 (p - 1))), (Binary (RangeIncl (p + 1) max_word))]" |
 "normalize_ports' (Unary (GtEq p)) = [(Binary (RangeIncl p max_word))]" |
 "normalize_ports' (Unary (Gt p)) = [(Binary (RangeIncl (p + 1) max_word))]" |
 "normalize_ports' (Unary (LtEq p)) = [(Binary (RangeIncl 0 p))]" |
 "normalize_ports' (Unary (Lt p)) = [(Binary (RangeIncl 0 (p - 1)))]" |
 "normalize_ports' (Binary (RangeIncl from to)) = [(Binary (RangeIncl from to))]" |
 "normalize_ports' (Binary (RangeExcl from to)) = [(Binary (RangeIncl (from + 1) (to -1)))]" |
-"normalize_ports' (Binary (RangeComp from to)) = [(Binary (RangeIncl 0 from)) (Binary (RangeIncl to max_word))]"
+"normalize_ports' (Binary (RangeComp from to)) = [(Binary (RangeIncl 0 from)), (Binary (RangeIncl to max_word))]"
 
 fun normalize_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
 "normalize_ports (Match (Src_Ports ports)) = match_or (map (\<lambda>p. (Src_Ports p)) (normalize_ports' ports))" |

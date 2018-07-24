@@ -6,29 +6,28 @@ IP_Addresses.Prefix_Match
 begin
 
 (* names for users, groups, ports get resolved to numbers in the pfctl dump *)
-datatype ('i::len0) unary_op =
-  Eq "'i word"
-  | NEq "'i word"
-  | Lt "'i word"
-  | LtEq "'i word"
-  | Gt "'i word"
-  | GtEq "'i word"
+datatype 'i unary_op =
+  Eq "'i"
+  | NEq "'i"
+  | Lt "'i"
+  | LtEq "'i"
+  | Gt "'i"
+  | GtEq "'i"
 
 datatype 'i binary_op =
-  RangeIncl "'i word" "'i word"
-  | RangeExcl "'i word" "'i word"
-  | RangeComp "'i word" "'i word"
+  RangeIncl "'i" "'i"
+  | RangeExcl "'i" "'i"
+  | RangeComp "'i" "'i"
 
 datatype 'i opspec =
   Unary "'i unary_op"
   | Binary "'i binary_op"
 
-(*
 datatype filteropt =
-  User "opspec list"
-  | Group "opspec list"
+  User "16 word opspec list"
+  | Group "32 word opspec list"
   | Flags ipt_tcp_flags (* taken from iptables_semantics *)
-*)
+
 
 (*
   | IcmpType icmp_type
@@ -67,7 +66,7 @@ datatype hostspec_from =
   Hostspec hostspec
   | UrpfFailed
 
-datatype common_primitive = 
+datatype common_primitive =
 is_Src: Src (src_sel: hostspec_from) |
 is_Src_OS: Src_OS (src_os_sel: string) |
 is_Dst: Dst (dst_sel: hostspec) |
