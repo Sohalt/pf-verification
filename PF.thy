@@ -17,6 +17,8 @@ fun matches :: "('a, 'p) matcher \<Rightarrow> 'a match_expr \<Rightarrow> 'p \<
 "matches \<gamma> (Match e) p \<longleftrightarrow> \<gamma> e p" |
 "matches _ MatchAny _ \<longleftrightarrow> True"
 
+lemma "matches m (MatchOr e1 e2) p \<longleftrightarrow> matches m e1 p \<or> matches m e2 p" unfolding MatchOr_def by auto
+
 fun filter_spec :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
 "filter_spec [] m p d = d" |
 "filter_spec (Option#ls) m p d = filter_spec ls m p d" |
