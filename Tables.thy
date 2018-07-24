@@ -74,9 +74,33 @@ definition table_to_set_v4 :: "table \<Rightarrow> 32 word set" where
 definition match_table_v4'_inner :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
 "match_table_v4'_inner table address \<longleftrightarrow> address \<in> table_to_set_v4 table"
 
+abbreviation foldf_wi_v4 :: "table_entry \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval" where
+"foldf_wi_v4 t a \<equiv> (case t of (TableEntry te) \<Rightarrow> wordinterval_union a (prefix_to_wordinterval (ip4 te))
+ | (TableEntryNegated te) \<Rightarrow> wordinterval_setminus a (prefix_to_wordinterval (ip4 te)))"
+
+definition table_to_wordinterval_v4 :: "table \<Rightarrow> 32 wordinterval" where
+"table_to_wordinterval_v4 table = foldr foldf_wi_v4 table Empty_WordInterval"
+
+definition match_table_v4''_inner :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
+"match_table_v4''_inner table address \<longleftrightarrow> wordinterval_element address (table_to_wordinterval_v4 table)"
+
+lemma table_to_wordinterval_v4: "wordinterval_to_set (table_to_wordinterval_v4 table) = table_to_set_v4 table"
+  unfolding table_to_set_v4_def table_to_wordinterval_v4_def
+  by (induction table ) (auto split:table_entry.splits)
+
+lemma match_table_v4''_inner: "match_table_v4'_inner table addr = match_table_v4''_inner table addr"
+  unfolding match_table_v4'_inner_def match_table_v4''_inner_def
+  by (simp add: table_to_wordinterval_v4)
+
 definition match_table_v4' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
 "match_table_v4' table address = match_table_v4'_inner (sort [t \<leftarrow> table. isIPv4 (ta t)]) address"
 
+definition match_table_v4'' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
+"match_table_v4'' table address = match_table_v4''_inner (sort [t \<leftarrow> table. isIPv4 (ta t)]) address"
+
+lemma match_table_v4'': "match_table_v4' table addr = match_table_v4'' table addr"
+  unfolding match_table_v4'_def match_table_v4''_def
+  by (simp add: match_table_v4''_inner)
 
 lemma find_Some_decision_addr_in_set:
   assumes "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)" "valid_table table"
