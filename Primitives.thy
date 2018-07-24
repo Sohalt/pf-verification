@@ -70,8 +70,8 @@ datatype common_primitive =
 is_Src: Src (src_sel: hostspec_from) |
 is_Src_OS: Src_OS (src_os_sel: string) |
 is_Dst: Dst (dst_sel: hostspec) |
-is_Src_Ports: Src_Ports (src_ports_sel: "16 opspec") |
-is_Dst_Ports: Dst_Ports (dst_ports_sel: "16 opspec") |
+is_Src_Ports: Src_Ports (src_ports_sel: "16 word opspec") |
+is_Dst_Ports: Dst_Ports (dst_ports_sel: "16 word opspec") |
 is_Direction: Direction (direction_sel: direction) |
 is_Interface: Interface (interface_sel: ifspec) |
 is_Address_Family: Address_Family (address_family_sel: afspec) |

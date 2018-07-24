@@ -13,14 +13,14 @@ fun match_direction :: "direction \<Rightarrow> 32 simple_packet \<Rightarrow> b
 "match_direction Out p \<longleftrightarrow> (p_oiface p) \<noteq> ''''"
 
 fun match_af:: "afspec \<Rightarrow> 'i::len0 simple_packet \<Rightarrow> bool" where
-"match_af Inet p \<longleftrightarrow> len_of TYPE ('i) = 32" (* (len_of (TYPE ('i)) = 32)" *)
-|"match_af Inet6 p \<longleftrightarrow> len_of TYPE ('i) = 128" (* TODO ipv6 *)
+"match_af Inet p \<longleftrightarrow> len_of TYPE ('i) = 32"
+|"match_af Inet6 p \<longleftrightarrow> len_of TYPE ('i) = 128"
 
 (* uses protocol from Simple_Firewall.L4_Protocol, pf doesn't have "ProtoAny" (no protocol specified means "ProtoAny") *)
 fun match_proto:: "primitive_protocol \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
 "match_proto proto p \<longleftrightarrow> p_proto p = proto"
 
-fun match_unary_op :: "'i unary_op \<Rightarrow> 'i word \<Rightarrow> bool" where
+fun match_unary_op :: "'i::ord unary_op \<Rightarrow> 'i \<Rightarrow> bool" where
 "match_unary_op (Eq i) x = (x = i)" |
 "match_unary_op (NEq i) x = (x \<noteq> i)" |
 "match_unary_op (Lt i) x = (x < i)" |
@@ -28,16 +28,16 @@ fun match_unary_op :: "'i unary_op \<Rightarrow> 'i word \<Rightarrow> bool" whe
 "match_unary_op (Gt i) x = (x > i)" |
 "match_unary_op (GtEq i) x = (x \<ge> i)"
 
-fun match_binary_op :: "'i binary_op \<Rightarrow> 'i word \<Rightarrow> bool" where
+fun match_binary_op :: "'i::ord binary_op \<Rightarrow> 'i \<Rightarrow> bool" where
 "match_binary_op (RangeIncl l u) x = (l \<le> x \<and> x \<le> u)"|
 "match_binary_op (RangeExcl l u) x = (l < x \<and> x < u)"|
 "match_binary_op (RangeComp l u) x = ((l \<le> u) \<and> \<not>(l \<le> x \<and> x \<le> u))"
 
-fun match_op :: "'i opspec \<Rightarrow> 'i word \<Rightarrow> bool" where
+fun match_op :: "'i::ord opspec \<Rightarrow> 'i \<Rightarrow> bool" where
 "match_op (Unary operator) x = match_unary_op operator x" |
 "match_op (Binary operator) x = match_binary_op operator x"
 
-definition match_port :: "16 opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
+definition match_port :: "16 word opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
 "match_port operator port = match_op operator port"
 
 record pfcontext =
