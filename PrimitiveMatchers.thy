@@ -42,7 +42,8 @@ definition match_port :: "16 word opspec \<Rightarrow> 16 word \<Rightarrow> boo
 
 record pfcontext =
   get_tables :: "string \<rightharpoonup> table"
-(*  get_routes :: "routes option" *)
+ (* get_ifgroups :: "string \<rightharpoonup> string list"
+    get_routes :: "routes option" *)
 
 definition lookup_table :: "pfcontext \<Rightarrow> string \<Rightarrow> table" where
 "lookup_table ctx name = (case (get_tables ctx) name of (Some t) \<Rightarrow> t | None \<Rightarrow> [])"
