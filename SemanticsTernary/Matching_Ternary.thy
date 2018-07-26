@@ -281,9 +281,9 @@ fun has_unknowns :: " ('a, 'p) exact_match_tac \<Rightarrow> 'a match_expr \<Rig
   "has_unknowns \<beta> (MatchAnd m1 m2) = (has_unknowns \<beta> m1 \<or> has_unknowns \<beta> m2)"
 
 definition packet_independent_\<alpha> :: "'p unknown_match_tac \<Rightarrow> bool" where
-  "packet_independent_\<alpha> \<alpha> = (\<forall>a p1 p2. \<alpha> a p1 \<longleftrightarrow> \<alpha> a p2)"
+  "packet_independent_\<alpha> \<alpha> = (\<forall>a p1 p2. a=Pass \<or> a=Block \<longrightarrow> \<alpha> a p1 \<longleftrightarrow> \<alpha> a p2)"
 
-lemma packet_independent_unknown_match: "packet_independent_\<alpha> \<alpha> \<Longrightarrow> \<not> unknown_not_match_any \<alpha> a \<longleftrightarrow> unknown_match_all \<alpha> a"
+lemma packet_independent_unknown_match: "a=Pass \<or> a=Block \<Longrightarrow> packet_independent_\<alpha> \<alpha> \<Longrightarrow> \<not> unknown_not_match_any \<alpha> a \<longleftrightarrow> unknown_match_all \<alpha> a"
   by(auto simp add: packet_independent_\<alpha>_def unknown_match_all_def unknown_not_match_any_def)
 
 text\<open>If for some type the exact matcher returns unknown, then it returns unknown for all these types\<close>
@@ -291,7 +291,7 @@ definition packet_independent_\<beta>_unknown :: "('a, 'packet) exact_match_tac 
   "packet_independent_\<beta>_unknown \<beta> \<equiv> \<forall>A. (\<exists>p. \<beta> A p \<noteq> TernaryUnknown) \<longrightarrow> (\<forall>p. \<beta> A p \<noteq> TernaryUnknown)"
 
 
-lemma remove_unknowns_generic_specification: "packet_independent_\<alpha> \<alpha> \<Longrightarrow>
+lemma remove_unknowns_generic_specification: "a=Pass \<or> a=Block \<Longrightarrow> packet_independent_\<alpha> \<alpha> \<Longrightarrow>
   packet_independent_\<beta>_unknown \<beta> \<Longrightarrow>
    \<not> has_unknowns \<beta> (remove_unknowns_generic (\<beta>, \<alpha>) a m)"
   proof(induction "(\<beta>, \<alpha>)" a m rule: remove_unknowns_generic.induct)

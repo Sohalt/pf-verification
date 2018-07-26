@@ -31,6 +31,7 @@ end
 
 instantiation table_entry :: linorder
 begin
+(* depends on correct order of prefix_match *)
 fun less_eq_table_entry :: "table_entry \<Rightarrow> table_entry \<Rightarrow> bool" where
 "less_eq_table_entry (TableEntry a) (TableEntry b) = (a \<le> b)"
 |"less_eq_table_entry (TableEntry a) (TableEntryNegated b) = True"
