@@ -69,12 +69,95 @@ but access_matrix only defined for firewall without interfaces anyway \<rightarr
 "normalize_match' _ (common_primitive.L4_Flags _) = (Match Unknown)" |
 "normalize_match' _ (common_primitive.Extra _) = (Match Unknown)"
 
-lemma normalize_match' : "matches \<gamma> "
 
-fun normalize_match :: "common_primitive match_expr \<Rightarrow> 'i intermediate_primitive match_expr" where
-"normalize_match MatchAny = MatchAny" |
-"normalize_match (MatchNot m) = (MatchNot (normalize_match m))" |
-"normalize_match (MatchAnd m1 m2) = (MatchAnd (normalize_match m1) (normalize_match m2))" |
-"normalize_match (Match m) = (MatchAny)"
+lemma normalize_match' :
+  assumes "good_primitive ctx cp"
+  shows "matches (common_matcher ctx, d) (Match cp) a (p::32 simple_packet) = matches (intermediate_matcher, d) (normalize_match' ctx cp) a p"
+  unfolding matches_def using assms
+proof(induction cp rule:normalize_match'.induct)
+case (1 uu)
+  then show ?case by simp
+next
+  case (2 uv a)
+  then show ?case by (simp add:prefix_match_semantics_wordset)
+next
+  case (3 uw a)
+  then show ?case by (simp add:MatchNone_def)
+next
+  case (4 ctx t)
+  then show ?case by (simp add:match_table_v4_wordinterval)
+next
+  case (5 ux)
+  then show ?case by simp
+next
+  case (6 ctx)
+  then show ?case by simp
+next
+  case (7 ctx r)
+  then show ?case by simp
+next
+  case (8 uy a)
+  then show ?case by (simp add:prefix_match_semantics_wordset)
+next
+  case (9 uz a)
+then show ?case by (simp add:MatchNone_def)
+next
+  case (10 ctx t)
+  then show ?case by (simp add:match_table_v4_wordinterval)
+next
+  case (11 va)
+  then show ?case by simp
+next
+  case (12 ctx)
+then show ?case by simp
+next
+  case (13 ctx r)
+  then show ?case by simp
+next
+  case (14 vb vc)
+  then show ?case by simp
+next
+  case (15 vd opspec)
+  then show ?case by (simp add:normalize_ports)
+next
+  case (16 ve opspec)
+  then show ?case by (simp add:normalize_ports)
+next
+  case (17 vf)
+  then show ?case by simp
+next
+  case (18 vg)
+  then show ?case by (simp add:MatchNone_def)
+next
+  case (19 ctx g vh)
+  then show ?case by simp
+next
+  case (20 vi i)
+  then show ?case by simp
+next
+  case (21 vj i)
+  then show ?case by simp
+next
+  case (22 vk i)
+  then show ?case by (cases "p_iiface p = i";cases "p_oiface p = i";simp add:MatchOr_def)
+next
+  case (23 vl vm)
+  then show ?case apply simp sorry (* cannot model non_empty iface match *)
+next
+  case (24 vn p)
+  then show ?case by simp
+next
+  case (25 vo vp)
+  then show ?case apply simp sorry (* FIXME *)
+next
+  case (26 vq vr)
+  then show ?case by simp
+qed
+
+fun normalize_match :: "pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> 32 intermediate_primitive match_expr" where
+"normalize_match ctx MatchAny = MatchAny" |
+"normalize_match ctx (MatchNot m) = (MatchNot (normalize_match ctx m))" |
+"normalize_match ctx (MatchAnd m1 m2) = (MatchAnd (normalize_match ctx m1) (normalize_match ctx m2))" |
+"normalize_match ctx (Match m) = normalize_match' ctx m"
 
 end
