@@ -6,11 +6,6 @@ theory PrimitiveMatchers
           Firewall_Common
 begin
 
-record pfcontext =
-  get_tables :: "string \<rightharpoonup> table"
- (* get_ifgroups :: "string \<rightharpoonup> string list"
-    get_routes :: "routes option" *)
-
 fun match_interface :: "pfcontext \<Rightarrow> ifspec option \<Rightarrow> direction option \<Rightarrow> 32 simple_packet \<Rightarrow> ternaryvalue" where
 "match_interface ctx (Some (InterfaceGroup _)) _ _ = TernaryUnknown" |
 "match_interface _ (Some (InterfaceName iface)) None p = bool_to_ternary (((p_iiface p) = iface) \<or> ((p_oiface p) = iface))" |
@@ -48,8 +43,6 @@ fun match_op :: "'i::ord opspec \<Rightarrow> 'i \<Rightarrow> bool" where
 definition match_port :: "16 word opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
 "match_port operator port = match_op operator port"
 
-definition lookup_table :: "pfcontext \<Rightarrow> string \<Rightarrow> table" where
-"lookup_table ctx name = (case (get_tables ctx) name of (Some t) \<Rightarrow> t | None \<Rightarrow> [])"
 
 (* TODO ipv6 *)
 fun match_hosts :: "pfcontext \<Rightarrow> hostspec \<Rightarrow> 32 word \<Rightarrow> ternaryvalue" where

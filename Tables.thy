@@ -4,9 +4,6 @@ imports
   "HOL-Library.Simps_Case_Conv"
 begin
 
-definition valid_table :: "table \<Rightarrow> bool" where
-"valid_table table \<longleftrightarrow> (\<forall> t \<in> set table . (case (ta t) of (IPv4 a) \<Rightarrow> valid_prefix a | (IPv6 a) \<Rightarrow> valid_prefix a))"
-
 definition decision :: "table_entry \<Rightarrow> bool" where
 "decision te = (\<not>is_Negated te)"
 
