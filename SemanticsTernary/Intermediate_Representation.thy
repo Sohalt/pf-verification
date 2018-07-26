@@ -1,6 +1,6 @@
 theory Intermediate_Representation
   imports
-    Firewall_Common
+    "../Firewall_Common"
     IP_Addresses.WordInterval
     Simple_Firewall.L4_Protocol
     Simple_Firewall.Simple_Packet
