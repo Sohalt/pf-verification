@@ -54,13 +54,16 @@ fun normalize_match' :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 
 "normalize_match' _ (common_primitive.Dst_Ports opspec) = (intermediate_primitive.Dst_Ports (normalize_ports' opspec))" |
 "normalize_match' _ (common_primitive.Address_Family Inet) = Unknown" | (* TODO True *)
 "normalize_match' _ (common_primitive.Address_Family Inet6) = Unknown" |  (* TODO False *)
-(* (intermediate_primitive.IIface ''+'') doesn't work:
+(* (intermediate_primitive.IIface ''+'') for (Direction In) doesn't work:
   ''+'' also matches empty string :(
-  would need wildcard for non_empty *)
-"normalize_match' _ (common_primitive.Direction In) = Unknown" |
-"normalize_match' _ (common_primitive.Direction Out) = Unknown" |
+  would need wildcard for non_empty string
+
+but access_matrix only defined for firewall without interfaces anyway \<rightarrow> expand to Address based on ctx
+*)
+"normalize_match' _ (common_primitive.Direction In) = Unknown" | (* TODO use ctx *)
+"normalize_match' _ (common_primitive.Direction Out) = Unknown" | (* TODO use ctx *)
 "normalize_match' ctx (common_primitive.Interface (InterfaceGroup g)) = Unknown" | (* TODO use ctx *)
-"normalize_match' _ (common_primitive.Interface (InterfaceName i)) = Unknown" |
+"normalize_match' _ (common_primitive.Interface (InterfaceName i)) = Unknown" |  (* TODO use ctx *)
 "normalize_match' _ (common_primitive.Protocol p) = (intermediate_primitive.Protocol p)" |
 "normalize_match' _ (common_primitive.L4_Flags _) = Unknown" |
 "normalize_match' _ (common_primitive.Extra _) = Unknown"
