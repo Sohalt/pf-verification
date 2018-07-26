@@ -5,12 +5,20 @@ theory PrimitiveMatchers
           Tables
           Firewall_Common
 begin
-fun match_interface :: "string \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_interface iface p = (((p_iiface p) = iface) \<or> ((p_oiface p) = iface))"
 
-fun match_direction :: "direction \<Rightarrow> 32 simple_packet \<Rightarrow> bool" where
-"match_direction In p \<longleftrightarrow> (p_iiface p) \<noteq> ''''"|
-"match_direction Out p \<longleftrightarrow> (p_oiface p) \<noteq> ''''"
+record pfcontext =
+  get_tables :: "string \<rightharpoonup> table"
+ (* get_ifgroups :: "string \<rightharpoonup> string list"
+    get_routes :: "routes option" *)
+
+fun match_interface :: "pfcontext \<Rightarrow> ifspec option \<Rightarrow> direction option \<Rightarrow> 32 simple_packet \<Rightarrow> ternaryvalue" where
+"match_interface ctx (Some (InterfaceGroup _)) _ _ = TernaryUnknown" |
+"match_interface _ (Some (InterfaceName iface)) None p = bool_to_ternary (((p_iiface p) = iface) \<or> ((p_oiface p) = iface))" |
+"match_interface _ (Some (InterfaceName iface)) (Some In) p = bool_to_ternary ((p_iiface p) = iface)" |
+"match_interface _ (Some (InterfaceName iface)) (Some Out) p = bool_to_ternary ((p_oiface p) = iface)" |
+"match_interface _ None (Some In) p = bool_to_ternary ((p_iiface p) \<noteq> '''')" |
+"match_interface _ None (Some Out) p = bool_to_ternary ((p_oiface p) \<noteq> '''')" |
+"match_interface _ None None _ = TernaryFalse"
 
 fun match_af:: "afspec \<Rightarrow> 'i::len0 simple_packet \<Rightarrow> bool" where
 "match_af Inet p \<longleftrightarrow> len_of TYPE ('i) = 32"
@@ -40,11 +48,6 @@ fun match_op :: "'i::ord opspec \<Rightarrow> 'i \<Rightarrow> bool" where
 definition match_port :: "16 word opspec \<Rightarrow> 16 word \<Rightarrow> bool" where
 "match_port operator port = match_op operator port"
 
-record pfcontext =
-  get_tables :: "string \<rightharpoonup> table"
- (* get_ifgroups :: "string \<rightharpoonup> string list"
-    get_routes :: "routes option" *)
-
 definition lookup_table :: "pfcontext \<Rightarrow> string \<Rightarrow> table" where
 "lookup_table ctx name = (case (get_tables ctx) name of (Some t) \<Rightarrow> t | None \<Rightarrow> [])"
 
@@ -70,9 +73,7 @@ fun common_matcher :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 32
 "common_matcher _ (Src_OS _) _ = TernaryUnknown"|
 "common_matcher _ (Src_Ports ports) p = bool_to_ternary (match_port ports (p_sport p))"|
 "common_matcher _ (Dst_Ports ports) p = bool_to_ternary (match_port ports (p_dport p))"|
-"common_matcher _ (Direction dir) p = bool_to_ternary (match_direction dir p)"|
-"common_matcher _ (Interface (InterfaceName interface)) p = bool_to_ternary (match_interface interface p)"|
-"common_matcher ctx (Interface (InterfaceGroup _)) p = TernaryUnknown"|
+"common_matcher ctx (Interface interface direction) p = match_interface ctx interface direction p"|
 "common_matcher _ (Address_Family af) p = bool_to_ternary (match_af af p)"|
 "common_matcher _ (Protocol proto) p = bool_to_ternary (match_proto proto p)"|
 "common_matcher _ (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags  (p_tcp_flags p))"|

@@ -72,8 +72,7 @@ is_Src_OS: Src_OS (src_os_sel: string) |
 is_Dst: Dst (dst_sel: hostspec) |
 is_Src_Ports: Src_Ports (src_ports_sel: "16 word opspec") |
 is_Dst_Ports: Dst_Ports (dst_ports_sel: "16 word opspec") |
-is_Direction: Direction (direction_sel: direction) |
-is_Interface: Interface (interface_sel: ifspec) |
+is_Interface: Interface (interface_sel: "ifspec option") (direction_sel: "direction option") |
 is_Address_Family: Address_Family (address_family_sel: afspec) |
 is_Protocol: Protocol (protocol_sel: primitive_protocol) |
 is_L4_Flags: L4_Flags (l4_flags_sel: ipt_tcp_flags) |
