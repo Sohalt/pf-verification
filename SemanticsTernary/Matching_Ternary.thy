@@ -61,14 +61,6 @@ definition matches :: "('a, 'packet) match_tac \<Rightarrow> 'a match_expr \<Rig
 definition matches_anchor :: "('a, 'packet) match_tac \<Rightarrow> 'a match_expr \<Rightarrow> 'packet \<Rightarrow> bool" where
   "matches_anchor \<gamma> m p \<equiv> (case (ternary_ternary_eval (map_match_tac (fst \<gamma>) p m)) of TernaryTrue \<Rightarrow> True | TernaryFalse \<Rightarrow> False | TernaryUnknown \<Rightarrow> True)"
 
-lemma "matches m (MatchOr e1 e2) a p \<longleftrightarrow> matches m e1 a p \<or> matches m e2 a p"
-  unfolding matches_def MatchOr_def using eval_ternary_DeMorgan
-  apply(cases "(ternary_ternary_eval (map_match_tac (fst m) p e1))";cases "(ternary_ternary_eval (map_match_tac (fst m) p e2))") by auto
-
-lemma "matches_anchor m (MatchOr e1 e2) p \<longleftrightarrow> matches_anchor m e1 p \<or> matches_anchor m e2 p"
-  unfolding matches_anchor_def MatchOr_def using eval_ternary_DeMorgan
-  apply(cases "(ternary_ternary_eval (map_match_tac (fst m) p e1))";cases "(ternary_ternary_eval (map_match_tac (fst m) p e2))") by auto
-
 text\<open>Alternative matches definitions, some more or less convenient\<close>
 
 lemma matches_tuple: "matches (\<beta>, \<alpha>) m a p = ternary_to_bool_unknown_match_tac \<alpha> a p (ternary_ternary_eval (map_match_tac \<beta> p m))"
@@ -141,6 +133,9 @@ lemma MatchOr: "matches \<gamma> (MatchOr m1 m2) a p \<longleftrightarrow> match
 lemma MatchOr_MatchNot: "matches \<gamma> (MatchNot (MatchOr m1 m2)) a p \<longleftrightarrow> matches \<gamma> (MatchNot m1) a p \<and> matches \<gamma> (MatchNot m2) a p"
   by(simp add: MatchOr_def matches_DeMorgan bunch_of_lemmata_about_matches)
 
+lemma "matches_anchor m (MatchOr e1 e2) p \<longleftrightarrow> matches_anchor m e1 p \<or> matches_anchor m e2 p"
+  unfolding matches_anchor_def MatchOr_def using eval_ternary_DeMorgan
+  apply(cases "(ternary_ternary_eval (map_match_tac (fst m) p e1))";cases "(ternary_ternary_eval (map_match_tac (fst m) p e2))") by auto
 
 lemma "(TernaryNot (map_match_tac \<beta> p (m))) = (map_match_tac \<beta> p (MatchNot m))"
 by (metis map_match_tac.simps(2))
