@@ -21,14 +21,14 @@ Src "'i wordinterval"
 | Unknown
 end
 
-fun itermediate_matcher :: "'i::len intermediate_primitive \<Rightarrow> 'i simple_packet \<Rightarrow> ternaryvalue" where
-"itermediate_matcher (Src a) p = bool_to_ternary (wordinterval_element (p_src p) a)" |
-"itermediate_matcher (Dst a) p = bool_to_ternary (wordinterval_element (p_dst p) a)" |
-"itermediate_matcher (Src_Ports port) p = bool_to_ternary (wordinterval_element (p_sport p) port)" |
-"itermediate_matcher (Dst_Ports port) p = bool_to_ternary (wordinterval_element (p_dport p) port)" |
-"itermediate_matcher (IIface i) p = bool_to_ternary ((p_iiface p) = i)" |
-"itermediate_matcher (OIface i) p = bool_to_ternary ((p_oiface p) = i)" |
-"itermediate_matcher (Protocol proto) p = bool_to_ternary ((p_proto p) = proto)" |
-"itermediate_matcher Unknown _ = TernaryUnknown"
+fun intermediate_matcher :: "'i::len intermediate_primitive \<Rightarrow> 'i simple_packet \<Rightarrow> ternaryvalue" where
+"intermediate_matcher (Src a) p = bool_to_ternary (wordinterval_element (p_src p) a)" |
+"intermediate_matcher (Dst a) p = bool_to_ternary (wordinterval_element (p_dst p) a)" |
+"intermediate_matcher (Src_Ports port) p = bool_to_ternary (wordinterval_element (p_sport p) port)" |
+"intermediate_matcher (Dst_Ports port) p = bool_to_ternary (wordinterval_element (p_dport p) port)" |
+"intermediate_matcher (IIface i) p = bool_to_ternary ((p_iiface p) = i)" |
+"intermediate_matcher (OIface i) p = bool_to_ternary ((p_oiface p) = i)" |
+"intermediate_matcher (Protocol proto) p = bool_to_ternary ((p_proto p) = proto)" |
+"intermediate_matcher Unknown _ = TernaryUnknown"
 
 end
