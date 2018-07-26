@@ -160,4 +160,43 @@ fun normalize_match :: "pfcontext \<Rightarrow> common_primitive match_expr \<Ri
 "normalize_match ctx (MatchAnd m1 m2) = (MatchAnd (normalize_match ctx m1) (normalize_match ctx m2))" |
 "normalize_match ctx (Match m) = normalize_match' ctx m"
 
+fun good_match_expr :: "pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> bool" where
+"good_match_expr _ MatchAny = True" |
+"good_match_expr ctx (MatchNot m) = good_match_expr ctx m" |
+"good_match_expr ctx (MatchAnd m1 m2)= (good_match_expr ctx m1 \<and> good_match_expr ctx m2)" |
+"good_match_expr ctx (Match p) = good_primitive ctx p"
+
+fun all_match :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr  \<Rightarrow> bool" where
+"all_match _ MatchAny = True" |
+"all_match P (MatchNot m) = all_match P m" |
+"all_match P (MatchAnd m1 m2) = (all_match P m1 \<and> all_match P m2)" |
+"all_match P (Match m) = P m"
+
+definition no_unknowns ::"'i intermediate_primitive match_expr \<Rightarrow> bool" where
+"no_unknowns m \<longleftrightarrow> all_match (\<lambda>m. m \<noteq> Unknown) m"
+
+fun upper_closure_matchexpr :: "action \<Rightarrow> 32 intermediate_primitive match_expr \<Rightarrow> 32 intermediate_primitive match_expr" where
+"upper_closure_matchexpr a (MatchAnd m1 m2) = (MatchAnd (upper_closure_matchexpr a m1) (upper_closure_matchexpr a m2))" |
+"upper_closure_matchexpr a (MatchNot m) = (MatchNot (upper_closure_matchexpr a m))" |
+"upper_closure_matchexpr Pass (Match Unknown) = MatchAny" |
+"upper_closure_matchexpr Block (Match Unknown) = MatchNone" |
+"upper_closure_matchexpr _ m = m"
+
+lemma upper_closure_no_unknowns:
+  assumes "a = Pass \<or> a = Block"
+  shows "no_unknowns (upper_closure_matchexpr a m)"
+  using assms unfolding no_unknowns_def by (cases a;induction m rule:upper_closure_matchexpr.induct; auto simp add: MatchNone_def)
+
+fun lower_closure_matchexpr :: "action \<Rightarrow> 32 intermediate_primitive match_expr \<Rightarrow> 32 intermediate_primitive match_expr" where
+"lower_closure_matchexpr a (MatchAnd m1 m2) = (MatchAnd (lower_closure_matchexpr a m1) (lower_closure_matchexpr a m2))" |
+"lower_closure_matchexpr a (MatchNot m) = (MatchNot (lower_closure_matchexpr a m))" |
+"lower_closure_matchexpr Pass (Match Unknown) = MatchNone" |
+"lower_closure_matchexpr Block (Match Unknown) = MatchAny" |
+"lower_closure_matchexpr _ m = m"
+
+lemma lower_closure_no_unknowns:
+  assumes "a = Pass \<or> a = Block"
+  shows "no_unknowns (lower_closure_matchexpr a m)"
+  using assms unfolding no_unknowns_def by (cases a;induction m rule:lower_closure_matchexpr.induct; auto simp add: MatchNone_def)
+
 end
