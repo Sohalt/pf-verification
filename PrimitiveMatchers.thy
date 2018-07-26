@@ -50,7 +50,7 @@ fun match_hosts :: "pfcontext \<Rightarrow> hostspec \<Rightarrow> 32 word \<Rig
 "match_hosts _ (Address addr) p_addr =
 (case addr of
  (IPv4 a) \<Rightarrow> bool_to_ternary (prefix_match_semantics a p_addr)
-| (IPv6 _) \<Rightarrow> TernaryUnknown)"|
+| (IPv6 _) \<Rightarrow> TernaryFalse)"|
 "match_hosts ctx NoRoute _ = TernaryUnknown" |
 "match_hosts ctx (Route _) _ = TernaryUnknown" |
 "match_hosts ctx (Table name) p_addr = bool_to_ternary (match_table_v4 (lookup_table ctx name) p_addr)"
