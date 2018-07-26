@@ -11,6 +11,9 @@ datatype 'a match_expr = Match 'a
                        | MatchAnd "'a match_expr" "'a match_expr"
                        | MatchAny
 
+definition MatchNone :: "'a match_expr" where
+"MatchNone = MatchNot MatchAny"
+
 definition MatchOr :: "'a match_expr \<Rightarrow> 'a match_expr \<Rightarrow> 'a match_expr" where
   "MatchOr m1 m2 = MatchNot (MatchAnd (MatchNot m1) (MatchNot m2))"
 
