@@ -9,9 +9,25 @@ fun filter_approx_spec :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightar
                                               then (action_to_decision (pf_rule.get_action r) d)
                                               else (filter_approx_spec ls m p (action_to_decision (pf_rule.get_action r) d)))
                                        else filter_approx_spec ls m p d)" |
-"filter_approx_spec ((Anchor r b)#ls) m p d = (if (matches_anchor m (anchor_rule.get_match r) p)
-                                         then (filter_approx_spec (b@ls) m p d)
-                                         else filter_approx_spec ls m p d)"
+"filter_approx_spec ((Anchor r b)#ls) m p d = (if (matches
+                                                     m
+                                                     (anchor_rule.get_match r)
+                                                     (case (filter_approx_spec b m p d) of
+                                                             (* if the body accepts the anchor is equal to pass *)
+                                                             Accept \<Rightarrow> Pass
+                                                             (* if the body rejects the anchor is equal to block *)
+                                                             | Reject \<Rightarrow> Block)
+                                                     p)
+                                               then (filter_approx_spec (b@ls) m p d)
+                                               else filter_approx_spec ls m p d)"
+
+
+fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
+"unwrap_decision (Final d) = d"
+|"unwrap_decision (Preliminary d) = d"
+
+case_of_simps unwrap_decision_cases: unwrap_decision.simps
+
 
 fun filter_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
 "filter_approx _ _ _ (Final d) = Final d" |
@@ -23,18 +39,20 @@ fun filter_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 
                                                       then (Final (action_to_decision (get_action r) d))
                                                       else (Preliminary (action_to_decision (get_action r) d)))
                                                else (Preliminary d))
-                  | (Anchor r body) \<Rightarrow> (if (matches_anchor m (anchor_rule.get_match r) p)
-                                                    then filter_approx (body) m p (Preliminary d)
-                                                    else (Preliminary d)))"
+                  | (Anchor r body) \<Rightarrow> (if (matches
+                                              m
+                                              (anchor_rule.get_match r)
+                                              (case (unwrap_decision (filter_approx body m p (Preliminary d))) of
+                                                      (* if the body accepts the anchor is equal to pass *)
+                                                      Accept \<Rightarrow> Pass
+                                                      (* if the body rejects the anchor is equal to block *)
+                                                      | Reject \<Rightarrow> Block)
+                                              p)
+                                        then (filter_approx body m p (Preliminary d))
+                                        else (Preliminary d)))"
 
 case_of_simps filter_approx_cases: filter_approx.simps
 
-
-fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
-"unwrap_decision (Final d) = d"
-|"unwrap_decision (Preliminary d) = d"
-
-case_of_simps unwrap_decision_cases: unwrap_decision.simps
 
 lemma filter_approx_chain:
   shows "filter_approx (l1@l2) m p d = filter_approx l2 m p (filter_approx l1 m p d)"
@@ -70,7 +88,13 @@ case (PfRule r)
 next
   case (Anchor r l)
   then show ?thesis
-  proof(cases "matches_anchor m (anchor_rule.get_match r) p")
+  proof(cases "(matches
+                m
+                (anchor_rule.get_match r)
+                (case (unwrap_decision (filter_approx body m p d)) of
+                        Accept \<Rightarrow> Pass
+                        | Reject \<Rightarrow> Block)
+                p)")
     case True
     then show ?thesis using Prem IH by auto
   next
@@ -91,7 +115,13 @@ next
 next
   case IH: (3 r b ls m p d)
   then show ?case
-  proof(cases "matches_anchor m (anchor_rule.get_match r) p")
+  proof(cases "(matches
+                m
+                (anchor_rule.get_match r)
+                (case (filter_approx_spec b m p d) of
+                        Accept \<Rightarrow> Pass
+                        | Reject \<Rightarrow> Block)
+                p)")
     case True
     then show ?thesis using IH by (auto simp: filter_approx_chain)
   next
