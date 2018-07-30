@@ -100,8 +100,9 @@ next
   qed
 qed
 
+(* default behavior is Accept *)
 definition pf_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision" where
-"pf_approx rules m packet = unwrap_decision (filter_approx rules m packet (Preliminary Undecided))"
+"pf_approx rules m packet = unwrap_decision (filter_approx rules m packet (Preliminary Accept))"
 (*
 definition filter' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
 "filter' rules m d = filter rules (\<lambda>a p. m a) () d"

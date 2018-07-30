@@ -37,7 +37,6 @@ type_synonym 'a ruleset = "'a line list"
 datatype decision =
   Accept
   | Reject
-  | Undecided
 
 fun action_to_decision :: "action \<Rightarrow> decision \<Rightarrow> decision" where
 "action_to_decision Pass _ = Accept"|

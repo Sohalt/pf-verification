@@ -117,8 +117,9 @@ next
   qed
 qed
 
+(* default behavior is Accept *)
 definition pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
-"pf rules m packet = unwrap_decision (filter rules m packet (Preliminary Undecided))"
+"pf rules m packet = unwrap_decision (filter rules m packet (Preliminary Accept))"
 
 definition filter' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
 "filter' rules m d = filter rules (\<lambda>a p. m a) () d"
@@ -130,8 +131,9 @@ lemma filter_filter'_eq[simp]: "filter' rules (\<lambda>a. m a packet) d = filte
 unfolding filter'_def
 by (induction rules m packet d rule: filter.induct) (auto split: line.splits)
 
+(* default behavior is Accept *)
 definition pf' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> decision" where
-"pf' rules m = unwrap_decision (filter' rules m (Preliminary Undecided))"
+"pf' rules m = unwrap_decision (filter' rules m (Preliminary Accept))"
 
 lemma "pf rules m packet = pf' rules (\<lambda>a. m a packet)"
   unfolding pf_def pf'_def
