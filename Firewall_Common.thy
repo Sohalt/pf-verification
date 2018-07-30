@@ -27,11 +27,10 @@ record 'a anchor_rule =
   get_match :: "'a match_expr"
 
 datatype 'a line =
-  Option
-  | PfRule "'a pf_rule"
+  PfRule "'a pf_rule"
   | is_Anchor: Anchor "'a anchor_rule" "'a line list"
 
-quickcheck_generator line constructors: Option, PfRule
+quickcheck_generator line constructors: PfRule
 
 type_synonym 'a ruleset = "'a line list"
 

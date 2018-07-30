@@ -21,7 +21,6 @@ lemma "matches m (MatchOr e1 e2) p \<longleftrightarrow> matches m e1 p \<or> ma
 
 fun filter_spec :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
 "filter_spec [] m p d = d" |
-"filter_spec (Option#ls) m p d = filter_spec ls m p d" |
 "filter_spec ((PfRule r)#ls) m p d = (if (matches m (pf_rule.get_match r) p)
                                        then (if (pf_rule.get_quick r)
                                               then (action_to_decision (pf_rule.get_action r) d)
@@ -36,8 +35,7 @@ fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Righ
 "filter [] _ _ d = d" |
 "filter (l#ls) m p (Preliminary d) =
   filter ls m p (case l of
-                  Option \<Rightarrow> (Preliminary d)
-                  | (PfRule r) \<Rightarrow> (if (matches m (pf_rule.get_match r) p)
+                  (PfRule r) \<Rightarrow> (if (matches m (pf_rule.get_match r) p)
                                                then (if (get_quick r)
                                                       then (Final (action_to_decision (get_action r) d))
                                                       else (Preliminary (action_to_decision (get_action r) d)))
@@ -77,9 +75,6 @@ next
     case Prem: (Preliminary x2)
     then show ?thesis
     proof(cases a)
-      case Option
-then show ?thesis using Prem IH by simp
-next
 case (PfRule r)
   then show ?thesis
     proof(cases "matches m (pf_rule.get_match r) p")
@@ -111,10 +106,7 @@ next
   case (2 ls m p d)
   then show ?case by simp
 next
-  case (3 r ls m p d)
-  then show ?case by simp
-next
-  case IH: (4 r b ls m p d)
+  case IH: (3 r b ls m p d)
   then show ?case
   proof(cases "matches m (anchor_rule.get_match r) p")
     case True

@@ -4,7 +4,6 @@ imports PF
 begin
 
 fun and_line :: "'a match_expr \<Rightarrow> 'a line \<Rightarrow> 'a line" where
-"and_line m Option =Option"|
 "and_line m (PfRule r) = (PfRule (r\<lparr>pf_rule.get_match := (MatchAnd m (pf_rule.get_match r))\<rparr>))"|
 "and_line m (Anchor r l) = (Anchor (r\<lparr>anchor_rule.get_match := (MatchAnd m (anchor_rule.get_match r))\<rparr>) l)"
 
@@ -63,10 +62,7 @@ next
   case (2 r l rs)
   then show ?case by simp
 next
-  case ("3_1" rs)
-  then show ?case by simp
-next
-  case ("3_2" v rs)
+  case (3 r rs)
   then show ?case by simp
 qed
 
@@ -86,9 +82,6 @@ next
     case IH: (Cons a rules)
     then show ?case
     proof(cases a)
-      case Option
-      then show ?thesis using IH by auto
-    next
       case (PfRule x2)
       then show ?thesis using IH by auto
     next
@@ -185,9 +178,6 @@ next
     case (Preliminary x2)
     then show ?thesis
   proof (cases a)
-    case Option
-    then show ?thesis unfolding Option using IH by (cases d, auto)
-  next
     case (PfRule r)
     then show ?thesis unfolding PfRule using IH by (cases d, auto)
   next
@@ -241,7 +231,6 @@ qed
 
 fun remove_single_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_single_quick [] = []"
-|"remove_single_quick (Option#ls) = Option#(remove_single_quick ls)"
 |"remove_single_quick ((PfRule r)#ls) =
 (if (get_quick r)
 then
@@ -268,9 +257,6 @@ next
   case IH: (Cons a rules)
   then show ?case
   proof(cases a)
-case Option
-  then show ?thesis using IH by auto
-next
   case (PfRule r)
   then show ?thesis
   proof(cases "get_quick r")
@@ -314,10 +300,7 @@ proof(induction rule:remove_single_quick.induct)
   case 1
   then show ?case by simp
 next
-  case (2 ls)
-  then show ?case by simp
-next
-  case IH: (3 r ls)
+  case IH: (2 r ls)
   then show ?case
   proof(cases "get_quick r")
     case True
@@ -327,7 +310,7 @@ next
     then show ?thesis using IH by simp
   qed
 next
-  case (4 vb vc va)
+  case (3 vb vc va)
   then show ?case by auto
 qed
 
@@ -349,9 +332,6 @@ next
     case IH: (Cons a rules)
     then show ?case
     proof(cases a)
-      case Option
-      then show ?thesis using IH by auto
-    next
       case (PfRule x2)
       then show ?thesis using IH by auto
     next
@@ -426,9 +406,6 @@ proof(-)
       case (Preliminary x2)
       then show ?thesis
       proof(cases a)
-        case Option
-        then show ?thesis unfolding Option using Preliminary IH by auto
-      next
         case (PfRule r)
         then show ?thesis
         proof(cases "get_quick r")
