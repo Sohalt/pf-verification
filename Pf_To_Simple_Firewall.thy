@@ -493,6 +493,16 @@ proof(-)
   then show ?thesis by (simp add: pf_def)
 qed
 
+lemma remove_all_quick_preserves_semantics:
+  assumes "no_anchors rules"
+  shows "pf rules \<gamma> packet = pf (remove_all_quick rules) \<gamma> packet"
+  using assms
+proof(induction rules rule:remove_all_quick.induct)
+  case (1 rules)
+  then show ?case using remove_single_quick_preserves_no_anchors remove_single_quick_preserves_semantics unfolding pf_def sorry (* simplifier loops *)
+qed
+
+
 fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_matches [] = []"
 |"remove_matches ((PfRule r)#ls) = (if ((pf_rule.get_action r) = action.Match) then remove_matches ls else (PfRule r)#remove_matches ls)"
