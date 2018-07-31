@@ -55,16 +55,12 @@ fun normalize_match' :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 
 "normalize_match' _ (common_primitive.Address_Family Inet) = MatchAny" |
 "normalize_match' _ (common_primitive.Address_Family Inet6) = MatchNone" |
 "normalize_match' ctx (common_primitive.Interface (Some (InterfaceGroup g)) _) = (Match Unknown)" | (* TODO use ctx *)
-"normalize_match' _ (common_primitive.Interface (Some (InterfaceName i)) (Some In)) = (Match (IIface i))" |
-"normalize_match' _ (common_primitive.Interface (Some (InterfaceName i)) (Some Out)) = (Match (OIface i))" |
-"normalize_match' _ (common_primitive.Interface (Some (InterfaceName i)) None) = (MatchOr (Match (IIface i)) (Match (OIface i)))" |
-(* (intermediate_primitive.IIface ''+'') for (Direction In) doesn't work:
-  ''+'' also matches empty string :(
-  would need wildcard for non_empty string
-
-but access_matrix only defined for firewall without interfaces anyway \<rightarrow> expand to Address based on ctx
-*)
-"normalize_match' _ (common_primitive.Interface None _) = (Match Unknown)" |
+"normalize_match' _ (common_primitive.Interface (Some (InterfaceName i)) (Some In)) = (Match (IIface (Iface i)))" |
+"normalize_match' _ (common_primitive.Interface (Some (InterfaceName i)) (Some Out)) = (Match (OIface (Iface i)))" |
+"normalize_match' _ (common_primitive.Interface (Some (InterfaceName i)) None) = (MatchOr (Match (IIface (Iface i))) (Match (OIface (Iface i))))" |
+"normalize_match' _ (common_primitive.Interface None (Some In)) = (Match (IIface IfaceWildcard))" |
+"normalize_match' _ (common_primitive.Interface None (Some Out)) = (Match (OIface IfaceWildcard))" |
+"normalize_match' _ (common_primitive.Interface None None) = MatchNone" |
 "normalize_match' _ (common_primitive.Protocol p) = (Match (intermediate_primitive.Protocol p))" |
 "normalize_match' _ (common_primitive.L4_Flags _) = (Match Unknown)" |
 "normalize_match' _ (common_primitive.Extra _) = (Match Unknown)"
@@ -141,16 +137,22 @@ next
   case (22 vk i)
   then show ?case by (cases "p_iiface p = i";cases "p_oiface p = i";simp add:MatchOr_def)
 next
-  case (23 vl vm)
-  then show ?case apply simp sorry (* cannot model non_empty iface match *)
-next
-  case (24 vn p)
+  case (23 vl)
   then show ?case by simp
 next
-  case (25 vo vp)
-  then show ?case apply simp sorry (* FIXME *)
+  case (24 vm)
+  then show ?case by simp
 next
-  case (26 vq vr)
+  case (25 vn)
+  then show ?case by (simp add:MatchNone_def)
+next
+  case (26 vo p)
+  then show ?case by simp
+next
+  case (27 vp vq)
+  then show ?case sorry (* FIXME *)
+next
+  case (28 vr vs)
   then show ?case by simp
 qed
 
