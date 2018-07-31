@@ -1,6 +1,6 @@
 theory Ternary_Translation
   imports "../Pf_To_Simple_Firewall"
-          SemanticsTernary
+          Semantics_Ternary
 begin
 
 lemma filter_approx_to_pf_approx:

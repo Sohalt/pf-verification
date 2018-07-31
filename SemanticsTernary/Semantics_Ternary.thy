@@ -1,4 +1,4 @@
-theory SemanticsTernary
+theory Semantics_Ternary
   imports Matching_Ternary
 begin
 
