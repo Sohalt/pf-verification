@@ -11,6 +11,11 @@ fun and_each :: "'a match_expr \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset
 "and_each _ [] = []"|
 "and_each m (l#ls) = (and_line m l)#(and_each m ls)"
 
+fun remove_anchors' :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_anchors' [] = []"|
+"remove_anchors' ((Anchor r l) # rs) = (and_each (anchor_rule.get_match r) (remove_anchors' l)) @ (remove_anchors' rs)"|
+"remove_anchors' (r#rs) = r#(remove_anchors' rs)"
+
 fun remove_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_anchors [] = []"|
 "remove_anchors ((Anchor r l) # rs) = (and_each (anchor_rule.get_match r) l) @ (remove_anchors rs)"|
@@ -105,7 +110,22 @@ termination
   using no_anchors_0_anchors by auto
 
 lemma remove_all_anchors_ok : "no_anchors (remove_all_anchors rules)"
-by (induction rules rule: remove_all_anchors.induct) (metis remove_all_anchors.elims)
+  by (induction rules rule: remove_all_anchors.induct) (metis remove_all_anchors.elims)
+
+lemma remove_anchors'_ok : "no_anchors (remove_anchors' rules)"
+proof(induction rules rule:remove_anchors'.induct)
+case 1
+then show ?case by simp
+next
+  case (2 r l rs)
+  then have "count_anchors (remove_anchors' l) = 0" by (simp add:no_anchors_0_anchors)
+  moreover have "count_anchors (remove_anchors' rs) = 0" using 2 by (simp add:no_anchors_0_anchors)
+  ultimately have "count_anchors (remove_anchors' (Anchor r l # rs)) = 0" by simp
+  then show ?case using no_anchors_0_anchors by blast
+next
+  case (3 v rs)
+  then show ?case by simp
+qed
 
 lemma filter_to_pf:
   assumes "\<forall> d. (filter l1 m p d = filter l2 m p d)"
@@ -126,7 +146,10 @@ lemma filter_add_same_prefix :
   shows "filter (l@l1) m p d = filter (l@l2) m p d"
   by (metis assms filter_add_equiv_prefix)
 
-
+lemma filter_cons_same_prefix :
+  assumes "\<And>d. filter l1 m p d = filter l2 m p d"
+  shows "filter (l#l1) m p d = filter (l#l2) m p d"
+  by (metis append_Cons append_Nil assms filter_chain)
 
 lemma and_each_false[simp]:
   assumes "\<not>matches m e p"
@@ -225,9 +248,48 @@ proof(induction rules rule: remove_all_anchors.induct)
     moreover have "pf (remove_all_anchors (remove_anchors rules)) matcher packet =  pf (remove_all_anchors rules) matcher packet"
       by (meson remove_all_anchors_remove_anchors_idempotent)
     ultimately show ?thesis by (simp add: remove_anchors_preserves_semantics)
-    qed
+  qed
 qed
 
+lemma remove_anchors'_preserves_semantics:"pf (remove_anchors' rules) matcher packet = pf rules matcher packet"
+proof(-)
+  have "(filter rules matcher packet d = filter (remove_anchors' rules) matcher packet d)" for d
+  proof(induction rules arbitrary: d rule:remove_anchors'.induct)
+    case 1
+    then show ?case by simp
+  next
+    case (2 r l rs)
+    then show ?case
+      proof(cases "matches matcher (anchor_rule.get_match r) packet")
+        case True
+        then have "PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) matcher packet d = PF.filter (remove_anchors' l) matcher packet d" by simp
+        then show ?thesis
+        proof(cases d)
+          case (Final x1)
+          then show ?thesis by simp
+        next
+          case (Preliminary x2)
+          then show ?thesis using True 2 by (auto simp add: filter_chain)
+        qed
+      next
+        case False
+        then have "PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) matcher packet d = d" by simp
+        then show ?thesis
+        proof(cases d)
+          case (Final x1)
+          then show ?thesis by simp
+        next
+          case (Preliminary x2)
+          then show ?thesis using False 2 by (auto simp add: filter_chain)
+        qed
+      qed
+  next
+    case (3 v rs)
+    then show ?case apply simp
+      by (meson filter_cons_same_prefix)
+  qed
+  then show ?thesis by (simp add: filter_to_pf)
+qed
 
 fun remove_single_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_single_quick [] = []"
