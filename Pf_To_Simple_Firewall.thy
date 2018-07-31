@@ -185,9 +185,9 @@ qed
 lemma filter_foo: "filter [] m p (filter l m p (Preliminary d)) = filter l m p (Preliminary d)"
   by (metis append.right_neutral filter_chain)
 
-lemma remove_anchors_preserves_semantics : "pf (remove_anchors rules) matcher packet = pf rules matcher packet"
+lemma remove_anchors_preserves_semantics : "pf (remove_anchors rules) \<gamma> packet = pf rules \<gamma> packet"
 proof(-)
-  have "(filter rules matcher packet d = filter (remove_anchors rules) matcher packet d)" for d
+  have "(filter rules \<gamma> packet d = filter (remove_anchors rules) \<gamma> packet d)" for d
 proof (induction rules arbitrary: d)
   case Nil
   then show ?case by auto
@@ -205,21 +205,21 @@ next
     then show ?thesis unfolding PfRule using IH by (cases d, auto)
   next
     case (Anchor r ls)
-    then have "filter [(Anchor r ls)] matcher packet d =
-               filter (and_each (anchor_rule.get_match r) ls) matcher packet d"
-    proof(cases "matches matcher (anchor_rule.get_match r) packet")
+    then have "filter [(Anchor r ls)] \<gamma> packet d =
+               filter (and_each (anchor_rule.get_match r) ls) \<gamma> packet d"
+    proof(cases "matches \<gamma> (anchor_rule.get_match r) packet")
       case True
-      then have "filter (and_each (anchor_rule.get_match r) ls) matcher packet (Preliminary x2)
-                 = filter ls matcher packet (Preliminary x2)" by auto
-      moreover have "PF.filter [Anchor r ls] matcher packet (Preliminary x2)
-                 = filter ls matcher packet (Preliminary x2)" by (simp add: True filter_foo)
+      then have "filter (and_each (anchor_rule.get_match r) ls) \<gamma> packet (Preliminary x2)
+                 = filter ls \<gamma> packet (Preliminary x2)" by auto
+      moreover have "PF.filter [Anchor r ls] \<gamma> packet (Preliminary x2)
+                 = filter ls \<gamma> packet (Preliminary x2)" by (simp add: True filter_foo)
       ultimately show ?thesis unfolding Preliminary
         by simp
     next
       case False
       then show ?thesis unfolding Preliminary by auto
     qed
-    then have "filter ([Anchor r ls] @ rules) matcher packet d = filter (and_each (get_match r) ls @ remove_anchors rules) matcher packet d"
+    then have "filter ([Anchor r ls] @ rules) \<gamma> packet d = filter (and_each (get_match r) ls @ remove_anchors rules) \<gamma> packet d"
       apply (rule filter_add_equiv_prefix)
       using IH by auto
 
@@ -232,10 +232,10 @@ qed
     by (simp add: filter_to_pf)
 qed
 
-lemma remove_all_anchors_remove_anchors_idempotent:"pf (remove_all_anchors (remove_anchors rules)) matcher packet = pf (remove_all_anchors rules) matcher packet"
+lemma remove_all_anchors_remove_anchors_idempotent:"pf (remove_all_anchors (remove_anchors rules)) \<gamma> packet = pf (remove_all_anchors rules) \<gamma> packet"
   by (metis le0 le_antisym no_anchors_0_anchors remove_all_anchors.simps remove_anchors_only_subtracts remove_anchors_preserves_semantics)
 
-lemma remove_all_anchors_preserves_semantics : "pf rules matcher packet = pf (remove_all_anchors rules) matcher packet"
+lemma remove_all_anchors_preserves_semantics : "pf rules \<gamma> packet = pf (remove_all_anchors rules) \<gamma> packet"
 proof(induction rules rule: remove_all_anchors.induct)
   case (1 rules)
   then show ?case
@@ -244,25 +244,25 @@ proof(induction rules rule: remove_all_anchors.induct)
     then show ?thesis by simp
   next
     case False
-    then have "pf (remove_anchors rules) matcher packet = pf (remove_all_anchors (remove_anchors rules)) matcher packet" by (simp add: 1)
-    moreover have "pf (remove_all_anchors (remove_anchors rules)) matcher packet =  pf (remove_all_anchors rules) matcher packet"
+    then have "pf (remove_anchors rules) \<gamma> packet = pf (remove_all_anchors (remove_anchors rules)) \<gamma> packet" by (simp add: 1)
+    moreover have "pf (remove_all_anchors (remove_anchors rules)) \<gamma> packet =  pf (remove_all_anchors rules) \<gamma> packet"
       by (meson remove_all_anchors_remove_anchors_idempotent)
     ultimately show ?thesis by (simp add: remove_anchors_preserves_semantics)
   qed
 qed
 
-lemma remove_anchors'_preserves_semantics:"pf (remove_anchors' rules) matcher packet = pf rules matcher packet"
+lemma remove_anchors'_preserves_semantics:"pf (remove_anchors' rules) \<gamma> packet = pf rules \<gamma> packet"
 proof(-)
-  have "(filter rules matcher packet d = filter (remove_anchors' rules) matcher packet d)" for d
+  have "(filter rules \<gamma> packet d = filter (remove_anchors' rules) \<gamma> packet d)" for d
   proof(induction rules arbitrary: d rule:remove_anchors'.induct)
     case 1
     then show ?case by simp
   next
     case (2 r l rs)
     then show ?case
-      proof(cases "matches matcher (anchor_rule.get_match r) packet")
+      proof(cases "matches \<gamma> (anchor_rule.get_match r) packet")
         case True
-        then have "PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) matcher packet d = PF.filter (remove_anchors' l) matcher packet d" by simp
+        then have "PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = PF.filter (remove_anchors' l) \<gamma> packet d" by simp
         then show ?thesis
         proof(cases d)
           case (Final x1)
@@ -273,7 +273,7 @@ proof(-)
         qed
       next
         case False
-        then have "PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) matcher packet d = d" by simp
+        then have "PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = d" by simp
         then show ?thesis
         proof(cases d)
           case (Final x1)
@@ -452,9 +452,9 @@ qed
 
 lemma remove_single_quick_preserves_semantics:
   assumes "no_anchors rules"
-  shows "pf rules matcher packet = pf (remove_single_quick rules) matcher packet"
+  shows "pf rules \<gamma> packet = pf (remove_single_quick rules) \<gamma> packet"
 proof(-)
-  from assms have "(unwrap_decision (filter rules matcher packet d) = unwrap_decision (filter (remove_single_quick rules) matcher packet d))" for d
+  from assms have "(unwrap_decision (filter rules \<gamma> packet d) = unwrap_decision (filter (remove_single_quick rules) \<gamma> packet d))" for d
   proof(induction rules arbitrary: d)
     case Nil
     then show ?case by simp
@@ -473,7 +473,7 @@ proof(-)
         proof(cases "get_quick r")
           case Quick:True
           then show ?thesis
-          proof(cases "matches matcher (pf_rule.get_match r) packet")
+          proof(cases "matches \<gamma> (pf_rule.get_match r) packet")
             case True
             then show ?thesis unfolding PfRule Preliminary using Quick by (simp add:filter_chain)
           next
