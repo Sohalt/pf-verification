@@ -47,12 +47,6 @@ fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Righ
 case_of_simps filter_cases: filter.simps
 
 
-fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
-"unwrap_decision (Final d) = d"
-|"unwrap_decision (Preliminary d) = d"
-
-case_of_simps unwrap_decision_cases: unwrap_decision.simps
-
 lemma filter_chain:
   shows "filter (l1@l2) m p d = filter l2 m p (filter l1 m p d)"
 proof(induction l1 arbitrary: d)

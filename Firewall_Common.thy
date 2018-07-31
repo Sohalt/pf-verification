@@ -49,6 +49,11 @@ datatype decision_wrap =
   Final decision
   | Preliminary decision
 
+fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
+"unwrap_decision (Final d) = d"
+|"unwrap_decision (Preliminary d) = d"
+
+case_of_simps unwrap_decision_cases: unwrap_decision.simps
 
 
 text\<open>Structural properties about match expressions\<close>

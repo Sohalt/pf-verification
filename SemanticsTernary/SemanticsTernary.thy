@@ -22,13 +22,6 @@ fun filter_approx_spec :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightar
                                                else filter_approx_spec ls m p d)"
 
 
-fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
-"unwrap_decision (Final d) = d"
-|"unwrap_decision (Preliminary d) = d"
-
-case_of_simps unwrap_decision_cases: unwrap_decision.simps
-
-
 fun filter_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
 "filter_approx _ _ _ (Final d) = Final d" |
 "filter_approx [] _ _ d = d" |
