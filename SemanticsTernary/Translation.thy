@@ -35,6 +35,14 @@ lemma normalize_ports' :
   unfolding match_port_def using linorder_not_less
   by (induction spec rule: normalize_ports'.induct) (auto simp add: inc_le word_Suc_le minus_one_helper3 minus_one_helper5)
 
+fun normalize_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+"normalize_ports (Match (common_primitive.Src_Ports p)) = match_or (map (\<lambda>(l,u). (common_primitive.Src_Ports (Binary (RangeIncl l u)))) (wi2l (normalize_ports' p)))" |
+"normalize_ports (MatchNot m) = (MatchNot (normalize_ports m))" |
+"normalize_ports (MatchAnd m1 m2) = (MatchAnd (normalize_ports m1) (normalize_ports m2))" |
+"normalize_ports m = m"
+
+lemma normalize_ports_ok : "matches \<gamma> m a p \<longleftrightarrow> matches \<gamma> (normalize_ports m) a p"
+  sorry
 fun normalize_match' :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 32 intermediate_primitive match_expr" where
 "normalize_match' _ (common_primitive.Src UrpfFailed) = (Match Unknown)" |
 "normalize_match' _ (common_primitive.Src (Hostspec (Address (IPv4 a)))) = (Match (intermediate_primitive.Src (prefix_to_wordinterval a)))" |
