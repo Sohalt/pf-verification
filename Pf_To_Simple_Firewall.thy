@@ -26,9 +26,6 @@ fun count_anchors :: "'a ruleset \<Rightarrow> nat" where
 |"count_anchors ((Anchor r b)#l) = 1 + count_anchors b + count_anchors l"
 |"count_anchors (_#l) = count_anchors l"
 
-abbreviation no_anchors :: "'a ruleset \<Rightarrow> bool" where
-"no_anchors ls \<equiv> (\<forall>l \<in> set ls. \<not> is_Anchor l)"
-
 lemma no_anchors_0_anchors: "count_anchors rules = 0 \<longleftrightarrow> no_anchors rules"
 proof(induction rules)
   case Nil
@@ -300,16 +297,9 @@ then
 else
 ((PfRule r)#(remove_single_quick ls)))"
 
-fun is_quick_rule :: "'a line \<Rightarrow> bool" where
-"is_quick_rule (PfRule r) = (get_quick r)"
-| "is_quick_rule _ = False"
-
 fun count_quick :: "'a ruleset \<Rightarrow> nat" where
 "count_quick [] = 0"
 |"count_quick (l#ls) = (if (is_quick_rule l) then 1 else 0) + count_quick ls"
-
-abbreviation no_quick :: "'a ruleset \<Rightarrow> bool" where
-"no_quick ls \<equiv> (\<forall> l \<in> set ls. \<not>is_quick_rule l)"
 
 lemma no_quick_count_quick_0 : "count_quick rules = 0 \<longleftrightarrow> no_quick rules"
 proof(induction rules)

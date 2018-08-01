@@ -34,6 +34,22 @@ quickcheck_generator line constructors: PfRule
 
 type_synonym 'a ruleset = "'a line list"
 
+abbreviation no_anchors :: "'a ruleset \<Rightarrow> bool" where
+"no_anchors ls \<equiv> (\<forall>l \<in> set ls. \<not> is_Anchor l)"
+
+fun is_quick_rule :: "'a line \<Rightarrow> bool" where
+"is_quick_rule (PfRule r) = (get_quick r)"
+| "is_quick_rule _ = False"
+
+abbreviation no_quick :: "'a ruleset \<Rightarrow> bool" where
+"no_quick ls \<equiv> (\<forall> l \<in> set ls. \<not>is_quick_rule l)"
+
+abbreviation no_match :: "'a ruleset \<Rightarrow> bool" where
+"no_match ls \<equiv> (\<forall> l \<in> set ls. (case l of (PfRule r) \<Rightarrow> (pf_rule.get_action r) \<noteq> action.Match | _ \<Rightarrow> True))"
+
+definition simple_ruleset :: "'a ruleset \<Rightarrow> bool" where
+"simple_ruleset rs \<equiv> (no_anchors rs \<and> no_quick rs \<and> no_match rs)"
+
 datatype decision =
   Accept
   | Reject
@@ -85,7 +101,5 @@ text\<open>Structural properties about match expressions\<close>
   
   lemma matcheq_matchNone_no_primitive: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone (MatchNot m) \<longleftrightarrow> \<not> matcheq_matchNone m"
     by(induction m rule: matcheq_matchNone.induct) (simp_all)
-
-
 
 end
