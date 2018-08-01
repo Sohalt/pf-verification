@@ -149,8 +149,8 @@ lemma filter_cons_same_prefix :
   by (metis append_Cons append_Nil assms filter_chain)
 
 lemma and_each_false[simp]:
-  assumes "\<not>matches m e p"
-  shows "filter (and_each e l) m p d = d"
+  assumes "\<not>matches \<gamma> e p"
+  shows "filter (and_each e l) \<gamma> p d = d"
 proof(induction l)
   case Nil
   then show ?case by (cases d, auto)
@@ -161,8 +161,8 @@ next
 qed
 
 lemma and_each_true[simp]:
-  assumes "matches m e p"
-  shows "filter (and_each e l) m p d = filter l m p d"
+  assumes "matches \<gamma> e p"
+  shows "filter (and_each e l) \<gamma> p d = filter l \<gamma> p d"
 proof(induction l arbitrary:d)
   case Nil
   then show ?case by (cases d, auto)
@@ -179,7 +179,7 @@ next
   qed
 qed
 
-lemma filter_foo: "filter [] m p (filter l m p (Preliminary d)) = filter l m p (Preliminary d)"
+lemma filter_foo: "filter [] \<gamma> p (filter l \<gamma> p (Preliminary d)) = filter l \<gamma> p (Preliminary d)"
   by (metis append.right_neutral filter_chain)
 
 lemma remove_anchors_preserves_semantics : "pf (remove_anchors rules) \<gamma> packet = pf rules \<gamma> packet"
@@ -430,9 +430,9 @@ lemma remove_all_quick_ok:
   by (induction rules rule:remove_all_quick.induct) (metis remove_all_quick.elims remove_single_quick_preserves_no_anchors)
 
 lemma remove_suffix[simp]:
-  assumes "\<not>matches m (pf_rule.get_match r) p"
-  shows "filter (l@[(PfRule r)]) m p d = filter l m p d"
-proof(cases "filter l m p d")
+  assumes "\<not>matches \<gamma> (pf_rule.get_match r) p"
+  shows "filter (l@[(PfRule r)]) \<gamma> p d = filter l \<gamma> p d"
+proof(cases "filter l \<gamma> p d")
   case (Final x1)
   then show ?thesis by (simp add: filter_chain)
 next

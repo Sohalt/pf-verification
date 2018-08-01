@@ -4,22 +4,22 @@ theory Ternary_Translation
 begin
 
 lemma filter_approx_to_pf_approx:
-  assumes "\<forall> d. (filter_approx l1 m p d = filter_approx l2 m p d)"
-  shows "pf_approx l1 m p = pf_approx l2 m p" unfolding pf_approx_def using assms by simp
+  assumes "\<forall> d. (filter_approx l1 \<gamma> p d = filter_approx l2 \<gamma> p d)"
+  shows "pf_approx l1 \<gamma> p = pf_approx l2 \<gamma> p" unfolding pf_approx_def using assms by simp
 
 lemma filter_approx_add_equiv_prefix :
-  assumes "filter_approx l1 m p d = filter_approx l2 m p d"
-          "\<And>d. filter_approx l3 m p d = filter_approx l4 m p d"
-  shows "filter_approx (l1@l3) m p d = filter_approx (l2@l4) m p d"
+  assumes "filter_approx l1 \<gamma> p d = filter_approx l2 \<gamma> p d"
+          "\<And>d. filter_approx l3 \<gamma> p d = filter_approx l4 \<gamma> p d"
+  shows "filter_approx (l1@l3) \<gamma> p d = filter_approx (l2@l4) \<gamma> p d"
 proof -
-    have "filter_approx (l1@l3) m p d = filter_approx l3 m p (filter_approx l1 m p d)" by (simp add: filter_approx_chain)
-    moreover have "filter_approx (l2@l4) m p d = filter_approx l4 m p (filter_approx l2 m p d)" by (simp add: filter_approx_chain)
+    have "filter_approx (l1@l3) \<gamma> p d = filter_approx l3 \<gamma> p (filter_approx l1 \<gamma> p d)" by (simp add: filter_approx_chain)
+    moreover have "filter_approx (l2@l4) \<gamma> p d = filter_approx l4 \<gamma> p (filter_approx l2 \<gamma> p d)" by (simp add: filter_approx_chain)
     ultimately show ?thesis using assms by auto
   qed
 
 lemma filter_approx_add_same_prefix :
-  assumes "\<And>d. filter_approx l1 m p d = filter_approx l2 m p d"
-  shows "filter_approx (l@l1) m p d = filter_approx (l@l2) m p d"
+  assumes "\<And>d. filter_approx l1 \<gamma> p d = filter_approx l2 \<gamma> p d"
+  shows "filter_approx (l@l1) \<gamma> p d = filter_approx (l@l2) \<gamma> p d"
   by (metis assms filter_approx_add_equiv_prefix)
 
 lemma and_each_false[simp]:
@@ -125,12 +125,12 @@ qed
 
 
 
-lemma[simp]: "filter_approx [] m p (filter_approx l m p (Preliminary d)) = filter_approx l m p (Preliminary d)"
+lemma[simp]: "filter_approx [] \<gamma> p (filter_approx l \<gamma> p (Preliminary d)) = filter_approx l \<gamma> p (Preliminary d)"
   by (metis append.right_neutral filter_approx_chain)
 
 lemma foo:
-  assumes "filter_approx [(PfRule r)] m p (Preliminary d) = (Final d')"
-  shows "matches m (pf_rule.get_match r) (pf_rule.get_action r) p \<and> (pf_rule.get_quick r) \<and> (action_to_decision (pf_rule.get_action r) d) = d'"
+  assumes "filter_approx [(PfRule r)] \<gamma> p (Preliminary d) = (Final d')"
+  shows "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) p \<and> (pf_rule.get_quick r) \<and> (action_to_decision (pf_rule.get_action r) d) = d'"
 using assms
   by (smt decision_wrap.distinct(1) decision_wrap.inject(1) filter_approx.simps(1) filter_approx.simps(2) filter_approx.simps(3) line.simps(5))
 
@@ -144,8 +144,8 @@ fun deciding_rule :: "'a ruleset \<Rightarrow> ('a,'p) match_tac \<Rightarrow> '
 
 lemma deciding_rule:
   assumes no_anchors:"no_anchors l"
-      and deciding_rule:"deciding_rule l m p None = (Some r)"
-    shows "unwrap_decision (filter_approx l m p d) = action_to_decision (pf_rule.get_action r)"
+      and deciding_rule:"deciding_rule l \<gamma> p None = (Some r)"
+    shows "unwrap_decision (filter_approx l \<gamma> p d) = action_to_decision (pf_rule.get_action r)"
 
 lemma remove_anchors_preserves_semantics : "pf_approx (remove_anchors' rules) matcher packet = pf_approx rules matcher packet"
 proof(-)
@@ -290,9 +290,9 @@ proof(induction rules rule: remove_all_anchors.induct)
 qed
 
 lemma remove_suffix[simp]:
-  assumes "\<not>matches m (pf_rule.get_match r) (pf_rule.get_action r) p"
-  shows "filter_approx (l@[(PfRule r)]) m p d = filter_approx l m p d"
-proof(cases "filter_approx l m p d")
+  assumes "\<not>matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) p"
+  shows "filter_approx (l@[(PfRule r)]) \<gamma> p d = filter_approx l \<gamma> p d"
+proof(cases "filter_approx l \<gamma> p d")
   case (Final x1)
   then show ?thesis by (simp add: filter_approx_chain)
 next
@@ -323,7 +323,7 @@ proof(-)
         proof(cases "get_quick r")
           case Quick:True
           then show ?thesis
-          proof(cases "matches matcher (pf_rule.get_match r) (pf_rule.get_action r) packet")
+          proof(cases "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) packet")
             case True
             then show ?thesis unfolding PfRule Preliminary using Quick by (simp add:filter_approx_chain)
           next
