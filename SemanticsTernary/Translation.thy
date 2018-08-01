@@ -4,6 +4,7 @@ imports
   "../PrimitiveMatchers"
   Intermediate_Representation
   Matching_Ternary
+  IP_Addresses.CIDR_Split
 begin
 
 (* normalize matches to representation closest to simple_matcher *)
@@ -43,6 +44,23 @@ fun normalize_ports :: "common_primitive match_expr \<Rightarrow> common_primiti
 
 lemma normalize_ports_ok : "matches \<gamma> m a p \<longleftrightarrow> matches \<gamma> (normalize_ports m) a p"
   sorry
+
+fun remove_tables ::"pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+"remove_tables ctx (Match (common_primitive.Src (Hostspec (Table name)))) = (MatchOr
+(match_or (map (\<lambda> a. (common_primitive.Src (Hostspec (Address (IPv4 a))))) (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))
+(match_or (map (\<lambda> a. (common_primitive.Src (Hostspec (Address (IPv6 a))))) (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name))))))" |
+"remove_tables ctx (Match (common_primitive.Dst (Table name))) = (MatchOr
+(match_or (map (\<lambda> a. (common_primitive.Dst (Address (IPv4 a)))) (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))
+(match_or (map (\<lambda> a. (common_primitive.Dst (Address (IPv6 a)))) (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name))))))" |
+"remove_tables ctx (MatchNot m) = (MatchNot (remove_tables ctx m))" |
+"remove_tables ctx (MatchAnd m1 m2) = (MatchAnd (remove_tables ctx m1) (remove_tables ctx m2))" |
+"remove_tables ctx m = m"
+
+lemma remove_table_ok : "matches (common_matcher ctx, \<alpha>) m a p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (remove_table ctx m) a p"
+  sorry
+(*proof(induction m rule:remove_table.induct;simp)*)
+
+
 fun normalize_match' :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 32 intermediate_primitive match_expr" where
 "normalize_match' _ (common_primitive.Src UrpfFailed) = (Match Unknown)" |
 "normalize_match' _ (common_primitive.Src (Hostspec (Address (IPv4 a)))) = (Match (intermediate_primitive.Src (prefix_to_wordinterval a)))" |
