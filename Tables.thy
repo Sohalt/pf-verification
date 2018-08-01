@@ -92,7 +92,7 @@ definition match_table_v4' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" w
 lemma match_table_v4': "match_table_v4' table addr = wordinterval_element addr (table_to_wordinterval_v4 table)"
   unfolding match_table_v4'_def table_to_wordinterval_v4_def match_table_v4'_inner_def using table_to_wordinterval_v4 by auto
 
-lemma find_Some_decision_addr_in_set:
+lemma find_Some_decision_addr_in_set_v4:
   assumes "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)" "valid_table table"
   assumes "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) table = Some te"
   shows "decision te = (address \<in> table_to_set_v4 table)"
@@ -133,7 +133,7 @@ next
   qed
 qed
 
-lemma find_None_addr_not_in_set:
+lemma find_None_addr_not_in_set_v4:
   assumes "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)" "valid_table table"
   assumes "find (\<lambda>x. prefix_match_semantics (ip4 (ta x)) address) table = None"
   shows "address \<notin> table_to_set_v4 table"
@@ -156,10 +156,10 @@ lemma match_table_v4_inner:
   using assms
 proof(cases "find (\<lambda>t. prefix_match_semantics (ip4 (ta t)) address) table")
   case None
-  then show ?thesis unfolding match_table_v4_inner_def match_table_v4'_inner_def using find_None_addr_not_in_set assms by simp
+  then show ?thesis unfolding match_table_v4_inner_def match_table_v4'_inner_def using find_None_addr_not_in_set_v4 assms by simp
 next
   case (Some a)
-  then show ?thesis unfolding match_table_v4_inner_def match_table_v4'_inner_def using find_Some_decision_addr_in_set assms by simp
+  then show ?thesis unfolding match_table_v4_inner_def match_table_v4'_inner_def using find_Some_decision_addr_in_set_v4 assms by simp
 qed
 
 lemma match_table_v4:
@@ -178,7 +178,8 @@ lemma match_table_v4_wordinterval:
   shows "match_table_v4 table address = wordinterval_element address (table_to_wordinterval_v4 table)"
   using assms match_table_v4 match_table_v4' by simp
 
-(* IPv6 *)
+
+(* IPv6 *) (* largely copied from above *)
 definition match_table_v6_inner :: "table \<Rightarrow> 128 word \<Rightarrow> bool" where
 "match_table_v6_inner table addr =
  (case (find (\<lambda> t . prefix_match_semantics (ip6 (ta t)) addr) table) of
@@ -197,9 +198,25 @@ definition table_to_set_v6 :: "table \<Rightarrow> 128 word set" where
 definition match_table_v6'_inner :: "table \<Rightarrow> 128 word \<Rightarrow> bool" where
 "match_table_v6'_inner table address \<longleftrightarrow> address \<in> table_to_set_v6 table"
 
+abbreviation foldf_wi_v6 :: "table_entry \<Rightarrow> 128 wordinterval \<Rightarrow> 128 wordinterval" where
+"foldf_wi_v6 t a \<equiv> (case t of (TableEntry te) \<Rightarrow> wordinterval_union a (prefix_to_wordinterval (ip6 te))
+ | (TableEntryNegated te) \<Rightarrow> wordinterval_setminus a (prefix_to_wordinterval (ip6 te)))"
+
+definition table_to_wordinterval_v6_inner :: "table \<Rightarrow> 128 wordinterval" where
+"table_to_wordinterval_v6_inner table = foldr foldf_wi_v6 table Empty_WordInterval"
+
+definition table_to_wordinterval_v6 :: "table \<Rightarrow> 128 wordinterval" where
+"table_to_wordinterval_v6 table = table_to_wordinterval_v6_inner (sort [t \<leftarrow> table. isIPv6 (ta t)])"
+
+lemma table_to_wordinterval_v6: "wordinterval_to_set (table_to_wordinterval_v6_inner table) = table_to_set_v6 table"
+  unfolding table_to_set_v6_def table_to_wordinterval_v6_inner_def
+  by (induction table ) (auto split:table_entry.splits)
+
 definition match_table_v6' :: "table \<Rightarrow> 128 word \<Rightarrow> bool" where
 "match_table_v6' table address = match_table_v6'_inner (sort [t \<leftarrow> table. isIPv6 (ta t)]) address"
 
+lemma match_table_v6': "match_table_v6' table addr = wordinterval_element addr (table_to_wordinterval_v6 table)"
+  unfolding match_table_v6'_def table_to_wordinterval_v6_def match_table_v6'_inner_def using table_to_wordinterval_v6 by auto
 
 lemma find_Some_decision_addr_in_set_v6:
   assumes "\<And>t. t \<in> set table \<Longrightarrow> isIPv6 (ta t)" "valid_table table"
@@ -282,5 +299,10 @@ proof(-)
   ultimately show ?thesis unfolding match_table_v6_def match_table_v6'_def using match_table_v6_inner
     by blast
 qed
+
+lemma match_table_v6_wordinterval:
+  assumes "valid_table table"
+  shows "match_table_v6 table address = wordinterval_element address (table_to_wordinterval_v6 table)"
+  using assms match_table_v6 match_table_v6' by simp
 
 end
