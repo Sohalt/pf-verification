@@ -30,7 +30,7 @@ value "normalize_ports' (Binary (RangeComp 80 0))"
 
 value "0 < (0::16 word)"
 
-lemma normalize_ports :
+lemma normalize_ports' :
 "match_port spec p \<longleftrightarrow> wordinterval_element p (normalize_ports' spec)"
   unfolding match_port_def using linorder_not_less
   by (induction spec rule: normalize_ports'.induct) (auto simp add: inc_le word_Suc_le minus_one_helper3 minus_one_helper5)
@@ -114,10 +114,10 @@ next
   then show ?case by simp
 next
   case (15 vd opspec)
-  then show ?case by (simp add:normalize_ports)
+  then show ?case by (simp add:normalize_ports')
 next
   case (16 ve opspec)
-  then show ?case by (simp add:normalize_ports)
+  then show ?case by (simp add:normalize_ports')
 next
   case (17 vf)
   then show ?case by simp
