@@ -144,4 +144,8 @@ lemma "pf rules \<gamma> packet = pf' rules (\<lambda>a. \<gamma> a packet)"
   unfolding pf_def pf'_def
   by simp
 *)
+
+lemma filter_approx_to_pf_approx:
+  assumes "\<forall> d. (filter_approx l1 m p d = filter_approx l2 m p d)"
+  shows "pf_approx l1 m p = pf_approx l2 m p" unfolding pf_approx_def using assms by simp
 end
