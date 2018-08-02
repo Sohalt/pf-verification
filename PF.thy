@@ -133,6 +133,9 @@ lemma "pf rules \<gamma> packet = pf' rules (\<lambda>a. \<gamma> a packet)"
   unfolding pf_def pf'_def
   by simp
 
+lemma filter_to_pf:
+  assumes "\<forall> d. (filter l1 m p d = filter l2 m p d)"
+  shows "pf l1 m p = pf l2 m p" unfolding pf_def using assms by simp
 
 (*
 definition test_packet :: "('i::len) simple_packet" where

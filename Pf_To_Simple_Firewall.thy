@@ -124,9 +124,6 @@ next
   then show ?case by simp
 qed
 
-lemma filter_to_pf:
-  assumes "\<forall> d. (filter l1 m p d = filter l2 m p d)"
-  shows "pf l1 m p = pf l2 m p" unfolding pf_def using assms by simp
 
 lemma filter_add_equiv_prefix :
   assumes "filter l1 m p d = filter l2 m p d"
