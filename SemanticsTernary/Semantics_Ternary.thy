@@ -148,4 +148,68 @@ lemma "pf rules \<gamma> packet = pf' rules (\<lambda>a. \<gamma> a packet)"
 lemma filter_approx_to_pf_approx:
   assumes "\<forall> d. (filter_approx l1 m p d = filter_approx l2 m p d)"
   shows "pf_approx l1 m p = pf_approx l2 m p" unfolding pf_approx_def using assms by simp
+
+subsection\<open>Matching\<close>
+lemma optimize_matches_option_generic:
+  assumes "simple_ruleset rs"
+      and "\<forall> r \<in> set rs. (case r of (PfRule r) \<Rightarrow> P (pf_rule.get_match r) (pf_rule.get_action r) | _ \<Rightarrow> True)"
+      and "(\<And>m m' a. P m a \<Longrightarrow> f m = Some m' \<Longrightarrow> matches \<gamma> m' a p = matches \<gamma> m a p)"
+      and "(\<And>m a. P m a \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m a p)"
+    shows "pf_approx (optimize_matches_option f rs) \<gamma> p = pf_approx rs \<gamma> p"
+proof(-)
+  have "\<And>d. filter_approx (optimize_matches_option f rs) \<gamma> p d = filter_approx rs \<gamma> p d"
+  using assms proof(induction rs arbitrary:d rule:optimize_matches_option.induct)
+case (1 uu)
+  then show ?case by simp
+next
+  case (2 f r rs)
+  fix P assume P:"P (pf_rule.get_match r) (pf_rule.get_action r)"
+  then show ?case
+  proof(cases "f (pf_rule.get_match r)")
+    case None
+    then have "\<not>matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) p" using 2(1) 2(3) 2(6) apply (auto simp add: simple_ruleset_def)
+      using "2.prems"(2) by auto
+    then show ?thesis using 2(1) 2(3) 2(6) apply (auto simp add: simple_ruleset_def)
+      by (cases d;simp add: "2.prems"(2) "2.prems"(3) None)
+  next
+    case (Some a)
+    then have "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) p = matches \<gamma> a (pf_rule.get_action r) p" using 2(2) 2(3) 2(5) apply (auto simp add: simple_ruleset_def)
+      using "2.prems"(2) apply auto[1]
+      using "2.prems"(2) by auto
+    then show ?thesis
+    proof(cases "matches \<gamma> a (get_action r) p")
+      case T1:True
+      then have T2:"matches \<gamma> (pf_rule.get_match r) (get_action r) p"
+        using \<open>matches \<gamma> (pf_rule.get_match r) (get_action r) p = matches \<gamma> a (get_action r) p\<close> by blast
+      then show ?thesis 
+      proof(cases d)
+        case (Final x1)
+        then show ?thesis by simp
+      next
+        case (Preliminary x2)
+        then show ?thesis using T1 T2 "2.IH" "2.prems"(1) "2.prems"(2) Some P apply (simp add:simple_ruleset_def)
+          using "2.prems"(3) "2.prems"(4) by blast
+      qed
+    next
+      case F1:False
+      then have F2:"\<not>matches \<gamma> (pf_rule.get_match r) (get_action r) p"
+        using \<open>matches \<gamma> (pf_rule.get_match r) (get_action r) p = matches \<gamma> a (get_action r) p\<close> by blast
+      then show ?thesis
+      proof(cases d)
+        case (Final x1)
+        then show ?thesis by simp
+      next
+        case (Preliminary x2)
+        then show ?thesis using F1 F2 "2.IH" "2.prems"(1) "2.prems"(2) Some P apply (simp add:simple_ruleset_def)
+          using "2.prems"(3) "2.prems"(4) by blast
+      qed
+    qed
+  qed
+next
+  case (3 a vb vc va)
+  then show ?case by (auto simp add: simple_ruleset_def)
+qed
+  then show ?thesis by (simp add: filter_approx_to_pf_approx)
+qed
+
 end
