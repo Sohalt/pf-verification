@@ -70,13 +70,14 @@ fun good_match_expr :: "pfcontext \<Rightarrow> common_primitive match_expr \<Ri
 "good_match_expr ctx (Match p) = good_primitive ctx p"
 
 
-lemma foo:
+lemma src_addr_disjunction_helper:
   assumes "\<forall> x\<in>set l. valid_prefix x"
   shows "ternary_to_bool 
 (ternary_ternary_eval
      (map_match_tac (common_matcher ctx) p
        (match_or
-         (map (\<lambda>a. Src (Hostspec (Address (IPv4 a)))) l)))) = Some ((p_src p) \<in> (\<Union>x\<in>set l. prefix_to_wordset x))"
+         (map (\<lambda>a. Src (Hostspec (Address (IPv4 a)))) l)))) =
+ Some ((p_src p) \<in> (\<Union>x\<in>set l. prefix_to_wordset x))"
   using assms
 proof(induction l)
   case Nil
@@ -86,20 +87,23 @@ next
   then show ?case
   proof(cases "p_src p \<in> prefix_to_wordset a")
     case True
-    then show ?thesis using Cons(2) by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
+    then show ?thesis using Cons(2)
+      by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
   next
     case False
-    then show ?thesis using Cons by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
+    then show ?thesis using Cons
+      by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
   qed
 qed
 
-lemma foo2:
+lemma dst_addr_disjunction_helper:
   assumes "\<forall> x\<in>set l. valid_prefix x"
   shows "ternary_to_bool 
 (ternary_ternary_eval
      (map_match_tac (common_matcher ctx) p
        (match_or
-         (map (\<lambda>a. Dst (Address (IPv4 a))) l)))) = Some ((p_dst p) \<in> (\<Union>x\<in>set l. prefix_to_wordset x))"
+         (map (\<lambda>a. Dst (Address (IPv4 a))) l)))) =
+ Some ((p_dst p) \<in> (\<Union>x\<in>set l. prefix_to_wordset x))"
   using assms
 proof(induction l)
   case Nil
@@ -109,10 +113,12 @@ next
   then show ?case
   proof(cases "p_dst p \<in> prefix_to_wordset a")
     case True
-    then show ?thesis using Cons(2) by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
+    then show ?thesis using Cons(2)
+      by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
   next
     case False
-    then show ?thesis using Cons by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
+    then show ?thesis using Cons
+      by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
   qed
 qed
 
@@ -122,29 +128,28 @@ lemma ternary_to_bool_eq:
   shows "e1 = e2"
   using assms by(cases e1;cases e2;auto) 
 
-lemma remove_table_ok' :
+lemma remove_tables_ok' :
   assumes "good_match_expr ctx m"
-  shows "ternary_ternary_eval (map_match_tac (common_matcher ctx) p m) = ternary_ternary_eval (map_match_tac (common_matcher ctx) p (remove_tables ctx m))"
+  shows "ternary_ternary_eval (map_match_tac (common_matcher ctx) p m) =
+         ternary_ternary_eval (map_match_tac (common_matcher ctx) p (remove_tables ctx m))"
   using assms
 proof(induction m rule:remove_tables.induct)
   case (1 ctx name)
-  then have a: "match_table_v4 (lookup_table ctx name) (p_src p) = wordinterval_element (p_src p) (table_to_wordinterval_v4 (lookup_table ctx name))"
-    by (simp add: match_table_v4_wordinterval)
-  note f=foo[of "wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name))" _ _]  
-  have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (match_expr.Match (Src (Hostspec (Table name)))))) =
-    ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (remove_tables ctx (match_expr.Match (Src (Hostspec (Table name)))))))"
-    apply (simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple ternary_to_bool_bool_to_ternary f wordinterval_CIDR_split_prefixmatch_all_valid_Ball)
-    by (simp add: a wordinterval_CIDR_split_prefixmatch)
+  then have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (match_expr.Match (Src (Hostspec (Table name)))))) =
+             ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (remove_tables ctx (match_expr.Match (Src (Hostspec (Table name)))))))"
+    by (simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple ternary_to_bool_bool_to_ternary
+                 src_addr_disjunction_helper[of "wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name))" _ _]
+                 match_table_v4_wordinterval
+                 wordinterval_CIDR_split_prefixmatch_all_valid_Ball wordinterval_CIDR_split_prefixmatch)
   then show ?case using ternary_to_bool_eq by auto
 next
   case (2 ctx name)
-then have a: "match_table_v4 (lookup_table ctx name) (p_dst p) = wordinterval_element (p_dst p) (table_to_wordinterval_v4 (lookup_table ctx name))"
-    by (simp add: match_table_v4_wordinterval)
-  note f=foo2[of "wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name))" _ _]  
-  have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (match_expr.Match (Dst (Table name))))) =
-    ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (remove_tables ctx (match_expr.Match (Dst (Table name))))))"
-    apply (simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple ternary_to_bool_bool_to_ternary f wordinterval_CIDR_split_prefixmatch_all_valid_Ball)
-    by (simp add: a wordinterval_CIDR_split_prefixmatch)
+  then have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (match_expr.Match (Dst (Table name))))) =
+             ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (remove_tables ctx (match_expr.Match (Dst (Table name))))))"
+    by (simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple ternary_to_bool_bool_to_ternary
+                 dst_addr_disjunction_helper[of "wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name))" _ _]
+                 match_table_v4_wordinterval
+                 wordinterval_CIDR_split_prefixmatch_all_valid_Ball wordinterval_CIDR_split_prefixmatch)
   then show ?case using ternary_to_bool_eq by auto
 next
   case (3 ctx m)
@@ -209,11 +214,10 @@ next
 qed
 
 
-lemma remove_table_ok : 
+lemma remove_tables_ok :
   assumes "good_match_expr ctx m"
   shows "matches (common_matcher ctx, \<alpha>) m a p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (remove_tables ctx m) a p"
-  using assms apply (simp add:matches_def)
-  using remove_table_ok' by auto
+  using assms by (simp add:matches_def remove_tables_ok')
 
 fun all_match :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr  \<Rightarrow> bool" where
 "all_match _ MatchAny = True" |
