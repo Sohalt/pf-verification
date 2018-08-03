@@ -37,12 +37,118 @@ lemma normalize_ports' :
 
 fun normalize_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
 "normalize_ports (Match (common_primitive.Src_Ports p)) = match_or (map (\<lambda>(l,u). (common_primitive.Src_Ports (Binary (RangeIncl l u)))) (wi2l (normalize_ports' p)))" |
+"normalize_ports (Match (common_primitive.Dst_Ports p)) = match_or (map (\<lambda>(l,u). (common_primitive.Dst_Ports (Binary (RangeIncl l u)))) (wi2l (normalize_ports' p)))" |
 "normalize_ports (MatchNot m) = (MatchNot (normalize_ports m))" |
 "normalize_ports (MatchAnd m1 m2) = (MatchAnd (normalize_ports m1) (normalize_ports m2))" |
 "normalize_ports m = m"
 
-lemma normalize_ports_ok : "matches \<gamma> m a p \<longleftrightarrow> matches \<gamma> (normalize_ports m) a p"
-  sorry
+
+lemma ternary_to_bool_eq:
+  assumes "ternary_to_bool e1 = ternary_to_bool e2"
+  shows "e1 = e2"
+  using assms by(cases e1;cases e2;auto) 
+
+lemma src_ports_disjunction_helper:
+"ternary_to_bool 
+(ternary_ternary_eval
+     (map_match_tac (common_matcher ctx) p
+       (match_or
+         (map (\<lambda>(l, u). Src_Ports (Binary (RangeIncl l u))) l)))) =
+ Some ((p_sport p) \<in> (\<Union>x\<in>set l. wordinterval_to_set (l2wi l)))"
+proof(induction l)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a l)
+  then show ?case sorry
+(*  proof(cases "(common_matcher ctx) (case a of (l, u) \<Rightarrow> Src_Ports (Binary (RangeIncl l u))) p")
+    case TernaryTrue
+    fix lower upper assume uiae:"a = (lower, upper)"
+    show ?case
+      apply (simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple) sorry
+  next
+    case TernaryFalse
+    then show ?thesis sorry
+  next
+    case TernaryUnknown
+    then show ?thesis sorry
+  qed
+*)
+qed
+
+lemma dst_ports_disjunction_helper:
+"ternary_to_bool 
+(ternary_ternary_eval
+     (map_match_tac (common_matcher ctx) p
+       (match_or
+         (map (\<lambda>(l, u). Dst_Ports (Binary (RangeIncl l u))) l)))) =
+ Some ((p_dport p) \<in> (\<Union>x\<in>set l. wordinterval_to_set (l2wi l)))"
+proof(induction l)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a l)
+  then show ?case sorry
+qed
+
+
+lemma normalize_ports_ok':
+"ternary_ternary_eval (map_match_tac (common_matcher ctx) packet m) =
+ ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports m))"
+proof(induction m rule:normalize_ports.induct)
+  case (1 p)
+  have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Src_Ports p)))) =
+        ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Src_Ports p)))))"
+    apply (simp add:normalize_ports' MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple
+                    ternary_to_bool_bool_to_ternary src_ports_disjunction_helper l2wi_wi2l)
+    using l2wi_wi2l by force
+  then show ?case using ternary_to_bool_eq by auto
+next
+  case (2 p)
+  have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Dst_Ports p)))) =
+        ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Dst_Ports p)))))"
+    apply (simp add:normalize_ports' MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple
+                    ternary_to_bool_bool_to_ternary dst_ports_disjunction_helper l2wi_wi2l)
+    using l2wi_wi2l by force
+  then show ?case using ternary_to_bool_eq by auto
+next
+  case (3 m)
+  then show ?case by simp
+next
+  case (4 m1 m2)
+  then show ?case by simp
+next
+  case ("5_1" va)
+  then show ?case by simp
+next
+case ("5_2" va)
+  then show ?case by simp
+next
+  case ("5_3" va)
+then show ?case by simp
+next
+  case ("5_4" va vb)
+  then show ?case by simp
+next
+  case ("5_5" va)
+  then show ?case by simp
+next
+  case ("5_6" va)
+  then show ?case by simp
+next
+case ("5_7" va)
+  then show ?case by simp
+next
+  case ("5_8" va)
+  then show ?case by simp
+next
+  case "5_9"
+  then show ?case by simp
+qed
+
+
+lemma normalize_ports_ok : "matches (common_matcher ctx, \<alpha>) m a p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (normalize_ports m) a p"
+  apply(simp add:matches_def) using normalize_ports_ok' by auto
 
 fun remove_tables ::"pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
 "remove_tables ctx (Match (common_primitive.Src (Hostspec (Table name)))) = (MatchOr
@@ -122,11 +228,6 @@ next
   qed
 qed
 
-
-lemma ternary_to_bool_eq:
-  assumes "ternary_to_bool e1 = ternary_to_bool e2"
-  shows "e1 = e2"
-  using assms by(cases e1;cases e2;auto) 
 
 lemma remove_tables_ok' :
   assumes "good_match_expr ctx m"
