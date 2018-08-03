@@ -63,7 +63,7 @@ case_of_simps action_to_decision_cases: action_to_decision.simps
 
 datatype decision_wrap =
   Final decision
-  | Preliminary decision
+  | is_Preliminary: Preliminary decision
 
 fun unwrap_decision :: "decision_wrap \<Rightarrow> decision" where
 "unwrap_decision (Final d) = d"

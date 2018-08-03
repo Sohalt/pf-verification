@@ -489,6 +489,113 @@ proof(induction rules rule:remove_all_quick.induct)
   then show ?case using remove_single_quick_preserves_no_anchors remove_single_quick_preserves_semantics unfolding pf_def sorry (* simplifier loops *)
 qed
 
+fun remove_quick' :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_quick' [] = []" |
+"remove_quick' ((PfRule r)#ls) = 
+(if (get_quick r)
+then (remove_quick' ls)@[PfRule (r\<lparr>get_quick := False\<rparr>)]
+else (PfRule r)#(remove_quick' ls))"
+
+lemma remove_quick'_ok:
+  assumes "no_anchors rules"
+  shows "no_quick (remove_quick' rules)"
+  using assms
+proof(induction rules rule:remove_quick'.induct)
+case 1
+then show ?case by simp
+next
+  case (2 r ls)
+  then show ?case by auto
+next
+  case (3 vb vc va)
+then show ?case by auto
+qed
+
+lemma remove_quick'_preserves_no_anchors :
+  assumes "no_anchors rules"
+  shows "no_anchors (remove_quick' rules)"
+  using assms by(induction rules rule:remove_quick'.induct;auto)
+
+lemma no_quick_preliminary:
+  assumes "no_quick rules"
+    and "no_anchors rules" (* not necessary but makes things easier *)
+  shows "\<exists>d'. filter rules \<gamma> p (Preliminary d) = (Preliminary d')"
+  using assms
+proof(induction rules arbitrary: d)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a rules)
+  then show ?case
+  proof(cases a)
+    case (PfRule r)
+    then show ?thesis
+    proof(cases "matches \<gamma> (pf_rule.get_match r) p")
+      case True
+      have nq:"no_quick rules" using Cons by simp
+      have na:"no_anchors rules" using Cons by simp
+      have "\<not>get_quick r" using Cons PfRule by auto
+      then show ?thesis unfolding PfRule using True nq na Cons by simp
+    next
+      case False
+      then show ?thesis unfolding PfRule using Cons by auto
+    qed
+  next
+    case (Anchor r b)
+    then show ?thesis using Cons by auto
+  qed
+qed
+
+
+lemma remove_quick'_preserves_semantics:
+  assumes "no_anchors rules"
+  shows "pf rules \<gamma> p = pf (remove_quick' rules) \<gamma> p"
+proof(-)
+  from assms have  "(unwrap_decision (filter rules \<gamma> p d) = unwrap_decision (filter (remove_quick' rules) \<gamma> p d))" for d
+proof(induction rules arbitrary:d rule:remove_quick'.induct)
+case 1
+then show ?case by simp
+next
+  case (2 r ls)
+  then show ?case
+  proof(cases "get_quick r")
+    case quick:True
+    then show ?thesis
+    proof(cases "matches \<gamma> (pf_rule.get_match r) p")
+      case match:True
+      then show ?thesis
+      proof(cases d)
+        case (Final x1)
+        then show ?thesis by simp
+      next
+        case (Preliminary x2)
+        then have "filter (remove_quick' ls @ [PfRule (r\<lparr>get_quick := False\<rparr>)]) \<gamma> p (Preliminary x2) =
+ filter [PfRule (r\<lparr>get_quick := False\<rparr>)] \<gamma> p (filter (remove_quick' ls) \<gamma> p (Preliminary x2))" by (simp add:filter_chain)
+        have "no_anchors (remove_quick' ls)" using 2 by (simp add:remove_quick'_preserves_no_anchors)
+        moreover have "no_quick (remove_quick' ls)" using 2 by (simp add:remove_quick'_ok)
+        ultimately have "\<exists> d'. (filter (remove_quick' ls) \<gamma> p (Preliminary x2)) = (Preliminary d')" by (simp add: no_quick_preliminary)
+        then show ?thesis unfolding Preliminary using 2 nomatch quick apply (simp add:no_quick_preliminary remove_quick'_ok) sorry 
+      qed
+    next
+      case nomatch:False
+      then show ?thesis
+      proof(cases d)
+        case (Final x1)
+        then show ?thesis by simp
+      next
+        case (Preliminary x2)
+        then show ?thesis unfolding Preliminary using 2 nomatch quick by simp
+      qed
+    qed
+  next
+    case False
+    then show ?thesis using 2 by (cases d;auto)
+  qed
+next
+case (3 vb vc va)
+  then show ?case by auto
+qed
+
 
 fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_matches [] = []"

@@ -134,6 +134,7 @@ lemma foo:
 using assms
   by (smt decision_wrap.distinct(1) decision_wrap.inject(1) filter_approx.simps(1) filter_approx.simps(2) filter_approx.simps(3) line.simps(5))
 
+(*
 fun deciding_rule :: "'a ruleset \<Rightarrow> ('a,'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a pf_rule option \<Rightarrow> 'a pf_rule option" where
 "deciding_rule [] _ _ a = a" |
 "deciding_rule ((PfRule r)#ls) \<gamma> p a = (if (matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) p) 
@@ -146,6 +147,7 @@ lemma deciding_rule:
   assumes no_anchors:"no_anchors l"
       and deciding_rule:"deciding_rule l \<gamma> p None = (Some r)"
     shows "unwrap_decision (filter_approx l \<gamma> p d) = action_to_decision (pf_rule.get_action r)"
+*)
 
 lemma remove_anchors_preserves_semantics : "pf_approx (remove_anchors' rules) matcher packet = pf_approx rules matcher packet"
 proof(-)
@@ -169,124 +171,81 @@ proof(-)
         case (Final x1)
         then show ?thesis by simp
       next
-        case (Preliminary x2)
+        case prelim:(Preliminary x2)
         then show ?thesis
-        proof(cases "unwrap_decision (filter_approx l matcher packet (Preliminary x2))")
-          case Accept
+        proof(cases "snd matcher Pass packet")
+          case in_doubt_allow:True
           then show ?thesis
-          proof(cases "snd matcher Pass packet")
-            case True
+          proof(cases "filter_approx l matcher packet (Preliminary x2)")
+            case (Final x1)
+            then show ?thesis
+            proof(cases x1)
+              case Accept
+              then show ?thesis using Final in_doubt_allow prelim TernaryUnknown apply auto
+                apply (simp add: "2.IH"(1) filter_approx_chain remove_anchors'_ok)
+                by (simp add: matches_def)
+            next
+              case Reject
+              then show ?thesis using Final in_doubt_allow prelim TernaryUnknown apply auto sledgehammer sorry
+            qed
+          next
+            case (Preliminary x22)
+            then show ?thesis
+            proof(cases x22)
+              case Accept
+              then show ?thesis using Preliminary in_doubt_allow prelim TernaryUnknown apply auto
+                 apply (simp add: "2.IH"(1) "2.IH"(2) filter_approx_chain remove_anchors'_ok)
+                by (simp add: matches_def)
+            next
+              case Reject
+              then have "filter_approx l matcher packet (Preliminary x2) = Preliminary Reject"
+                by(auto simp add: Preliminary)
+              then show ?thesis using Preliminary in_doubt_allow prelim TernaryUnknown apply auto sorry
+            qed
+          qed
+        next
+          case in_doubt_deny:False
+          then show ?thesis
+          proof(cases "filter_approx l matcher packet (Preliminary x2)")
+            case (Final x1)
+            then show ?thesis
+            proof(cases x1)
+              case Accept
+              then show ?thesis sorry
+            next
+              case Reject
+              then show ?thesis sorry
+            qed
+          next
+            case (Preliminary x2)
+            then show ?thesis
+            proof(cases x2)
+              case Accept
+              then show ?thesis sorry
+            next
+              case Reject
+              then show ?thesis sorry
+            qed
+          qed
+        qed
+      qed
+    qed
+(*
             then have "unwrap_decision (filter_approx (remove_anchors' l) matcher packet (Preliminary x2)) = decision.Accept" using 2 Accept by auto
             then have "filter_approx (and_each (anchor_rule.get_match r) (remove_anchors' l)) matcher packet (Preliminary x2) =
                        filter_approx (remove_anchors' l) matcher packet (Preliminary x2)" sorry
-            then show ?thesis unfolding Preliminary using 2 TernaryUnknown Accept True by (simp add: matches_def filter_approx_chain)
+            then show ?thesis unfolding Preliminary using 2 TernaryUnknown Accept in_doubt_allow by (simp add: matches_def filter_approx_chain)
           next
-            case False
+            case in_doubt_deny:False
             then show ?thesis sorry
           qed
-        next
-          case Reject
-          then show ?thesis sorry
-        qed
-      qed     
-    qed
+*)
   next
     case (3 v rs)
     then show ?case apply simp
       by (metis append_Cons append_Nil filter_approx_chain)
   qed
   then show ?thesis by (simp add: filter_approx_to_pf_approx)
-qed
-
-lemma remove_anchors_preserves_semantics : "pf_approx (remove_anchors rules) matcher packet = pf_approx rules matcher packet"
-proof(-)
-  have "(filter_approx rules matcher packet d = filter_approx (remove_anchors rules) matcher packet d)" for d
-proof (induction rules arbitrary: d)
-  case Nil
-  then show ?case by auto
-next
-  case IH: (Cons a rules)
-  then show ?case
-  proof(cases d)
-    case (Final x1)
-    then show ?thesis by auto
-  next
-    case (Preliminary x2)
-    then show ?thesis
-  proof (cases a)
-    case (PfRule r)
-    then show ?thesis unfolding PfRule using IH by (cases d, auto)
-  next
-    case (Anchor r ls)
-    then have "filter_approx [(Anchor r ls)] matcher packet d =
-               filter_approx (and_each (anchor_rule.get_match r) ls) matcher packet d"
-    proof(cases "(ternary_ternary_eval (map_match_tac (fst matcher) packet (anchor_rule.get_match r)))")
-      case TernaryTrue
-      then have "filter_approx (and_each (anchor_rule.get_match r) ls) matcher packet (Preliminary x2)
-                 = filter_approx ls matcher packet (Preliminary x2)" by auto
-      moreover have "filter_approx [Anchor r ls] matcher packet (Preliminary x2)
-                 = filter_approx ls matcher packet (Preliminary x2)"
-        by (simp add: TernaryTrue matches_def)
-      ultimately show ?thesis unfolding Preliminary
-        by simp
-    next
-      case TernaryFalse
-      then show ?thesis unfolding Preliminary apply auto unfolding matches_def by auto
-    next
-      case TernaryUnknown
-      then show ?thesis
-      proof(cases "(unwrap_decision (filter_approx ls matcher packet d))")
-        case Accept
-        then show ?thesis
-        proof(cases "(snd matcher) Pass packet")
-          case True
-          then show ?thesis using Accept TernaryUnknown unfolding Preliminary apply (simp add: matches_def) sorry
-        next
-          case False
-          then show ?thesis using Accept TernaryUnknown unfolding Preliminary apply (simp add: matches_def)  sorry
-        qed
-      next
-        case Reject
-        then show ?thesis
-        proof(cases "(snd matcher) Block packet")
-          case True
-          then show ?thesis using Reject TernaryUnknown unfolding Preliminary apply (simp add: matches_def) sorry
-        next
-          case False
-          then show ?thesis using Reject TernaryUnknown unfolding Preliminary apply (simp add: matches_def) sorry
-        qed
-      qed
-    qed
-    then have "filter_approx ([Anchor r ls] @ rules) matcher packet d = filter_approx (and_each (get_match r) ls @ remove_anchors rules) matcher packet d"
-      apply (rule filter_approx_add_equiv_prefix)
-      using IH by auto
-
-    then show ?thesis unfolding Anchor
-      by simp
-  qed
-  qed
-qed
-  then show ?thesis
-    by (simp add: filter_approx_to_pf_approx)
-qed
-
-lemma remove_all_anchors_remove_anchors_idempotent:"pf_approx (remove_all_anchors (remove_anchors rules)) matcher packet = pf_approx (remove_all_anchors rules) matcher packet"
-  by (metis le0 le_antisym no_anchors_0_anchors remove_all_anchors.simps remove_anchors_only_subtracts remove_anchors_preserves_semantics)
-
-lemma remove_all_anchors_preserves_semantics : "pf_approx rules matcher packet = pf_approx (remove_all_anchors rules) matcher packet"
-proof(induction rules rule: remove_all_anchors.induct)
-  case (1 rules)
-  then show ?case
-  proof(cases "no_anchors rules")
-    case True
-    then show ?thesis by simp
-  next
-    case False
-    then have "pf_approx (remove_anchors rules) matcher packet = pf_approx (remove_all_anchors (remove_anchors rules)) matcher packet" by (simp add: 1)
-    moreover have "pf_approx (remove_all_anchors (remove_anchors rules)) matcher packet =  pf_approx (remove_all_anchors rules) matcher packet"
-      by (meson remove_all_anchors_remove_anchors_idempotent)
-    ultimately show ?thesis by (simp add: remove_anchors_preserves_semantics)
-  qed
 qed
 
 lemma remove_suffix[simp]:
@@ -300,48 +259,10 @@ next
   then show ?thesis using assms by (simp add:filter_approx_chain)
 qed
 
-lemma remove_single_quick_preserves_semantics:
+lemma remove_quick_preserves_semantics:
   assumes "no_anchors rules"
-  shows "pf_approx rules matcher packet = pf_approx (remove_single_quick rules) matcher packet"
-proof(-)
-  from assms have "(unwrap_decision (filter_approx rules matcher packet d) = unwrap_decision (filter_approx (remove_single_quick rules) matcher packet d))" for d
-  proof(induction rules arbitrary: d)
-    case Nil
-    then show ?case by simp
-  next
-    case IH: (Cons a rules)
-    then show ?case
-    proof(cases d)
-      case (Final x1)
-      then show ?thesis by simp
-    next
-      case (Preliminary x2)
-      then show ?thesis
-      proof(cases a)
-        case (PfRule r)
-        then show ?thesis
-        proof(cases "get_quick r")
-          case Quick:True
-          then show ?thesis
-          proof(cases "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) packet")
-            case True
-            then show ?thesis unfolding PfRule Preliminary using Quick by (simp add:filter_approx_chain)
-          next
-            case False
-            then show ?thesis unfolding PfRule Preliminary using Quick by auto
-          qed
-        next
-          case False
-          then show ?thesis unfolding PfRule using IH by (cases d, auto)
-        qed
-      next
-        case (Anchor x31 x32)
-        then show ?thesis using IH by auto
-      qed
-    qed
-  qed
-  then show ?thesis by (simp add: pf_approx_def)
-qed
+  shows "pf_approx rules matcher packet = pf_approx (remove_quick rules) matcher packet"
+  sorry
 
 fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_matches [] = []"
