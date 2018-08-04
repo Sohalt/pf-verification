@@ -19,7 +19,7 @@ fun alist_and :: "'a negation_type list \<Rightarrow> 'a match_expr" where
 lemma normalized_nnf_match_alist_and: "normalized_nnf_match (alist_and as)"
   by(induction as rule: alist_and.induct) simp_all
 
-lemma alist_and_append: "matches \<gamma> (alist_and (l1 @ l2)) a p \<longleftrightarrow> matches \<gamma>  (MatchAnd (alist_and l1)  (alist_and l2)) a p"
+lemma alist_and_append: "matches \<gamma> (alist_and (l1 @ l2)) a d p \<longleftrightarrow> matches \<gamma>  (MatchAnd (alist_and l1)  (alist_and l2)) a d p"
   proof(induction l1)
   case Nil thus ?case by (simp add: bunch_of_lemmata_about_matches)
   next
@@ -41,11 +41,11 @@ lemma alist_and_append: "matches \<gamma> (alist_and (l1 @ l2)) a p \<longleftri
     by(induction as rule: alist_and'.induct) simp_all
 
   lemma matches_alist_and_alist_and':
-    "matches \<gamma> (alist_and' ls) a p \<longleftrightarrow> matches \<gamma> (alist_and ls) a p"
+    "matches \<gamma> (alist_and' ls) a d p \<longleftrightarrow> matches \<gamma> (alist_and ls) a d p"
     apply(induction ls rule: alist_and'.induct)
     by(simp add: bunch_of_lemmata_about_matches)+
 
-  lemma alist_and'_append: "matches \<gamma> (alist_and' (l1 @ l2)) a p \<longleftrightarrow> matches \<gamma> (MatchAnd (alist_and' l1) (alist_and' l2)) a p"
+  lemma alist_and'_append: "matches \<gamma> (alist_and' (l1 @ l2)) a d p \<longleftrightarrow> matches \<gamma> (MatchAnd (alist_and' l1) (alist_and' l2)) a d p"
     proof(induction l1)
     case Nil thus ?case by (simp add: bunch_of_lemmata_about_matches)
     next
@@ -55,10 +55,10 @@ lemma alist_and_append: "matches \<gamma> (alist_and (l1 @ l2)) a p \<longleftri
     qed
 
 lemma alist_and_NegPos_map_getNeg_getPos_matches: 
-  "(\<forall>m\<in>set (getNeg spts). matches \<gamma> (MatchNot (Match (C m))) a p) \<and>
-   (\<forall>m\<in>set (getPos spts). matches \<gamma> (Match (C m)) a p)
+  "(\<forall>m\<in>set (getNeg spts). matches \<gamma> (MatchNot (Match (C m))) a d p) \<and>
+   (\<forall>m\<in>set (getPos spts). matches \<gamma> (Match (C m)) a d p)
     \<longleftrightarrow>
-    matches \<gamma> (alist_and (NegPos_map C spts)) a p"
+    matches \<gamma> (alist_and (NegPos_map C spts)) a d p"
   proof(induction spts rule: alist_and.induct)
   qed(auto simp add: bunch_of_lemmata_about_matches)
 
@@ -68,8 +68,8 @@ fun negation_type_to_match_expr_f :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a neg
   "negation_type_to_match_expr_f f (Neg a) = MatchNot (Match (f a))"
 
 lemma alist_and_negation_type_to_match_expr_f_matches:
-    "matches \<gamma> (alist_and (NegPos_map C spts)) a p \<longleftrightarrow>
-        (\<forall>m\<in>set spts. matches \<gamma> (negation_type_to_match_expr_f C m) a p)"
+    "matches \<gamma> (alist_and (NegPos_map C spts)) a d p \<longleftrightarrow>
+        (\<forall>m\<in>set spts. matches \<gamma> (negation_type_to_match_expr_f C m) a d p)"
   proof(induction spts rule: alist_and.induct)
   qed(auto simp add: bunch_of_lemmata_about_matches)
 
@@ -93,31 +93,31 @@ fun to_negation_type_nnf :: "'a match_expr \<Rightarrow> 'a negation_type list" 
  "to_negation_type_nnf _ = undefined"
 
 
-lemma "normalized_nnf_match m \<Longrightarrow> matches \<gamma> (alist_and (to_negation_type_nnf m)) a p  = matches \<gamma> m a p"
+lemma "normalized_nnf_match m \<Longrightarrow> matches \<gamma> (alist_and (to_negation_type_nnf m)) a d p  = matches \<gamma> m a d p"
   proof(induction m rule: to_negation_type_nnf.induct)
   qed(simp_all add: bunch_of_lemmata_about_matches alist_and_append)
 
 
 text\<open>Isolating the matching semantics\<close>
-fun nt_match_list :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow> 'packet \<Rightarrow> 'a negation_type list \<Rightarrow> bool" where
-  "nt_match_list _ _ _ [] = True" |
-  "nt_match_list \<gamma> a p ((Pos x)#xs) \<longleftrightarrow> matches \<gamma> (Match x) a p \<and> nt_match_list \<gamma> a p xs" |
-  "nt_match_list \<gamma> a p ((Neg x)#xs) \<longleftrightarrow> matches \<gamma> (MatchNot (Match x)) a p \<and> nt_match_list \<gamma> a p xs"
+fun nt_match_list :: "('a, 'packet) match_tac \<Rightarrow> action \<Rightarrow> decision \<Rightarrow> 'packet \<Rightarrow> 'a negation_type list \<Rightarrow> bool" where
+  "nt_match_list _ _ _ _ [] = True" |
+  "nt_match_list \<gamma> a d p ((Pos x)#xs) \<longleftrightarrow> matches \<gamma> (Match x) a d p \<and> nt_match_list \<gamma> a d p xs" |
+  "nt_match_list \<gamma> a d p ((Neg x)#xs) \<longleftrightarrow> matches \<gamma> (MatchNot (Match x)) a d p \<and> nt_match_list \<gamma> a d p xs"
 
-lemma nt_match_list_matches: "nt_match_list \<gamma> a p l \<longleftrightarrow> matches \<gamma> (alist_and l) a p"
+lemma nt_match_list_matches: "nt_match_list \<gamma> a d p l \<longleftrightarrow> matches \<gamma> (alist_and l) a d p"
   apply(induction l rule: alist_and.induct)
     apply(case_tac [!] \<gamma>)
     apply(simp_all add: bunch_of_lemmata_about_matches)
   done
 
 
-lemma nt_match_list_simp: "nt_match_list \<gamma> a p ms \<longleftrightarrow> 
-      (\<forall>m \<in> set (getPos ms). matches \<gamma> (Match m) a p) \<and> (\<forall>m \<in> set (getNeg ms). matches \<gamma> (MatchNot (Match m)) a p)"
-  proof(induction \<gamma> a p ms rule: nt_match_list.induct)
+lemma nt_match_list_simp: "nt_match_list \<gamma> a d p ms \<longleftrightarrow> 
+      (\<forall>m \<in> set (getPos ms). matches \<gamma> (Match m) a d p) \<and> (\<forall>m \<in> set (getNeg ms). matches \<gamma> (MatchNot (Match m)) a d p)"
+  proof(induction \<gamma> a d p ms rule: nt_match_list.induct)
   case 3 thus ?case by fastforce
   qed(simp_all)
 
-lemma matches_alist_and: "matches \<gamma> (alist_and l) a p \<longleftrightarrow> (\<forall>m \<in> set (getPos l). matches \<gamma> (Match m) a p) \<and> (\<forall>m \<in> set (getNeg l). matches \<gamma> (MatchNot (Match m)) a p)"
+lemma matches_alist_and: "matches \<gamma> (alist_and l) a d p \<longleftrightarrow> (\<forall>m \<in> set (getPos l). matches \<gamma> (Match m) a d p) \<and> (\<forall>m \<in> set (getNeg l). matches \<gamma> (MatchNot (Match m)) a d p)"
   using nt_match_list_matches nt_match_list_simp by fast
 
 end

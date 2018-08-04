@@ -40,7 +40,7 @@ lemma normalized_nnf_match_MatchNot_D: "normalized_nnf_match (MatchNot m) \<Long
 text\<open>Example\<close>
 lemma "normalize_match (MatchNot (MatchAnd (Match ip_src) (Match tcp))) = [MatchNot (Match ip_src), MatchNot (Match tcp)]" by simp
 
-lemma match_list_normalize_match: "match_list \<gamma> [m] a p \<longleftrightarrow> match_list \<gamma> (normalize_match m) a p"
+lemma match_list_normalize_match: "match_list \<gamma> [m] a d p \<longleftrightarrow> match_list \<gamma> (normalize_match m) a d p"
   proof(induction m rule:normalize_match.induct)
   case 1 thus ?case by(simp add: match_list_singleton)
   next
@@ -48,7 +48,7 @@ lemma match_list_normalize_match: "match_list \<gamma> [m] a p \<longleftrightar
   next
   case (3 m1 m2) thus ?case 
     apply(simp_all add: match_list_singleton del: match_list.simps(2))
-    apply(case_tac "matches \<gamma> m1 a p")
+    apply(case_tac "matches \<gamma> m1 a d p")
      apply(rule matches_list_And_concat)
       apply(simp)
      apply(case_tac "(normalize_match m1)")
@@ -76,10 +76,13 @@ qed
 thm match_list_normalize_match[simplified match_list_singleton]
 
 theorem normalize_match_correct: 
-  assumes "a = Pass \<or> a = Block"
   shows "pf_approx (map (\<lambda>m. PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>) (normalize_match m)) \<gamma> p =
  pf_approx [PfRule \<lparr> get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>] \<gamma> p"
-    apply(rule match_list_semantics[of _ _ _ _ "[m]", simplified])
-     apply(simp add:assms)
-    by (meson match_list.simps(2) match_list_normalize_match)
+proof(-)
+  have "\<And>d. filter_approx (map (\<lambda>m. PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>) (normalize_match m)) \<gamma> p d =
+ filter_approx [PfRule \<lparr> get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>] \<gamma> p d"
+    using match_list_semantics[of _ "[m]", simplified] match_list_normalize_match
+    by (smt list.map(1) list.simps(9) map_eq_conv match_list_semantics)
+  then show ?thesis by (simp add:filter_approx_to_pf_approx)
+qed
 end

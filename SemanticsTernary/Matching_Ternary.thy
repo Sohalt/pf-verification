@@ -274,7 +274,7 @@ fun has_unknowns :: " ('a, 'p) exact_match_tac \<Rightarrow> 'a match_expr \<Rig
   "has_unknowns \<beta> (MatchAnd m1 m2) = (has_unknowns \<beta> m1 \<or> has_unknowns \<beta> m2)"
 
 definition packet_independent_\<alpha> :: "'p unknown_match_tac \<Rightarrow> bool" where
-  "packet_independent_\<alpha> \<alpha> = (\<forall>a d p1 p2. a=Pass \<or> a=Block \<longrightarrow> \<alpha> a d p1 \<longleftrightarrow> \<alpha> a d p2)"
+  "packet_independent_\<alpha> \<alpha> = (\<forall>a d p1 p2. \<alpha> a d p1 \<longleftrightarrow> \<alpha> a d p2)"
 
 lemma packet_independent_unknown_match: "a=Pass \<or> a=Block \<Longrightarrow> packet_independent_\<alpha> \<alpha> \<Longrightarrow> \<not> unknown_not_match_any \<alpha> a d \<longleftrightarrow> unknown_match_all \<alpha> a d"
   by(auto simp add: packet_independent_\<alpha>_def unknown_match_all_def unknown_not_match_any_def)
