@@ -129,11 +129,18 @@ assumes "d \<noteq> d'"
   by (metis (full_types) assms(1) assms(2) decision.exhaust foobar1)
 *)
 
+fun all_PfRules_P :: "('a pf_rule \<Rightarrow> bool) \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
+"all_PfRules_P P rs = (\<forall> l \<in> set rs. (case l of (PfRule r) \<Rightarrow> P r | (Anchor r b) \<Rightarrow> all_PfRules_P P b))"
+
+definition no_match_quick :: "'a ruleset \<Rightarrow> bool" where
+"no_match_quick rs = all_PfRules_P (\<lambda>r. \<not>((pf_rule.get_action r) = action.Match \<and> pf_rule.get_quick r)) rs"
+
 lemma decision_change:
   assumes "d \<noteq> d'"
+      and "no_match_quick l"
       and "no_anchors l"
       and "unwrap_decision (filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d)) = d'"
-    shows "\<And>d .unwrap_decision (filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d)) = d'"
+    shows "\<And>d'' .filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d'') = filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d)"
   using assms
 proof(induction l arbitrary:d)
 case Nil
@@ -148,9 +155,9 @@ next
   show ?case
   proof(cases a)
     case (PfRule r)
-    then show ?thesis apply(cases d;cases da; cases d';cases "get_action r";cases "get_quick r";
+    then show ?thesis apply(cases d;cases d'; cases d'';cases "get_action r";cases "get_quick r";
 cases "(ternary_ternary_eval (map_match_tac exact_match_tac p (pf_rule.get_match r)))")
-      using Cons PfRule chain by (auto simp add:matches_def)
+      using Cons PfRule chain by (auto simp add:matches_def no_match_quick_def)
   next
     case (Anchor x21 x22)
     then show ?thesis using Cons by simp
@@ -162,7 +169,7 @@ lemma and_each_unknown[simp]:
   assumes unknown:"(ternary_ternary_eval (map_match_tac exact_match_tac p m)) = TernaryUnknown"
       and accepts:"unwrap_decision(filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d)) = decision.Accept"
       and no_anchors:"no_anchors l"
-    shows "unwrap_decision (filter_approx (and_each m l) (exact_match_tac,in_doubt_allow) p (Preliminary d)) = decision.Accept"
+    shows "(filter_approx (and_each m l) (exact_match_tac,in_doubt_allow) p (Preliminary d)) =(filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d))"
   using assms
 proof(induction l arbitrary:d)
   case Nil
@@ -216,7 +223,7 @@ next
           case Block
           then have *:"unwrap_decision (filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary Reject)) = decision.Accept" using Cons(3) False TernaryTrue PfRule by (auto simp: matches_def)
           then have **:"unwrap_decision (filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary decision.Accept)) = decision.Accept" using decision_change no_anchors_l by metis
-          then show ?thesis using Cons(1) Cons(2) PfRule False TernaryTrue Block no_anchors_l * ** by(cases d;auto simp:matches_def)            
+          then show ?thesis using Cons(1) Cons(2) PfRule False TernaryTrue Block no_anchors_l * ** apply(cases d;auto simp:matches_def) sledgehammer
         qed
       next
         case TernaryFalse
