@@ -147,7 +147,7 @@ next
 qed
 
 
-lemma normalize_ports_ok : "matches (common_matcher ctx, \<alpha>) m a p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (normalize_ports m) a p"
+lemma normalize_ports_ok : "matches (common_matcher ctx, \<alpha>) m a d p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (normalize_ports m) a d p"
   apply(simp add:matches_def) using normalize_ports_ok' by auto
 
 fun remove_tables ::"pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
@@ -317,7 +317,7 @@ qed
 
 lemma remove_tables_ok :
   assumes "good_match_expr ctx m"
-  shows "matches (common_matcher ctx, \<alpha>) m a p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (remove_tables ctx m) a p"
+  shows "matches (common_matcher ctx, \<alpha>) m a d p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (remove_tables ctx m) a d p"
   using assms by (simp add:matches_def remove_tables_ok')
 
 fun all_match :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr  \<Rightarrow> bool" where
