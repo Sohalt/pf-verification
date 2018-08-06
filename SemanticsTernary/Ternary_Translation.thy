@@ -214,17 +214,10 @@ next
           then show ?thesis using Cons PfRule False TernaryTrue by (simp add:matches_def)
         next
           case Block
-          then show ?thesis
-          proof(cases "filter_approx (and_each m (a # l)) (exact_match_tac, in_doubt_allow) p (Preliminary d)")
-            case (Final x1)
-            have no_anchors_and_each_m_l: "no_anchors (and_each m l)"
-              using andeach_no_anchors no_anchors_l by blast
-            then show ?thesis using Cons PfRule False Block TernaryTrue unknown apply (simp add:matches_def) using Cons no_anchors_and_each_m_l decision_change[of Reject decision.Accept "(and_each m l)"] Final apply auto sorry
-          next
-            case (Preliminary x2)
-            then show ?thesis sorry
-          qed
-        qed            
+          then have *:"unwrap_decision (filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary Reject)) = decision.Accept" using Cons(3) False TernaryTrue PfRule by (auto simp: matches_def)
+          then have **:"unwrap_decision (filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary decision.Accept)) = decision.Accept" using decision_change no_anchors_l by metis
+          then show ?thesis using Cons(1) Cons(2) PfRule False TernaryTrue Block no_anchors_l * ** by(cases d;auto simp:matches_def)            
+        qed
       next
         case TernaryFalse
         then show ?thesis using Cons PfRule False by (simp add:matches_def)
