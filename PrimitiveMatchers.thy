@@ -95,20 +95,20 @@ subsection\<open>Abstracting over unknowns\<close>
     "upper_closure_matchexpr a d (MatchNot (Match (Dst NoRoute))) = (case a of Pass \<Rightarrow> MatchAny | Block \<Rightarrow> MatchNot MatchAny | action.Match \<Rightarrow> (case d of Accept \<Rightarrow> MatchAny | Reject \<Rightarrow> MatchNot MatchAny))" |
     "upper_closure_matchexpr a d (MatchNot (Match (Dst (Route _)))) = (case a of Pass \<Rightarrow> MatchAny | Block \<Rightarrow> MatchNot MatchAny | action.Match \<Rightarrow> (case d of Accept \<Rightarrow> MatchAny | Reject \<Rightarrow> MatchNot MatchAny))" |
     "upper_closure_matchexpr a d (MatchNot (MatchNot m)) = upper_closure_matchexpr a d m" |
-    "upper_closure_matchexpr a d (MatchNot (MatchAnd m1 m2)) = 
+    "upper_closure_matchexpr a d (MatchNot (MatchAnd m1 m2)) =
       (let m1' = upper_closure_matchexpr a d (MatchNot m1); m2' = upper_closure_matchexpr a d (MatchNot m2) in
       (if m1' = MatchAny \<or> m2' = MatchAny
        then MatchAny
-       else 
+       else
           if m1' = MatchNot MatchAny then m2' else
           if m2' = MatchNot MatchAny then m1'
        else
           MatchNot (MatchAnd (MatchNot m1') (MatchNot m2')))
          )" |
-    "upper_closure_matchexpr _ _ (MatchNot m) = MatchNot m" | 
+    "upper_closure_matchexpr _ _ (MatchNot m) = MatchNot m" |
     "upper_closure_matchexpr a d (MatchAnd m1 m2) = MatchAnd (upper_closure_matchexpr a d m1) (upper_closure_matchexpr a d m2)"
 
-lemma helper_neq_TernaryUnknown: 
+lemma helper_neq_TernaryUnknown:
   "(\<exists>p. (case ip of IPv4 a \<Rightarrow> bool_to_ternary (prefix_match_semantics a (p_src p)) | IPv6 x \<Rightarrow> TernaryFalse) \<noteq> TernaryUnknown)"
   "(\<exists>p. (case ip of IPv4 a \<Rightarrow> bool_to_ternary (prefix_match_semantics a (p_dst p)) | IPv6 x \<Rightarrow> TernaryFalse) \<noteq> TernaryUnknown)"
   "(\<exists>p. match_interface ctx None dir p \<noteq> TernaryUnknown)"
@@ -119,150 +119,12 @@ lemma helper_neq_TernaryUnknown:
    apply (metis (full_types) bool_to_ternary_Unknown direction.exhaust match_interface.simps(3) match_interface.simps(4))
   by (metis (full_types) bool_to_ternary_Unknown direction.exhaust match_interface.simps(3) match_interface.simps(4))
 
-  lemma upper_closure_matchexpr_generic: 
+  lemma upper_closure_matchexpr_generic:
     "remove_unknowns_generic (common_matcher ctx, in_doubt_allow) a d m = upper_closure_matchexpr a d m"
-  proof (induction a d m rule: upper_closure_matchexpr.induct)
-case (1 uu uv)
-  then show ?case by (simp add: remove_unknowns_generic_simps2(1))
-next
-case (2 a d uw)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (3 a d ux)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (4 a d uy uz)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (5 a d)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (6 a d va)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (7 a d)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (8 a d)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (9 a d vb)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_1" vc vd)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_2" vc vd vb)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_3" vc vd vb)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_4" vc vd)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_5" vc vd va)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_6" vc vd va)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_7" vc vd v)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_8" vc vd v)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_9" vc vd va)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_10" vc vd ve va)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_11" vc vd v)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_12" vc vd v)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("10_13" vc vd v)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (11 a d ve)
-  then show ?case by (cases a; cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (12 a d vf)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (13 a d vg vh)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (14 a d)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (15 a d vi)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (16 a d)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (17 a d)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (18 a d vj)
-  then show ?case by (cases a;cases d) (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (19 a d m)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (20 a d m1 m2)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_1" vk vl)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_2" vk vl vb)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_3" vk vl vb)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_4" vk vl)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_5" vk vl v)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_6" vk vl v)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_7" vk vl va)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_8" vk vl va)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_9" vk vl vb)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_10" vk vl vc vb)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_11" vk vl va)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_12" vk vl va)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_13" vk vl va)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case ("21_14" vk vl)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-next
-  case (22 a d m1 m2)
-  then show ?case by (auto simp add: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown)
-qed
+by (induction a d m rule: upper_closure_matchexpr.induct)
+   (auto
+      simp: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown
+      split: action.splits decision.splits)
 
     fun lower_closure_matchexpr :: "action \<Rightarrow> decision \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
     "lower_closure_matchexpr _ _ MatchAny = MatchAny" |
@@ -284,20 +146,20 @@ qed
     "lower_closure_matchexpr a d (MatchNot (Match (Dst NoRoute))) = (case a of Pass \<Rightarrow> MatchNot MatchAny | Block \<Rightarrow> MatchAny | action.Match \<Rightarrow> (case d of Accept \<Rightarrow> MatchNot MatchAny | Reject \<Rightarrow> MatchAny))" |
     "lower_closure_matchexpr a d (MatchNot (Match (Dst (Route _)))) = (case a of Pass \<Rightarrow> MatchNot MatchAny | Block \<Rightarrow> MatchAny | action.Match \<Rightarrow> (case d of Accept \<Rightarrow> MatchNot MatchAny | Reject \<Rightarrow> MatchAny))" |
     "lower_closure_matchexpr a d (MatchNot (MatchNot m)) = lower_closure_matchexpr a d m" |
-    "lower_closure_matchexpr a d (MatchNot (MatchAnd m1 m2)) = 
+    "lower_closure_matchexpr a d (MatchNot (MatchAnd m1 m2)) =
       (let m1' = lower_closure_matchexpr a d (MatchNot m1); m2' = lower_closure_matchexpr a d (MatchNot m2) in
       (if m1' = MatchAny \<or> m2' = MatchAny
        then MatchAny
-       else 
+       else
           if m1' = MatchNot MatchAny then m2' else
           if m2' = MatchNot MatchAny then m1'
        else
           MatchNot (MatchAnd (MatchNot m1') (MatchNot m2')))
          )" |
-    "lower_closure_matchexpr _ _ (MatchNot m) = MatchNot m" | 
+    "lower_closure_matchexpr _ _ (MatchNot m) = MatchNot m" |
     "lower_closure_matchexpr a d (MatchAnd m1 m2) = MatchAnd (lower_closure_matchexpr a d m1) (lower_closure_matchexpr a d m2)"
 
-  lemma lower_closure_matchexpr_generic: 
+  lemma lower_closure_matchexpr_generic:
     "remove_unknowns_generic (common_matcher ctx, in_doubt_deny) a d m = lower_closure_matchexpr a d m"
   proof (induction a d m rule: lower_closure_matchexpr.induct)
 case (1 uu uv)
