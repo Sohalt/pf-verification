@@ -61,26 +61,22 @@ proof(induction l rule: l2wi.induct)
 next
   case 2
   then show ?case
-    apply auto
-    sorry
+    by (auto simp add:MatchOr_def eval_ternary_idempotence_Not
+ eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
 next
   case (3 l u)
   then show ?case
-    apply (auto split: prod.splits simp: MatchOr_def eval_ternary_simps_simple eval_ternary_idempotence_Not)
-    sorry
-(*  proof(cases "(common_matcher ctx) (case a of (l, u) \<Rightarrow> Src_Ports (Binary (RangeIncl l u))) p")
-    case TernaryTrue
-    fix lower upper assume uiae:"a = (lower, upper)"
-    show ?case
-      apply (simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple) sorry
+  proof(cases "(l \<le> p_sport p \<and> p_sport p \<le> u)")
+    case True
+    then show ?thesis using 3
+      by (auto simp add: eval_ternary_idempotence_Not MatchOr_def
+ eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
   next
-    case TernaryFalse
-    then show ?thesis sorry
-  next
-    case TernaryUnknown
-    then show ?thesis sorry
+    case False
+    then show ?thesis using 3
+      by (auto simp add: eval_ternary_idempotence_Not MatchOr_def
+ eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
   qed
-*)
 qed
 
 lemma dst_ports_disjunction_helper:
@@ -90,14 +86,29 @@ lemma dst_ports_disjunction_helper:
        (match_or
          (map (\<lambda>(l, u). Dst_Ports (Binary (RangeIncl l u))) l)))) =
  Some ((p_dport p) \<in> (\<Union>x\<in>set l. wordinterval_to_set (l2wi l)))"
-proof(induction l)
-  case Nil
+proof(induction l rule: l2wi.induct)
+  case 1
   then show ?case by simp
 next
-  case (Cons a l)
-  then show ?case sorry
+  case 2
+  then show ?case
+    by (auto simp add:MatchOr_def eval_ternary_idempotence_Not
+ eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
+next
+  case (3 l u)
+  then show ?case
+  proof(cases "(l \<le> p_dport p \<and> p_dport p \<le> u)")
+    case True
+    then show ?thesis using 3
+      by (auto simp add: eval_ternary_idempotence_Not MatchOr_def
+ eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
+  next
+    case False
+    then show ?thesis using 3
+      by (auto simp add: eval_ternary_idempotence_Not MatchOr_def
+ eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
+  qed
 qed
-
 
 lemma normalize_ports_ok':
 "ternary_ternary_eval (map_match_tac (common_matcher ctx) packet m) =
