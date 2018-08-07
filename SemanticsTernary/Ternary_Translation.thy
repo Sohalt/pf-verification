@@ -446,11 +446,135 @@ next
   then show ?thesis using assms by (simp add:filter_approx_chain)
 qed
 
+lemma no_quick_preliminary:
+  assumes "no_quick rules"
+    and "no_anchors rules" (* not necessary but makes things easier *)
+  shows "is_Preliminary (filter_approx rules \<gamma> p (Preliminary d))"
+  using assms
+proof(induction rules arbitrary: d)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a rules)
+  then show ?case
+  proof(cases a)
+    case (PfRule r)
+    then show ?thesis
+    proof(cases "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p")
+      case True
+      have nq:"no_quick rules" using Cons by simp
+      have na:"no_anchors rules" using Cons by simp
+      have "\<not>get_quick r" using Cons PfRule by auto
+      then show ?thesis unfolding PfRule using True nq na Cons by simp
+    next
+      case False
+      then show ?thesis unfolding PfRule using Cons by auto
+    qed
+  next
+    case (Anchor r b)
+    then show ?thesis using Cons by auto
+  qed
+qed
+
+fun remove_quick_approximate :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_quick_approximate [] = []" |
+"remove_quick_approximate ((PfRule r)#ls) =
+(if (get_quick r)
+then (remove_quick_approximate ls)@[PfRule (r\<lparr>get_quick := False\<rparr>)]
+else (PfRule r)#(remove_quick_approximate ls))"
+
 lemma remove_quick_preserves_semantics:
   assumes "no_anchors rules"
-      and "no_match_quick rules"
-    shows "pf_approx rules matcher packet = pf_approx (remove_quick rules) matcher packet"
-  sorry
+      and "no_match rules"
+      and "good_matcher \<gamma>"
+    shows "pf_approx rules \<gamma> p = pf_approx (remove_quick' rules) \<gamma> p"
+proof(-)
+  from assms have "(unwrap_decision (filter_approx rules \<gamma> p d) = unwrap_decision (filter_approx (remove_quick' rules) \<gamma> p d))" for d
+proof(induction rules arbitrary:d rule:remove_quick'.induct)
+case 1
+then show ?case by simp
+next
+  case (2 r ls)
+  then show ?case
+  proof(cases d)
+    case (Final x1)
+    then show ?thesis by auto
+  next
+    case (Preliminary x2)
+    have "no_anchors (remove_quick' ls)" using 2 by (simp add:remove_quick'_preserves_no_anchors)
+    moreover have "no_quick (remove_quick' ls)" using 2 by (simp add:remove_quick'_ok)
+    ultimately have prem:"is_Preliminary(filter_approx (and_each (MatchNot (pf_rule.get_match r)) (remove_quick' ls)) \<gamma> p (Preliminary x2))"
+      using no_quick_preliminary by (metis (no_types, lifting) and_each_preserves_no_quick andeach_no_anchors)
+    show ?thesis
+    proof(cases "get_quick r")
+      case quick:True
+      then show ?thesis
+      proof(cases "(ternary_ternary_eval (map_match_tac (fst \<gamma>) p (pf_rule.get_match r)))")
+        case TernaryTrue
+        then have "(filter_approx (PfRule r # ls) \<gamma> p (Preliminary x2)) = Final (action_to_decision (pf_rule.get_action r) x2)" (is "?dw = Final ?d")
+          using quick TernaryTrue by (simp add:matches_def)
+        then have res1: "unwrap_decision ?dw = ?d" by simp
+        have "filter_approx (remove_quick' (PfRule r # ls)) \<gamma> p (Preliminary x2) = 
+              filter_approx [PfRule (r\<lparr>get_quick := False\<rparr>)] \<gamma> p (filter_approx (and_each (MatchNot (pf_rule.get_match r)) (remove_quick' ls)) \<gamma> p (Preliminary x2))"
+          using quick by (simp add:filter_approx_chain)
+        then have "\<exists> d. filter_approx (remove_quick' (PfRule r # ls)) \<gamma> p (Preliminary x2) = 
+                        filter_approx [PfRule (r\<lparr>get_quick := False\<rparr>)] \<gamma> p (Preliminary d)" using prem is_Preliminary_def by auto
+        then obtain d' where "filter_approx (remove_quick' (PfRule r # ls)) \<gamma> p (Preliminary x2) = 
+                             filter_approx [PfRule (r\<lparr>get_quick := False\<rparr>)] \<gamma> p (Preliminary d')" by blast
+        then have "filter_approx (remove_quick' (PfRule r # ls)) \<gamma> p (Preliminary x2) =
+                   Preliminary (action_to_decision (pf_rule.get_action r) d')" (is "?dw = Preliminary ?d")
+          using TernaryTrue by (simp add:matches_def)
+        then have res2:"unwrap_decision ?dw = ?d" by simp
+        show ?thesis using Preliminary quick TernaryTrue res1 res2 2(4) by (auto split:action.splits simp:matches_def action_to_decision_cases)
+      next
+        case TernaryFalse
+        then have res1:"filter_approx (PfRule r # ls) \<gamma> p (Preliminary x2) =
+                   filter_approx ls \<gamma> p (Preliminary x2)" by (simp add:matches_def)
+        have "filter_approx (and_each (MatchNot (pf_rule.get_match r)) (remove_quick' ls)) \<gamma> p (Preliminary x2) =
+              filter_approx (remove_quick' ls) \<gamma> p (Preliminary x2)" using TernaryFalse by simp
+        then have res2:"filter_approx ((and_each (MatchNot (pf_rule.get_match r)) (remove_quick' ls))@[PfRule (r\<lparr>get_quick := False\<rparr>)]) \<gamma> p (Preliminary x2) =
+                   filter_approx (remove_quick' ls) \<gamma> p (Preliminary x2)" using TernaryFalse by (simp add:matches_def)
+        show ?thesis using Preliminary TernaryFalse res1 res2 2 by (auto split:action.splits simp:matches_def action_to_decision_cases)
+      next
+        case TernaryUnknown
+        then show ?thesis
+        proof(cases "(snd \<gamma>) (pf_rule.get_action r) x2 p")
+          case True
+          then have "(filter_approx (PfRule r # ls) \<gamma> p (Preliminary x2)) = Final (action_to_decision (pf_rule.get_action r) x2)" (is "?dw = Final ?d")
+            using quick TernaryUnknown by (simp add:matches_def)
+          then have res1: "unwrap_decision ?dw = ?d" by simp
+          have "filter_approx (remove_quick' (PfRule r # ls)) \<gamma> p (Preliminary x2) = 
+                filter_approx [PfRule (r\<lparr>get_quick := False\<rparr>)] \<gamma> p (filter_approx (and_each (MatchNot (pf_rule.get_match r)) (remove_quick' ls)) \<gamma> p (Preliminary x2))"
+            using quick by (simp add:filter_approx_chain)
+          then have "\<exists> d. filter_approx (remove_quick' (PfRule r # ls)) \<gamma> p (Preliminary x2) = 
+                        filter_approx [PfRule (r\<lparr>get_quick := False\<rparr>)] \<gamma> p (Preliminary d)" using prem is_Preliminary_def by auto
+          then obtain d' where "filter_approx (remove_quick' (PfRule r # ls)) \<gamma> p (Preliminary x2) = 
+                                filter_approx [PfRule (r\<lparr>get_quick := False\<rparr>)] \<gamma> p (Preliminary d')" by blast
+          moreover have "(snd \<gamma>) (pf_rule.get_action r) d' p"
+            using True 2(4) 2(5) unfolding good_matcher_def apply(auto split:action.splits) by metis
+          ultimately have "filter_approx (remove_quick' (PfRule r # ls)) \<gamma> p (Preliminary x2) =
+                     Preliminary (action_to_decision (pf_rule.get_action r) d')" (is "?dw = Preliminary ?d")
+          using TernaryUnknown True 2 by (simp add:matches_def)
+        then have res2:"unwrap_decision ?dw = ?d" by simp
+        show ?thesis using Preliminary True TernaryUnknown res1 res2 2(4) by (auto split:action.splits simp:matches_def action_to_decision_cases)
+        next
+          case False
+          then have res1:"filter_approx (PfRule r # ls) \<gamma> p (Preliminary x2) =
+                          filter_approx ls \<gamma> p (Preliminary x2)" using TernaryUnknown by (simp add:matches_def)
+          show ?thesis using quick apply simp sorry
+        qed
+      qed
+    next
+      case False
+      then show ?thesis using 2 Preliminary by auto
+    qed
+  qed
+next
+case (3 vb vc va)
+  then show ?case by auto
+qed
+  then show ?thesis by (simp add:pf_approx_def)
+qed
 
 fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_matches [] = []"
@@ -458,18 +582,18 @@ fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 |"remove_matches (l#ls) = l#(remove_matches ls)"
 
 lemma remove_matches_preverses_semantics:
-  assumes "no_quick rules"
+  assumes "no_match_quick rules"
       and "no_anchors rules"
   shows "filter_approx rules matcher packet (Preliminary start_decision) = filter_approx (remove_matches rules) matcher packet (Preliminary start_decision)"
   using assms
-  by (induction rules arbitrary:start_decision rule: remove_matches.induct; simp)
+  by (induction rules arbitrary:start_decision rule: remove_matches.induct; (simp add:no_match_quick_def))
 
 lemma remove_matches_ok:
-  assumes "no_quick rules"
+  assumes "no_match_quick rules"
       and "no_anchors rules"
     shows "no_match (remove_matches rules)"
   using assms
-  by (induction rules rule: remove_matches.induct; simp)
+  by (induction rules rule: remove_matches.induct; (simp add:no_match_quick_def))
 (*
 fun pf_approx_to_simplefw :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "pf_approx_to_simplefw rules = (map to_simple_match (reverse (normalize_firewall (remove_quick (remove_anchors rules)))))"
