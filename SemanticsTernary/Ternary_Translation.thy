@@ -274,75 +274,7 @@ lemma not_matches_and_unknown_not_matches:
     shows "\<not>matches \<gamma> (MatchAnd m2 m1) a d p"
   using assms by (cases "(ternary_ternary_eval (map_match_tac (fst \<gamma>) p m1))"; auto simp:matches_def)
 
-lemma and_each_unknown_reject[simp,intro]:
-  assumes unknown:"(ternary_ternary_eval (map_match_tac exact_match_tac p m)) = TernaryUnknown"
-      and rejects:"unwrap_decision(filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d)) = decision.Reject"
-      and no_match_quick:"no_match_quick l"
-      and no_anchors:"no_anchors l"
-    shows "(filter_approx (and_each m l) (exact_match_tac,in_doubt_allow) p (Preliminary d)) = (Preliminary d)"
-  using assms
-proof(induction l arbitrary:d)
-case Nil
-then show ?case by simp
-next
-  case (Cons a l)
-  then show ?case
-  proof(cases a)
-    case (PfRule r)
-    then show ?thesis using Cons  by (auto split:decision.splits simp:no_match_quick_def matches_def)
-    proof(cases "matches (exact_match_tac,in_doubt_allow) (pf_rule.get_match r) (pf_rule.get_action r) d p")
-      case True
-      show ?thesis
-      proof(cases "get_action r")
-        case Pass
-        then show ?thesis sorry
-      next
-        case Match
-        then show ?thesis using Cons PfRule True by (auto split:decision.splits simp:no_match_quick_def)
-      next
-        case Block
-        then have nomatch:"\<not>Matching_Ternary.matches (exact_match_tac,in_doubt_allow) (MatchAnd m (pf_rule.get_match r)) (get_action r) d p" using PfRule unknown apply (simp add: matches_def)
-        then show ?thesis sorry
-      qed
 
-    next
-      case False
-      then have nomatch:"\<not>Matching_Ternary.matches (exact_match_tac,in_doubt_allow) (MatchAnd m (pf_rule.get_match r)) (get_action r) d p" using unknown by (simp add: not_matches_and_unknown_not_matches)
-      then have "filter_approx (and_each m (a # l)) (exact_match_tac, in_doubt_allow) p (Preliminary d) =
-                 filter_approx (and_each m l) (exact_match_tac, in_doubt_allow) p (Preliminary d)" using PfRule by (auto split:line.splits decision.splits)
-      moreover have "unwrap_decision (filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d)) = Reject" using PfRule False Cons(3) by (auto split:line.splits decision.splits)
-      ultimately show ?thesis using Cons PfRule by (simp add:no_match_quick_def)
-    qed
-  next
-    case (Anchor x21 x22)
-    then show ?thesis using Cons by auto
-  qed
-qed
-
-
-lemma[simp]: "filter_approx [] \<gamma> p (filter_approx l \<gamma> p (Preliminary d)) = filter_approx l \<gamma> p (Preliminary d)"
-  by (metis append.right_neutral filter_approx_chain)
-
-lemma foo:
-  assumes "filter_approx [(PfRule r)] \<gamma> p (Preliminary d) = (Final d')"
-  shows "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p \<and> (pf_rule.get_quick r) \<and> (action_to_decision (pf_rule.get_action r) d) = d'"
-using assms
-  by (smt decision_wrap.distinct(1) decision_wrap.inject(1) filter_approx.simps(1) filter_approx.simps(2) filter_approx.simps(3) line.simps(5))
-
-(*
-fun deciding_rule :: "'a ruleset \<Rightarrow> ('a,'p) match_tac \<Rightarrow> 'p \<Rightarrow> 'a pf_rule option \<Rightarrow> 'a pf_rule option" where
-"deciding_rule [] _ _ a = a" |
-"deciding_rule ((PfRule r)#ls) \<gamma> p a = (if (matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) p)
-                                         then (if (get_quick r)
-                                                then (Some r)
-                                                else (deciding_rule ls \<gamma> p (Some r)))
-                                         else (deciding_rule ls \<gamma> p a))"
-
-lemma deciding_rule:
-  assumes no_anchors:"no_anchors l"
-      and deciding_rule:"deciding_rule l \<gamma> p None = (Some r)"
-    shows "unwrap_decision (filter_approx l \<gamma> p d) = action_to_decision (pf_rule.get_action r)"
-*)
 lemma and_each_empty[simp]:
   assumes "and_each m l = []"
   shows "l = []"
