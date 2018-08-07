@@ -96,6 +96,21 @@ lemma normalize_ports_ok':
 "ternary_ternary_eval (map_match_tac (common_matcher ctx) packet m) =
  ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports m))"
 proof(induction m rule:normalize_ports.induct)
+(*fix p have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Src_Ports p)))) =
+            ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Src_Ports p)))))"
+(is "ternary_to_bool ?a = ternary_to_bool ?b")
+    apply (simp add:normalize_ports' MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple
+                    ternary_to_bool_bool_to_ternary src_ports_disjunction_helper l2wi_wi2l)
+    using l2wi_wi2l by force
+  then have src:"?a = ?b" using ternary_to_bool_eq by auto
+fix p have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Dst_Ports p)))) =
+            ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Dst_Ports p)))))"
+(is "ternary_to_bool ?a = ternary_to_bool ?b")
+    apply (simp add:normalize_ports' MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple
+                    ternary_to_bool_bool_to_ternary dst_ports_disjunction_helper l2wi_wi2l)
+    using l2wi_wi2l by force
+  then have dst:"?a = ?b" using ternary_to_bool_eq by auto
+*)
   case (1 p)
   have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Src_Ports p)))) =
         ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Src_Ports p)))))"

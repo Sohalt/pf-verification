@@ -160,12 +160,6 @@ lemma optimize_matches_append:
     shows "optimize_matches f (rs1@rs2) = optimize_matches f rs1 @ optimize_matches f rs2"
   using assms by(simp add: optimize_matches_def optimize_matches_option_append)
 
-(*Warning: simplifier loops with this lemma*)
-lemma optimize_matches_fst: 
-  assumes "simple_ruleset (r#rs)"
-  shows "optimize_matches f (r#rs) = optimize_matches f [r]@optimize_matches f rs"
-  using assms sorry
-
 lemma optimize_matches_preserves:
   assumes "simple_ruleset rs"
   shows  "(\<And> r. (PfRule r) \<in> set rs \<Longrightarrow> P (f (pf_rule.get_match r))) \<Longrightarrow>
