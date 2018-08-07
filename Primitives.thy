@@ -15,7 +15,7 @@ datatype 'i unary_op =
   | GtEq "'i"
 
 datatype 'i binary_op =
-  RangeIncl "'i" "'i"
+  is_RangeIncl: RangeIncl "'i" "'i"
   | RangeExcl "'i" "'i"
   | RangeComp "'i" "'i"
 
