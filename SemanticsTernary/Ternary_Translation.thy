@@ -96,6 +96,42 @@ next
   qed
 qed
 
+fun all_AnchorRules_P :: "('a anchor_rule \<Rightarrow> bool) \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
+"all_AnchorRules_P P rs = (\<forall> l \<in> set rs. (case l of (Anchor r b) \<Rightarrow> P r \<and> all_AnchorRules_P P b | _ \<Rightarrow> True))"
+
+fun all_AnchorRules_P' :: "('a anchor_rule \<Rightarrow> bool) \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
+"all_AnchorRules_P' _ [] \<longleftrightarrow> True" |
+"all_AnchorRules_P' P ((PfRule r)#ls) \<longleftrightarrow> all_AnchorRules_P' P ls" |
+"all_AnchorRules_P' P ((Anchor r b)#ls) \<longleftrightarrow> P r \<and> all_AnchorRules_P' P b \<and> all_AnchorRules_P' P ls"
+
+lemma "all_AnchorRules_P P l= all_AnchorRules_P' P l"
+  by (induction P l rule: all_AnchorRules_P'.induct) auto
+
+lemma all_AnchorRules_append[simp]:
+  "all_AnchorRules_P P (xs @ ys) \<longleftrightarrow> all_AnchorRules_P P xs \<and> all_AnchorRules_P P ys"
+  by (induction P xs rule: all_AnchorRules_P.induct) auto
+
+definition no_anchors' :: "'a ruleset \<Rightarrow> bool" where
+"no_anchors' rs = all_AnchorRules_P (\<lambda>r. False) rs"
+
+lemma no_anchors_no_anchors'_eq:
+ "no_anchors rs \<longleftrightarrow> no_anchors' rs"
+  unfolding no_anchors'_def
+proof(induction rs)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a rs)
+  then show ?case by (cases a;auto)
+qed
+
+
+definition no_unknown_anchors :: "('a,'p) match_tac \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
+"no_unknown_anchors \<gamma> rs = all_AnchorRules_P
+ (\<lambda>r. (\<forall> p. ternary_ternary_eval (map_match_tac (fst \<gamma>) p (anchor_rule.get_match r)) \<noteq> TernaryUnknown))
+ rs"
+
+
 fun all_PfRules_P :: "('a pf_rule \<Rightarrow> bool) \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
 "all_PfRules_P P rs = (\<forall> l \<in> set rs. (case l of (PfRule r) \<Rightarrow> P r | (Anchor r b) \<Rightarrow> all_PfRules_P P b))"
 
@@ -107,7 +143,7 @@ fun all_PfRules_P' :: "('a pf_rule \<Rightarrow> bool) \<Rightarrow> 'a ruleset 
 lemma "all_PfRules_P P l= all_PfRules_P' P l"
   by (induction P l rule: all_PfRules_P'.induct) auto
 
-lemma all_PfRules_append:
+lemma all_PfRules_append[simp]:
   "all_PfRules_P P (xs @ ys) \<longleftrightarrow> all_PfRules_P P xs \<and> all_PfRules_P P ys"
   by (induction P xs rule: all_PfRules_P.induct) auto
 
@@ -364,18 +400,43 @@ next
   ultimately show ?case using 2 by (simp add:no_match_quick_def)
 qed
 
-lemma no_match_quick_append[simp]:
-  "no_match_quick (l1@l2) = no_match_quick l1 \<and> no_match_quick l2"
-proof(induction l1)
-case Nil
-then show ?case  sorry (* FIXME *)
+lemma no_anchors_implies_no_unknown_anchors:
+  assumes "no_anchors rs"
+  shows "no_unknown_anchors \<gamma> rs"
+  using assms
+proof(induction rs)
+  case Nil
+  then show ?case by (simp add:no_unknown_anchors_def)
 next
-  case (Cons a l1)
-  then show ?case sorry (* FIXME *)
+  case (Cons a rs)
+  then show ?case by (cases a;simp add:no_unknown_anchors_def)
 qed
 
 
-lemma remove_anchors'_preserves_no_match_quick:
+lemma and_each_no_anchors_no_unknown_anchors:
+  assumes "no_anchors rules"
+  shows "no_unknown_anchors \<gamma> (and_each m rules)"
+  using assms
+proof(induction rules rule:and_each.induct)
+  case (1 uu)
+  then show ?case by (auto simp: no_unknown_anchors_def)
+next
+  case (2 m l ls)
+  then have "no_anchors [l]" by simp
+  then have "no_anchors' [l]" using no_anchors_no_anchors'_eq by blast
+  then have *:"no_unknown_anchors \<gamma> [(and_line m l)]" unfolding no_anchors'_def no_unknown_anchors_def by (induction l) auto
+  from 2 have "no_anchors ls" by simp
+  then have "no_unknown_anchors \<gamma> ls" by (simp add:no_anchors_implies_no_unknown_anchors)
+  then show ?case using 2 * by (simp add:no_unknown_anchors_def)
+qed
+
+
+lemma no_match_quick_append[simp]:
+  "no_match_quick (l1@l2) \<longleftrightarrow> no_match_quick l1 \<and> no_match_quick l2"
+  by (auto simp:no_match_quick_def)
+
+
+lemma remove_anchors'_preserves_no_match_quick[simp]:
   assumes "no_match_quick rules"
   shows "no_match_quick (remove_anchors' rules)"
   using assms
@@ -384,15 +445,37 @@ case 1
 then show ?case by simp
 next
   case (2 r l rs)
-  then show ?case using and_each_preserves_no_match_quick by simp
+  from 2(3) have "no_match_quick l" by (simp add:no_match_quick_def)
+  moreover from 2(3) have "no_match_quick rs" by (simp add:no_match_quick_def)
+  ultimately show ?case using 2 by (simp add:and_each_preserves_no_match_quick)
 next
   case (3 v rs)
-  then show ?case by simp
+  then show ?case by (simp add:no_match_quick_def)
+qed
+
+lemma remove_anchors'_preserves_no_unknown_anchors[simp]:
+  assumes "no_unknown_anchors \<gamma> rs"
+  shows "no_unknown_anchors \<gamma> (remove_anchors' rs)"
+  using assms
+proof(induction rs rule:remove_anchors'.induct)
+case 1
+then show ?case by simp
+next
+  case (2 r l rs)
+  then have "no_unknown_anchors \<gamma> (and_each (anchor_rule.get_match r) (remove_anchors' l))"
+    using remove_anchors'_ok and_each_no_anchors_no_unknown_anchors by blast
+  moreover have "no_unknown_anchors \<gamma> (remove_anchors' rs)"
+    using remove_anchors'_ok no_anchors_implies_no_unknown_anchors by blast
+  ultimately show ?case by (auto simp add:no_unknown_anchors_def)
+next
+  case (3 v rs)
+  then show ?case by (simp add: no_unknown_anchors_def)
 qed
 
 
 lemma remove_anchors_preserves_semantics :
   assumes "no_match_quick rules"
+      and "no_unknown_anchors (exact_match_tac, in_doubt_allow) rules"
   shows "pf_approx (remove_anchors' rules) (exact_match_tac, in_doubt_allow) packet = pf_approx rules (exact_match_tac, in_doubt_allow) packet"
 proof(-)
   have "(filter_approx rules (exact_match_tac, in_doubt_allow) packet d = filter_approx (remove_anchors' rules) (exact_match_tac, in_doubt_allow) packet d)" for d using assms
@@ -404,49 +487,17 @@ proof(-)
     then show ?case
     proof(cases "(ternary_ternary_eval (map_match_tac exact_match_tac packet (anchor_rule.get_match r)))")
       case TernaryTrue
-      then show ?thesis using 2 apply (auto simp add: filter_approx_chain) by (cases d;auto simp add:matches_def no_match_quick_def)
+      then show ?thesis using 2 apply (auto simp add: filter_approx_chain) by (cases d;auto simp add:matches_def no_match_quick_def no_unknown_anchors_def)
     next
       case TernaryFalse
-      then show ?thesis using 2 apply (auto simp add: filter_approx_chain) by (cases d;auto simp add:matches_def no_match_quick_def)
+      then show ?thesis using 2 apply (auto simp add: filter_approx_chain) by (cases d;auto simp add:matches_def no_match_quick_def no_unknown_anchors_def)
     next
       case TernaryUnknown
-      show ?thesis
-      proof(cases d)
-        case (Final x1)
-        then show ?thesis by simp
-      next
-        case (Preliminary x2)
-        have nmq:"no_match_quick (remove_anchors' l)" using 2 by (simp add:no_match_quick_def)
-        have na:"no_anchors (remove_anchors' l)" by (simp add:remove_anchors'_ok)
-      have "filter_approx [Anchor r l] (exact_match_tac, in_doubt_allow) packet d =
-            filter_approx (remove_anchors' [Anchor r l]) (exact_match_tac, in_doubt_allow) packet d" (is "?p1 = ?p2")
-      proof(cases "unwrap_decision (filter_approx (remove_anchors' l) (exact_match_tac, in_doubt_allow) packet d)")
-        have **:"filter_approx l (exact_match_tac, in_doubt_allow) packet (Preliminary x2) =
-              filter_approx (remove_anchors' l) (exact_match_tac, in_doubt_allow) packet (Preliminary x2)" using 2 by auto
-        case Accept
-        then have "(filter_approx (and_each (anchor_rule.get_match r) (remove_anchors' l)) (exact_match_tac,in_doubt_allow) packet (Preliminary x2)) =
-                   (filter_approx (remove_anchors' l) (exact_match_tac, in_doubt_allow) packet (Preliminary x2))" using TernaryUnknown Preliminary nmq na by simp
-        then show ?thesis using TernaryUnknown Preliminary Accept 2 by(cases d;simp add:matches_def)
-      next
-        have *:"no_match_quick (remove_anchors' l)" using 2 by auto
-        case Reject
-        then have "unwrap_decision (filter_approx (remove_anchors' l) (exact_match_tac, in_doubt_allow) packet (Preliminary x2)) = Reject" sorry
-        then show ?thesis using TernaryUnknown Reject Preliminary remove_anchors'_ok *
-          apply(simp add:matches_def no_match_quick_def) using and_each_unknown_reject[of _ packet "anchor_rule.get_match r" "remove_anchors' l" x2] apply simp  sorry
-      qed
-      note prefix=this
-      then have "filter_approx (Anchor r l # rs) (exact_match_tac, in_doubt_allow) packet d =
-                 filter_approx rs (exact_match_tac, in_doubt_allow) packet ?p2"
-        by (metis append_Cons append_Nil filter_approx_chain)
-      moreover have "filter_approx (remove_anchors' (Anchor r l # rs)) (exact_match_tac, in_doubt_allow) packet d =
-                     filter_approx (remove_anchors' rs) (exact_match_tac, in_doubt_allow) packet ?p2"
-        by (simp add: filter_approx_chain)
-      ultimately show ?thesis using 2 by (simp add:no_match_quick_def)
+      then show ?thesis using 2(4) by (auto simp:no_unknown_anchors_def)
     qed
-  qed
   next
     case (3 v rs)
-    then show ?case apply (simp add:no_match_quick_def)
+    then show ?case apply (simp add:no_match_quick_def no_unknown_anchors_def)
       by (metis (no_types, hide_lams) append_Cons append_Nil filter_approx_chain)
   qed
   then show ?thesis by (simp add: filter_approx_to_pf_approx)
