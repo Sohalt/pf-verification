@@ -486,12 +486,14 @@ lemma remove_all_quick_preserves_semantics:
   using assms
 proof(induction rules rule:remove_all_quick.induct)
   case (1 rules)
-  then show ?case using remove_single_quick_preserves_no_anchors remove_single_quick_preserves_semantics unfolding pf_def sorry (* simplifier loops *)
+  then show ?case using remove_single_quick_preserves_no_anchors remove_single_quick_preserves_semantics unfolding pf_def
+    apply (simp del: remove_all_quick.simps)
+    sorry (* simplifier loops *)
 qed
 
 fun remove_quick' :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_quick' [] = []" |
-"remove_quick' ((PfRule r)#ls) = 
+"remove_quick' ((PfRule r)#ls) =
 (if (get_quick r)
 then (remove_quick' ls)@[PfRule (r\<lparr>get_quick := False\<rparr>)]
 else (PfRule r)#(remove_quick' ls))"
@@ -575,7 +577,7 @@ next
         moreover have "no_quick (remove_quick' ls)" using 2 by (simp add:remove_quick'_ok)
         ultimately have "is_Preliminary (filter (remove_quick' ls) \<gamma> p (Preliminary x2))" by (simp add: no_quick_preliminary)
         then have "filter [PfRule (r\<lparr>get_quick := False\<rparr>)] \<gamma> p (Preliminary foo) = doesn't work when (get_action r = Match)
-        then show ?thesis unfolding Preliminary using 2 nomatch quick apply (simp add:no_quick_preliminary remove_quick'_ok) sorry 
+        then show ?thesis unfolding Preliminary using 2 nomatch quick apply (simp add:no_quick_preliminary remove_quick'_ok) sorry
       qed
     next
       case nomatch:False

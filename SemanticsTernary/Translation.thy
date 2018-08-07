@@ -46,21 +46,28 @@ fun normalize_ports :: "common_primitive match_expr \<Rightarrow> common_primiti
 lemma ternary_to_bool_eq:
   assumes "ternary_to_bool e1 = ternary_to_bool e2"
   shows "e1 = e2"
-  using assms by(cases e1;cases e2;auto) 
+  using assms by(cases e1;cases e2;auto)
 
 lemma src_ports_disjunction_helper:
-"ternary_to_bool 
+"ternary_to_bool
 (ternary_ternary_eval
      (map_match_tac (common_matcher ctx) p
        (match_or
          (map (\<lambda>(l, u). Src_Ports (Binary (RangeIncl l u))) l)))) =
  Some ((p_sport p) \<in> (\<Union>x\<in>set l. wordinterval_to_set (l2wi l)))"
-proof(induction l)
-  case Nil
+proof(induction l rule: l2wi.induct)
+  case 1
   then show ?case by simp
 next
-  case (Cons a l)
-  then show ?case sorry
+  case 2
+  then show ?case
+    apply auto
+    sorry
+next
+  case (3 l u)
+  then show ?case
+    apply (auto split: prod.splits simp: MatchOr_def eval_ternary_simps_simple eval_ternary_idempotence_Not)
+    sorry
 (*  proof(cases "(common_matcher ctx) (case a of (l, u) \<Rightarrow> Src_Ports (Binary (RangeIncl l u))) p")
     case TernaryTrue
     fix lower upper assume uiae:"a = (lower, upper)"
@@ -77,7 +84,7 @@ next
 qed
 
 lemma dst_ports_disjunction_helper:
-"ternary_to_bool 
+"ternary_to_bool
 (ternary_ternary_eval
      (map_match_tac (common_matcher ctx) p
        (match_or
@@ -96,21 +103,6 @@ lemma normalize_ports_ok':
 "ternary_ternary_eval (map_match_tac (common_matcher ctx) packet m) =
  ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports m))"
 proof(induction m rule:normalize_ports.induct)
-(*fix p have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Src_Ports p)))) =
-            ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Src_Ports p)))))"
-(is "ternary_to_bool ?a = ternary_to_bool ?b")
-    apply (simp add:normalize_ports' MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple
-                    ternary_to_bool_bool_to_ternary src_ports_disjunction_helper l2wi_wi2l)
-    using l2wi_wi2l by force
-  then have src:"?a = ?b" using ternary_to_bool_eq by auto
-fix p have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Dst_Ports p)))) =
-            ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Dst_Ports p)))))"
-(is "ternary_to_bool ?a = ternary_to_bool ?b")
-    apply (simp add:normalize_ports' MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple
-                    ternary_to_bool_bool_to_ternary dst_ports_disjunction_helper l2wi_wi2l)
-    using l2wi_wi2l by force
-  then have dst:"?a = ?b" using ternary_to_bool_eq by auto
-*)
   case (1 p)
   have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Src_Ports p)))) =
         ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Src_Ports p)))))"
@@ -126,40 +118,7 @@ next
                     ternary_to_bool_bool_to_ternary dst_ports_disjunction_helper l2wi_wi2l)
     using l2wi_wi2l by force
   then show ?case using ternary_to_bool_eq by auto
-next
-  case (3 m)
-  then show ?case by simp
-next
-  case (4 m1 m2)
-  then show ?case by simp
-next
-  case ("5_1" va)
-  then show ?case by simp
-next
-case ("5_2" va)
-  then show ?case by simp
-next
-  case ("5_3" va)
-then show ?case by simp
-next
-  case ("5_4" va vb)
-  then show ?case by simp
-next
-  case ("5_5" va)
-  then show ?case by simp
-next
-  case ("5_6" va)
-  then show ?case by simp
-next
-case ("5_7" va)
-  then show ?case by simp
-next
-  case ("5_8" va)
-  then show ?case by simp
-next
-  case "5_9"
-  then show ?case by simp
-qed
+qed simp+
 
 
 lemma normalize_ports_ok : "matches (common_matcher ctx, \<alpha>) m a d p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (normalize_ports m) a d p"
@@ -176,11 +135,11 @@ fun remove_tables ::"pfcontext \<Rightarrow> common_primitive match_expr \<Right
 "remove_tables ctx (MatchAnd m1 m2) = (MatchAnd (remove_tables ctx m1) (remove_tables ctx m2))" |
 "remove_tables ctx m = m"
 
-lemma common_matcher_Src_IPv6_TernaryFalse[simp]: "ternary_ternary_eval (map_match_tac (common_matcher ctx) p 
+lemma common_matcher_Src_IPv6_TernaryFalse[simp]: "ternary_ternary_eval (map_match_tac (common_matcher ctx) p
 (match_or (map (\<lambda>a. Src (Hostspec (Address (IPv6 a)))) l))) = TernaryFalse"
   by (induction l;simp add:matches_def MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple(1))
 
-lemma common_matcher_Dst_IPv6_TernaryFalse[simp]: "ternary_ternary_eval (map_match_tac (common_matcher ctx) p 
+lemma common_matcher_Dst_IPv6_TernaryFalse[simp]: "ternary_ternary_eval (map_match_tac (common_matcher ctx) p
 (match_or (map (\<lambda>a. Dst (Address (IPv6 a))) l))) = TernaryFalse"
   by (induction l;simp add:matches_def MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple(1))
 
@@ -193,7 +152,7 @@ fun good_match_expr :: "pfcontext \<Rightarrow> common_primitive match_expr \<Ri
 
 lemma src_addr_disjunction_helper:
   assumes "\<forall> x\<in>set l. valid_prefix x"
-  shows "ternary_to_bool 
+  shows "ternary_to_bool
 (ternary_ternary_eval
      (map_match_tac (common_matcher ctx) p
        (match_or
@@ -219,7 +178,7 @@ qed
 
 lemma dst_addr_disjunction_helper:
   assumes "\<forall> x\<in>set l. valid_prefix x"
-  shows "ternary_to_bool 
+  shows "ternary_to_bool
 (ternary_ternary_eval
      (map_match_tac (common_matcher ctx) p
        (match_or
@@ -267,67 +226,7 @@ next
                  match_table_v4_wordinterval
                  wordinterval_CIDR_split_prefixmatch_all_valid_Ball wordinterval_CIDR_split_prefixmatch)
   then show ?case using ternary_to_bool_eq by auto
-next
-  case (3 ctx m)
-  then show ?case by simp
-next
-  case (4 ctx m1 m2)
-  then show ?case by simp
-next
-  case ("5_1" ctx)
-  then show ?case by simp
-next
-  case ("5_2" ctx)
-  then show ?case by simp
-next
-  case ("5_3" ctx vc)
-  then show ?case by simp
-next
-  case ("5_4" ctx vc)
-  then show ?case by simp
-next
-  case ("5_5" ctx)
-  then show ?case by simp
-next
-  case ("5_6" ctx va)
-  then show ?case by simp
-next
-  case ("5_7" ctx)
-  then show ?case by simp
-next
-case ("5_8" ctx)
-  then show ?case by simp
-next
-  case ("5_9" ctx v)
-  then show ?case by simp
-next
-case ("5_10" ctx v)
-  then show ?case by simp
-next
-case ("5_11" ctx va)
-then show ?case by simp
-next
-  case ("5_12" ctx va)
-  then show ?case by simp
-next
-  case ("5_13" ctx va vb)
-then show ?case by simp
-next
-  case ("5_14" ctx va)
-  then show ?case by simp
-next
-  case ("5_15" ctx va)
-  then show ?case by simp
-next
-  case ("5_16" ctx va)
-  then show ?case by simp
-next
-  case ("5_17" ctx va)
-  then show ?case by simp
-next
-  case ("5_18" ctx)
-  then show ?case by simp
-qed
+qed simp+
 
 
 lemma remove_tables_ok :
