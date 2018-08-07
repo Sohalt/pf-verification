@@ -619,12 +619,16 @@ fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 |"remove_matches ((PfRule r)#ls) = (if ((pf_rule.get_action r) = action.Match) then remove_matches ls else (PfRule r)#remove_matches ls)"
 |"remove_matches (l#ls) = l#(remove_matches ls)"
 
-lemma remove_matches_ok:
+lemma remove_matches_preserves_semantics:
   assumes "no_quick rules"
           "no_anchors rules"
-  shows "filter rules matcher packet (Preliminary start_decision) = filter (remove_matches rules) matcher packet (Preliminary start_decision)"
+    shows "pf rules matcher packet = pf (remove_matches rules) matcher packet"
+proof(-)
+  have "\<And>start_decision. filter rules matcher packet (Preliminary start_decision) = filter (remove_matches rules) matcher packet (Preliminary start_decision)"
   using assms
   by (induction rules arbitrary:start_decision rule: remove_matches.induct; simp)
+  then show ?thesis by (simp add:pf_def)
+qed
 
 (*
 fun pf_to_simplefw :: "'a ruleset \<Rightarrow> 'a ruleset" where
