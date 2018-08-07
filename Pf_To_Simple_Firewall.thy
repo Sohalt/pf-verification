@@ -285,6 +285,32 @@ proof(-)
   then show ?thesis by (simp add: filter_to_pf)
 qed
 
+lemma and_each_preserves_no_anchors:
+  assumes "no_anchors rs"
+  shows "no_anchors (and_each m rs)"
+  using assms
+proof(induction m rs rule:and_each.induct)
+case (1 uu)
+then show ?case by simp
+next
+  case (2 m l ls)
+  then show ?case by (cases l;simp)
+qed
+
+
+lemma and_each_preserves_no_quick:
+  assumes "no_quick rs"
+  shows "no_quick (and_each m rs)"
+  using assms
+proof(induction rs)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a rs)
+  then show ?case by(cases a;simp)
+qed
+
+
 fun remove_single_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_single_quick [] = []"
 |"remove_single_quick ((PfRule r)#ls) =
@@ -495,7 +521,7 @@ fun remove_quick' :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_quick' [] = []" |
 "remove_quick' ((PfRule r)#ls) =
 (if (get_quick r)
-then (remove_quick' ls)@[PfRule (r\<lparr>get_quick := False\<rparr>)]
+then (and_each (MatchNot (pf_rule.get_match r)) (remove_quick' ls))@[PfRule (r\<lparr>get_quick := False\<rparr>)]
 else (PfRule r)#(remove_quick' ls))"
 
 lemma remove_quick'_ok:
@@ -507,7 +533,7 @@ case 1
 then show ?case by simp
 next
   case (2 r ls)
-  then show ?case by auto
+  then show ?case by (auto simp: and_each_preserves_no_quick)
 next
   case (3 vb vc va)
 then show ?case by auto
@@ -516,7 +542,7 @@ qed
 lemma remove_quick'_preserves_no_anchors :
   assumes "no_anchors rules"
   shows "no_anchors (remove_quick' rules)"
-  using assms by(induction rules rule:remove_quick'.induct;auto)
+  using assms by(induction rules rule:remove_quick'.induct;auto simp:and_each_preserves_no_anchors)
 
 lemma no_quick_preliminary:
   assumes "no_quick rules"
@@ -548,7 +574,7 @@ next
   qed
 qed
 
-(*
+
 lemma remove_quick'_preserves_semantics:
   assumes "no_anchors rules"
   shows "pf rules \<gamma> p = pf (remove_quick' rules) \<gamma> p"
@@ -560,45 +586,33 @@ then show ?case by simp
 next
   case (2 r ls)
   then show ?case
-  proof(cases "get_quick r")
-    case quick:True
+  proof(cases d)
+    case (Final x1)
+    then show ?thesis by auto
+  next
+    case (Preliminary x2)
     then show ?thesis
-    proof(cases "matches \<gamma> (pf_rule.get_match r) p")
-      case match:True
+    proof(cases "get_quick r")
+      case quick:True
       then show ?thesis
-      proof(cases d)
-        case (Final x1)
-        then show ?thesis by simp
+      proof(cases "matches \<gamma> (pf_rule.get_match r) p")
+        case match:True
+        then show ?thesis using 2 Preliminary quick by (simp add:filter_chain)
       next
-        case (Preliminary x2)
-        then have *:"filter (remove_quick' ls @ [PfRule (r\<lparr>get_quick := False\<rparr>)]) \<gamma> p (Preliminary x2) =
- filter [PfRule (r\<lparr>get_quick := False\<rparr>)] \<gamma> p (filter (remove_quick' ls) \<gamma> p (Preliminary x2))" by (simp add:filter_chain)
-        have "no_anchors (remove_quick' ls)" using 2 by (simp add:remove_quick'_preserves_no_anchors)
-        moreover have "no_quick (remove_quick' ls)" using 2 by (simp add:remove_quick'_ok)
-        ultimately have "is_Preliminary (filter (remove_quick' ls) \<gamma> p (Preliminary x2))" by (simp add: no_quick_preliminary)
-        then have "filter [PfRule (r\<lparr>get_quick := False\<rparr>)] \<gamma> p (Preliminary foo) = doesn't work when (get_action r = Match)
-        then show ?thesis unfolding Preliminary using 2 nomatch quick apply (simp add:no_quick_preliminary remove_quick'_ok) sorry
+        case nomatch:False
+        then show ?thesis using 2 Preliminary by simp
       qed
     next
-      case nomatch:False
-      then show ?thesis
-      proof(cases d)
-        case (Final x1)
-        then show ?thesis by simp
-      next
-        case (Preliminary x2)
-        then show ?thesis unfolding Preliminary using 2 nomatch quick by simp
-      qed
+      case False
+      then show ?thesis using 2 Preliminary by auto
     qed
-  next
-    case False
-    then show ?thesis using 2 by (cases d;auto)
   qed
 next
 case (3 vb vc va)
   then show ?case by auto
 qed
-*)
+  then show ?thesis by (simp add:pf_def)
+qed
 
 fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_matches [] = []"
@@ -611,6 +625,7 @@ lemma remove_matches_ok:
   shows "filter rules matcher packet (Preliminary start_decision) = filter (remove_matches rules) matcher packet (Preliminary start_decision)"
   using assms
   by (induction rules arbitrary:start_decision rule: remove_matches.induct; simp)
+
 (*
 fun pf_to_simplefw :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "pf_to_simplefw rules = (map to_simple_match (reverse (normalize_firewall (remove_quick (remove_anchors rules)))))"
