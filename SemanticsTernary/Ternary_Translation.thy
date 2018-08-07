@@ -7,7 +7,7 @@ begin
 lemma filter_approx_to_pf_approx:
   assumes "\<forall> d. (filter_approx l1 \<gamma> p d = filter_approx l2 \<gamma> p d)"
   shows "pf_approx l1 \<gamma> p = pf_approx l2 \<gamma> p" unfolding pf_approx_def using assms by simp
-
+(* works but not needed
 lemma filter_approx_add_equiv_prefix :
   assumes "filter_approx l1 \<gamma> p d = filter_approx l2 \<gamma> p d"
           "\<And>d. filter_approx l3 \<gamma> p d = filter_approx l4 \<gamma> p d"
@@ -17,11 +17,13 @@ proof -
     moreover have "filter_approx (l2@l4) \<gamma> p d = filter_approx l4 \<gamma> p (filter_approx l2 \<gamma> p d)" by (simp add: filter_approx_chain)
     ultimately show ?thesis using assms by auto
   qed
-
+*)
+(* works but not needed
 lemma filter_approx_add_same_prefix :
   assumes "\<And>d. filter_approx l1 \<gamma> p d = filter_approx l2 \<gamma> p d"
   shows "filter_approx (l@l1) \<gamma> p d = filter_approx (l@l2) \<gamma> p d"
   by (metis assms filter_approx_add_equiv_prefix)
+*)
 
 lemma and_each_false[simp]:
   assumes "(ternary_ternary_eval (map_match_tac (fst \<gamma>) p m)) = TernaryFalse"
@@ -77,7 +79,7 @@ next
   qed
 qed
 
-
+(* works but not needed
 lemma filter_final[simp]:
   assumes "filter_approx l \<gamma> p d = Final d'"
   shows "filter_approx (l@l') \<gamma> p d = Final d'"
@@ -95,6 +97,7 @@ next
     then show ?case by (simp add: filter_approx_chain)
   qed
 qed
+*)
 
 fun all_AnchorRules_P :: "('a anchor_rule \<Rightarrow> bool) \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
 "all_AnchorRules_P P rs = (\<forall> l \<in> set rs. (case l of (Anchor r b) \<Rightarrow> P r \<and> all_AnchorRules_P P b | _ \<Rightarrow> True))"
@@ -150,6 +153,7 @@ lemma all_PfRules_append[simp]:
 definition no_match_quick :: "'a ruleset \<Rightarrow> bool" where
 "no_match_quick rs = all_PfRules_P (\<lambda>r. \<not>((pf_rule.get_action r) = action.Match \<and> pf_rule.get_quick r)) rs"
 
+(*
 lemma decision_change:
   assumes "d \<noteq> d'"
       and "no_match_quick l"
@@ -178,8 +182,8 @@ cases "(ternary_ternary_eval (map_match_tac exact_match_tac p (pf_rule.get_match
     then show ?thesis using Cons by simp
   qed
 qed
-
-
+*)
+(* works but not needed
 lemma and_each_unknown[simp]:
   assumes unknown:"(ternary_ternary_eval (map_match_tac exact_match_tac p m)) = TernaryUnknown"
       and accepts:"unwrap_decision(filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d)) = decision.Accept"
@@ -261,31 +265,35 @@ next
     then show ?thesis using Cons(5) by auto
   qed
 qed
-
+*)
+(* works but not needed
 lemma matches_and_unknown_unknown[simp]:
   assumes "matches \<gamma> m1 a d p"
       and "(ternary_ternary_eval (map_match_tac (fst \<gamma>) p m2)) = TernaryUnknown"
     shows "(ternary_ternary_eval (map_match_tac (fst \<gamma>) p (MatchAnd m2 m1))) = TernaryUnknown"
   using assms by (cases "(ternary_ternary_eval (map_match_tac (fst \<gamma>) p m1))"; auto simp:matches_def)
-
+*)
+(* works but not needed
 lemma not_matches_and_unknown_not_matches:
   assumes "\<not>matches \<gamma> m1 a d p"
       and "(ternary_ternary_eval (map_match_tac (fst \<gamma>) p m2)) = TernaryUnknown"
     shows "\<not>matches \<gamma> (MatchAnd m2 m1) a d p"
   using assms by (cases "(ternary_ternary_eval (map_match_tac (fst \<gamma>) p m1))"; auto simp:matches_def)
-
-
+*)
+(* works but not needed
 lemma and_each_empty[simp]:
   assumes "and_each m l = []"
   shows "l = []"
   using assms
   by (induction l rule:and_each.induct) simp_all
-
+*)
+(* works but not needed
 fun no_pf_rules :: "'a ruleset \<Rightarrow> bool" where
 "no_pf_rules [] = True" |
 "no_pf_rules ((PfRule _)#ls) = False" |
 "no_pf_rules ((Anchor _ b)#ls) = (no_pf_rules b \<and> no_pf_rules ls)"
-
+*)
+(* works but not needed
 lemma remove_anchors'_empty_no_pf_rules:
   assumes "remove_anchors' l = []"
   shows "no_pf_rules l"
@@ -300,7 +308,8 @@ next
   case (3 v rs)
   then show ?case by auto
 qed
-
+*)
+(* works but not needed
 lemma no_pf_rules_no_change:
   assumes "no_pf_rules ls"
   shows "filter_approx ls m p d = d"
@@ -316,7 +325,8 @@ next
   then show ?case apply auto
     by (smt line.simps(6) list.discI list.sel(1) list.sel(3) no_pf_rules.elims(2))
 qed
-
+*)
+(* works but not needed
 lemma and_each_preserves_no_match_quick:
   assumes "no_match_quick rules"
   shows "no_match_quick (and_each m rules)"
@@ -331,7 +341,8 @@ next
   moreover have "no_match_quick ls" using 2 by (simp add:no_match_quick_def)
   ultimately show ?case using 2 by (simp add:no_match_quick_def)
 qed
-
+*)
+(* works but not needed
 lemma no_anchors_implies_no_unknown_anchors:
   assumes "no_anchors rs"
   shows "no_unknown_anchors \<gamma> rs"
@@ -343,8 +354,8 @@ next
   case (Cons a rs)
   then show ?case by (cases a;simp add:no_unknown_anchors_def)
 qed
-
-
+*)
+(* works but not needed
 lemma and_each_no_anchors_no_unknown_anchors:
   assumes "no_anchors rules"
   shows "no_unknown_anchors \<gamma> (and_each m rules)"
@@ -361,13 +372,13 @@ next
   then have "no_unknown_anchors \<gamma> ls" by (simp add:no_anchors_implies_no_unknown_anchors)
   then show ?case using 2 * by (simp add:no_unknown_anchors_def)
 qed
-
-
+*)
+(* works but not needed
 lemma no_match_quick_append[simp]:
   "no_match_quick (l1@l2) \<longleftrightarrow> no_match_quick l1 \<and> no_match_quick l2"
   by (auto simp:no_match_quick_def)
-
-
+*)
+(* works but not needed
 lemma remove_anchors'_preserves_no_match_quick[simp]:
   assumes "no_match_quick rules"
   shows "no_match_quick (remove_anchors' rules)"
@@ -384,7 +395,8 @@ next
   case (3 v rs)
   then show ?case by (simp add:no_match_quick_def)
 qed
-
+*)
+(* works but not needed
 lemma remove_anchors'_preserves_no_unknown_anchors[simp]:
   assumes "no_unknown_anchors \<gamma> rs"
   shows "no_unknown_anchors \<gamma> (remove_anchors' rs)"
@@ -403,7 +415,11 @@ next
   case (3 v rs)
   then show ?case by (simp add: no_unknown_anchors_def)
 qed
+*)
 
+(* remove anchors *)
+
+(* remove_anchors implementation and remove_anchors_ok in Pf_To_SimpleFirewall *)
 
 lemma remove_anchors_preserves_semantics :
   assumes "no_match_quick rules"
@@ -434,6 +450,8 @@ proof(-)
   qed
   then show ?thesis by (simp add: filter_approx_to_pf_approx)
 qed
+
+(* helpers for remove quick *)
 
 lemma remove_suffix[simp]:
   assumes "\<not>matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) (unwrap_decision (filter_approx l \<gamma> p d)) p"
@@ -475,6 +493,8 @@ next
     then show ?thesis using Cons by auto
   qed
 qed
+
+(* remove quick *)
 
 fun remove_quick_approx :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_quick_approx [] = []" |
@@ -598,6 +618,8 @@ qed
   then show ?thesis by (simp add:pf_approx_def)
 qed
 
+(* remove matches *)
+
 fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_matches [] = []"
 |"remove_matches ((PfRule r)#ls) = (if ((pf_rule.get_action r) = action.Match) then remove_matches ls else (PfRule r)#remove_matches ls)"
@@ -618,6 +640,6 @@ lemma remove_matches_ok:
   by (induction rules rule: remove_matches.induct; (simp add:no_match_quick_def))
 (*
 fun pf_approx_to_simplefw :: "'a ruleset \<Rightarrow> 'a ruleset" where
-"pf_approx_to_simplefw rules = (map to_simple_match (reverse (normalize_firewall (remove_quick (remove_anchors rules)))))"
+"pf_approx_to_simplefw rules = (map to_simple_match (reverse (normalize_firewall (remove_quick (remove_matches (remove_anchors rules))))))"
 *)
 end
