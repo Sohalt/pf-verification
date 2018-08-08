@@ -61,8 +61,8 @@ fun common_matcher :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 32
 "common_matcher ctx (Src hosts) p = match_hosts_src ctx hosts (p_src p)"|
 "common_matcher ctx (Dst hosts) p = match_hosts ctx hosts (p_dst p)"|
 "common_matcher _ (Src_OS _) _ = TernaryUnknown"|
-"common_matcher _ (Src_Ports ports) p = bool_to_ternary (match_port ports (p_sport p))"|
-"common_matcher _ (Dst_Ports ports) p = bool_to_ternary (match_port ports (p_dport p))"|
+"common_matcher _ (Src_Ports (L4Ports proto ports)) p = bool_to_ternary ((proto = (p_proto p)) \<and> match_port ports (p_sport p))"|
+"common_matcher _ (Dst_Ports (L4Ports proto ports)) p = bool_to_ternary ((proto = (p_proto p)) \<and> match_port ports (p_dport p))"|
 "common_matcher ctx (Interface interface direction) p = match_interface ctx interface direction p"|
 "common_matcher _ (Address_Family af) p = bool_to_ternary (match_af af p)"|
 "common_matcher _ (Protocol proto) p = bool_to_ternary (match_proto proto (p_proto p))"|
@@ -104,6 +104,11 @@ subsection\<open>Abstracting over unknowns\<close>
     "upper_closure_matchexpr _ _ (MatchNot m) = MatchNot m" |
     "upper_closure_matchexpr a d (MatchAnd m1 m2) = MatchAnd (upper_closure_matchexpr a d m1) (upper_closure_matchexpr a d m2)"
 
+lemma ports_neq_TernaryUnknown:
+  "(\<exists>p. common_matcher ctx (Src_Ports ps) p \<noteq> TernaryUnknown)"
+  "(\<exists>p. common_matcher ctx (Dst_Ports ps) p \<noteq> TernaryUnknown)"
+  by(case_tac [!] ps) (simp_all add: bool_to_ternary_Unknown)
+
 lemma helper_neq_TernaryUnknown:
   "(\<exists>p. (case ip of IPv4 a \<Rightarrow> bool_to_ternary (prefix_match_semantics a (p_src p)) | IPv6 x \<Rightarrow> TernaryFalse) \<noteq> TernaryUnknown)"
   "(\<exists>p. (case ip of IPv4 a \<Rightarrow> bool_to_ternary (prefix_match_semantics a (p_dst p)) | IPv6 x \<Rightarrow> TernaryFalse) \<noteq> TernaryUnknown)"
@@ -119,7 +124,7 @@ lemma helper_neq_TernaryUnknown:
     "remove_unknowns_generic (common_matcher ctx, in_doubt_allow) a d m = upper_closure_matchexpr a d m"
 by (induction a d m rule: upper_closure_matchexpr.induct)
    (auto
-      simp: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown
+      simp: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown ports_neq_TernaryUnknown
       split: action.splits decision.splits)
 
     fun lower_closure_matchexpr :: "action \<Rightarrow> decision \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
@@ -159,6 +164,6 @@ by (induction a d m rule: upper_closure_matchexpr.induct)
     "remove_unknowns_generic (common_matcher ctx, in_doubt_deny) a d m = lower_closure_matchexpr a d m"
     by (induction a d m rule: lower_closure_matchexpr.induct)
      (auto
-      simp: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown
+      simp: remove_unknowns_generic_simps2 bool_to_ternary_Unknown helper_neq_TernaryUnknown ports_neq_TernaryUnknown
       split: action.splits decision.splits)
 end

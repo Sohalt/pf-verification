@@ -2,6 +2,7 @@ theory pfprefix_Translation
 imports
   "../pfprefix_Firewall_Common"
   "../pfprefix_PrimitiveMatchers"
+  "../pfprefix_Primitives"
   pfprefix_Matching_Ternary
   IP_Addresses.CIDR_Split
   Iptables_Semantics.Negation_Type
@@ -58,8 +59,10 @@ lemma normalize_ports' :
   by (induction spec rule: normalize_ports'.induct) (auto simp add: inc_le word_Suc_le minus_one_helper3 minus_one_helper5)
 
 fun normalize_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
-"normalize_ports (Match (common_primitive.Src_Ports p)) = match_or (map (\<lambda>(l,u). (common_primitive.Src_Ports (Binary (RangeIncl l u)))) (wi2l (normalize_ports' p)))" |
-"normalize_ports (Match (common_primitive.Dst_Ports p)) = match_or (map (\<lambda>(l,u). (common_primitive.Dst_Ports (Binary (RangeIncl l u)))) (wi2l (normalize_ports' p)))" |
+"normalize_ports (Match (common_primitive.Src_Ports (L4Ports proto p))) =
+ match_or (map (\<lambda>(l,u). (common_primitive.Src_Ports (L4Ports proto (Binary (RangeIncl l u))))) (wi2l (normalize_ports' p)))" |
+"normalize_ports (Match (common_primitive.Dst_Ports (L4Ports proto p))) =
+ match_or (map (\<lambda>(l,u). (common_primitive.Dst_Ports (L4Ports proto (Binary (RangeIncl l u))))) (wi2l (normalize_ports' p)))" |
 "normalize_ports (MatchNot m) = (MatchNot (normalize_ports m))" |
 "normalize_ports (MatchAnd m1 m2) = (MatchAnd (normalize_ports m1) (normalize_ports m2))" |
 "normalize_ports m = m"
@@ -75,8 +78,8 @@ lemma src_ports_disjunction_helper:
 (ternary_ternary_eval
      (map_match_tac (common_matcher ctx) p
        (match_or
-         (map (\<lambda>(l, u). Src_Ports (Binary (RangeIncl l u))) l)))) =
- Some ((p_sport p) \<in> (\<Union>x\<in>set l. wordinterval_to_set (l2wi l)))"
+         (map (\<lambda>(l, u). Src_Ports (L4Ports proto (Binary (RangeIncl l u)))) l)))) =
+ Some (proto = (p_proto p) \<and>(p_sport p) \<in> (\<Union>x\<in>set l. wordinterval_to_set (l2wi l)))"
 proof(induction l rule: l2wi.induct)
   case 1
   then show ?case by simp
@@ -88,7 +91,7 @@ next
 next
   case (3 l u)
   then show ?case
-  proof(cases "(l \<le> p_sport p \<and> p_sport p \<le> u)")
+  proof(cases "(proto = p_proto p) \<and> (l \<le> p_sport p \<and> p_sport p \<le> u)")
     case True
     then show ?thesis using 3
       by (auto simp add: eval_ternary_idempotence_Not MatchOr_def
@@ -106,8 +109,8 @@ lemma dst_ports_disjunction_helper:
 (ternary_ternary_eval
      (map_match_tac (common_matcher ctx) p
        (match_or
-         (map (\<lambda>(l, u). Dst_Ports (Binary (RangeIncl l u))) l)))) =
- Some ((p_dport p) \<in> (\<Union>x\<in>set l. wordinterval_to_set (l2wi l)))"
+         (map (\<lambda>(l, u). Dst_Ports (L4Ports proto (Binary (RangeIncl l u)))) l)))) =
+ Some ((proto = p_proto p) \<and> (p_dport p) \<in> (\<Union>x\<in>set l. wordinterval_to_set (l2wi l)))"
 proof(induction l rule: l2wi.induct)
   case 1
   then show ?case by simp
@@ -119,7 +122,7 @@ next
 next
   case (3 l u)
   then show ?case
-  proof(cases "(l \<le> p_dport p \<and> p_dport p \<le> u)")
+  proof(cases "(proto = p_proto p) \<and> (l \<le> p_dport p \<and> p_dport p \<le> u)")
     case True
     then show ?thesis using 3
       by (auto simp add: eval_ternary_idempotence_Not MatchOr_def
@@ -136,17 +139,17 @@ lemma normalize_ports_preserves_semantics':
 "ternary_ternary_eval (map_match_tac (common_matcher ctx) packet m) =
  ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports m))"
 proof(induction m rule:normalize_ports.induct)
-  case (1 p)
-  have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Src_Ports p)))) =
-        ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Src_Ports p)))))"
+  case (1 proto p)
+  have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Src_Ports (L4Ports proto p))))) =
+        ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Src_Ports (L4Ports proto p))))))"
     apply (simp add:normalize_ports' MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple
                     ternary_to_bool_bool_to_ternary src_ports_disjunction_helper l2wi_wi2l)
     using l2wi_wi2l by force
   then show ?case using ternary_to_bool_eq by auto
 next
-  case (2 p)
-  have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Dst_Ports p)))) =
-        ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Dst_Ports p)))))"
+  case (2 proto p)
+  have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (match_expr.Match (Dst_Ports (L4Ports proto p))))) =
+        ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) packet (normalize_ports (match_expr.Match (Dst_Ports (L4Ports proto p))))))"
     apply (simp add:normalize_ports' MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple
                     ternary_to_bool_bool_to_ternary dst_ports_disjunction_helper l2wi_wi2l)
     using l2wi_wi2l by force
@@ -161,10 +164,10 @@ definition normalized_ports :: "common_primitive match_expr \<Rightarrow> bool" 
 "normalized_ports mexpr =
 all_match 
 (\<lambda>m. (case m of
-(Src_Ports (Binary bop)) \<Rightarrow> is_RangeIncl bop
-| (Src_Ports (Unary _)) \<Rightarrow> False
-| (Dst_Ports (Binary bop)) \<Rightarrow> is_RangeIncl bop
-| (Dst_Ports (Unary _)) \<Rightarrow> False
+(Src_Ports (L4Ports _ (Binary bop))) \<Rightarrow> is_RangeIncl bop
+| (Src_Ports (L4Ports _ (Unary _))) \<Rightarrow> False
+| (Dst_Ports (L4Ports _ (Binary bop))) \<Rightarrow> is_RangeIncl bop
+| (Dst_Ports (L4Ports _ (Unary _))) \<Rightarrow> False
 | _ \<Rightarrow> True))
 mexpr"
 
@@ -172,27 +175,12 @@ mexpr"
 lemma normalize_ports_ok:
   "normalized_ports (normalize_ports m)"
 proof(induction m rule:normalize_ports.induct)
-  fix xs have "\<forall> x\<in> set (map (\<lambda>(l, u). Src_Ports (Binary (RangeIncl l u))) xs). is_Src_Ports x"
-  proof(induction xs)
-    case Nil
-    then show ?case by simp
-  next
-    case (Cons a xs)
-    then show ?case by (cases a;simp add:is_Src_Ports_def)
-  qed
-  then have *:"\<And>xs. \<forall> x\<in> set (map (\<lambda>(l, u). Src_Ports (Binary (RangeIncl l u))) xs). is_Src_Ports x" by auto
-  case (1 p)
-  have "\<And>x. is_Src_Ports ((\<lambda>(l, u). Src_Ports (Binary (RangeIncl l u))) x)"
-    by auto
-  then show ?case apply (simp add:normalized_ports_def) using *[of "(wi2l (normalize_ports' p))"]
-apply (auto) (* simp add:is_Src_Ports_def)*)
-    apply(induction "(wi2l (normalize_ports' p))" rule:match_or.induct)
-    sorry
+  case (1 proto p)
+  then show ?case sorry
 next
-  case (2 p)
+  case (2 proto p)
   then show ?case sorry
 qed (simp add:normalized_ports_def)+
-
 
 
 fun remove_tables ::"pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where

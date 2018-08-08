@@ -25,9 +25,9 @@ fun pfcp_to_iptcp :: "pfprefix_Primitives.common_primitive \<Rightarrow> 32 comm
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst NoRoute) = (Extra ''noroute'')" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst (Table _)) = undefined" | (* tables have to be translated to addresses *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src_OS _) = (Extra ''src_os'')" |
-"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src_Ports (Binary (RangeIncl l u))) = (Src_Ports (L4Ports TCP [(l,u)]))" | (* fixme protocol *)
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src_Ports (pfprefix_Primitives.L4Ports proto (Binary (RangeIncl l u)))) = (Src_Ports (L4Ports proto [(l,u)]))" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src_Ports _) = undefined" | (* ports have to be normalized *)
-"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst_Ports (Binary (RangeIncl l u))) = (Dst_Ports (L4Ports TCP [(l,u)]))" | (* fixme protocol *)
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst_Ports (pfprefix_Primitives.L4Ports proto (Binary (RangeIncl l u)))) = (Dst_Ports (L4Ports proto [(l,u)]))" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst_Ports _) = undefined" | (* ports have to be normalized *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Interface _ _) = undefined" | (* TODO *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Address_Family Inet) = undefined" | (* TODO true *)
@@ -138,24 +138,43 @@ next
       then show ?thesis using Dst assms(1) by (auto simp:no_tables_def)
     qed
 next
-  case (Src_Ports x4)
+  case (Src_Ports sp)
   then show ?thesis
-  proof(cases x4)
-    case (Unary x1)
-    then show ?thesis using Src_Ports assms by (auto simp:normalized_ports_def)
-  next
-    case (Binary x2)
-    then show ?thesis using Src_Ports Binary assms 
+  proof(cases sp)
+    case (L4Ports x1 x2)
+    then show ?thesis
     proof(cases x2)
-      case (RangeIncl x11 x12)
-      then show ?thesis using Src_Ports Binary
-        apply (simp add: pfprefix_Matching_Ternary.matches_def matches_def tagged_packet_untag_def)
-        apply(cases "(TCP = p_proto p \<and> x11 \<le> p_sport p \<and> p_sport p \<le> x12)") sorry
-    qed (auto simp:normalized_ports_def)
+      case (Unary x1)
+      then show ?thesis using Src_Ports L4Ports assms by (auto simp: normalized_ports_def)
+    next
+      case (Binary x2)
+      then show ?thesis using Src_Ports L4Ports Binary assms
+      proof(cases x2) 
+        case (RangeIncl l u)
+        then show ?thesis using Src_Ports L4Ports Binary 
+          by (simp add:tagged_packet_untag_def match_port_def)
+      qed (auto simp: normalized_ports_def)
+    qed
   qed
 next
-  case (Dst_Ports x5)
-  then show ?thesis sorry
+  case (Dst_Ports dp)
+  then show ?thesis
+  proof(cases dp)
+    case (L4Ports x1 x2)
+    then show ?thesis
+    proof(cases x2)
+      case (Unary x1)
+      then show ?thesis using Dst_Ports L4Ports assms by (auto simp: normalized_ports_def)
+    next
+      case (Binary x2)
+      then show ?thesis using Dst_Ports L4Ports Binary assms
+      proof(cases x2) 
+        case (RangeIncl l u)
+        then show ?thesis using Dst_Ports L4Ports Binary 
+          by (simp add:tagged_packet_untag_def match_port_def)
+      qed (auto simp: normalized_ports_def)
+    qed
+  qed
 next
   case (Interface x61 x62)
   then show ?thesis sorry

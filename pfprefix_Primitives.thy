@@ -71,12 +71,14 @@ record pfcontext =
  (* get_ifgroups :: "string \<rightharpoonup> string list"
     get_routes :: "routes option" *)
 
+datatype pf_l4_ports = L4Ports primitive_protocol "16 word opspec"
+
 datatype common_primitive =
 is_Src: Src (src_sel: hostspec_from) |
 is_Src_OS: Src_OS (src_os_sel: string) |
 is_Dst: Dst (dst_sel: hostspec) |
-is_Src_Ports: Src_Ports (src_ports_sel: "16 word opspec") |
-is_Dst_Ports: Dst_Ports (dst_ports_sel: "16 word opspec") |
+is_Src_Ports: Src_Ports (src_ports_sel: pf_l4_ports) |
+is_Dst_Ports: Dst_Ports (dst_ports_sel: pf_l4_ports) |
 is_Interface: Interface (interface_sel: "ifspec option") (direction_sel: "direction option") |
 is_Address_Family: Address_Family (address_family_sel: afspec) |
 is_Protocol: Protocol (protocol_sel: protocol) |
