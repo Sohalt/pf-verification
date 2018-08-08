@@ -79,7 +79,7 @@ is_Src_Ports: Src_Ports (src_ports_sel: "16 word opspec") |
 is_Dst_Ports: Dst_Ports (dst_ports_sel: "16 word opspec") |
 is_Interface: Interface (interface_sel: "ifspec option") (direction_sel: "direction option") |
 is_Address_Family: Address_Family (address_family_sel: afspec) |
-is_Protocol: Protocol (protocol_sel: primitive_protocol) |
+is_Protocol: Protocol (protocol_sel: protocol) |
 is_L4_Flags: L4_Flags (l4_flags_sel: ipt_tcp_flags) |
 is_Extra: Extra (extra_sel: string)
 
