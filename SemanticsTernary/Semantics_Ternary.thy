@@ -1,5 +1,5 @@
-theory Semantics_Ternary
-  imports Matching_Ternary
+theory pfprefix_Semantics_Ternary
+  imports pfprefix_Matching_Ternary
 begin
 
 fun filter_approx_spec :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where

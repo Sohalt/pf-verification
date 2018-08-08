@@ -1,5 +1,5 @@
-theory Unknown_Match_Tacs
-imports Matching_Ternary
+theory pfprefix_Unknown_Match_Tacs
+imports pfprefix_Matching_Ternary
 begin
 
 (* adapted from Iptables_Semantics.Unknown_Match_Tacs *)

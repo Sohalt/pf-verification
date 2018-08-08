@@ -1,7 +1,7 @@
-theory PF
+theory pfprefix_PF
   imports 
           "HOL-Library.Simps_Case_Conv"
-          Firewall_Common
+          pfprefix_Firewall_Common
 begin
 
 text\<open>A matcher (parameterized by the type of primitive @{typ 'a} and packet @{typ 'p})

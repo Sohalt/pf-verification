@@ -1,5 +1,5 @@
-theory Matching_Ternary
-imports Iptables_Semantics.Ternary "../Firewall_Common"
+theory pfprefix_Matching_Ternary
+imports Iptables_Semantics.Ternary "../pfprefix_Firewall_Common"
 begin
 
 
@@ -338,7 +338,7 @@ begin
   case (MatchAnd m1 m2)
     thus ?case by(simp add: bunch_of_lemmata_about_matches)
   next
-  case MatchAny show ?case by(simp add: Matching_Ternary.bunch_of_lemmata_about_matches)
+  case MatchAny show ?case by(simp add: pfprefix_Matching_Ternary.bunch_of_lemmata_about_matches)
   qed
 
   lemma matcheq_matchNone: "\<not> has_primitive m \<Longrightarrow> matcheq_matchNone m \<longleftrightarrow> \<not> matches \<gamma> m a d p"

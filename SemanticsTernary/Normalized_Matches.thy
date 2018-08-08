@@ -1,6 +1,6 @@
-theory Normalized_Matches
-  imports Semantics_Ternary
-          Fixed_Action
+theory pfprefix_Normalized_Matches
+  imports pfprefix_Semantics_Ternary
+          pfprefix_Fixed_Action
 begin
 (* adapted from Iptables_Semantics.Normalized_Matches *)
 

@@ -1,5 +1,5 @@
-theory Pf_To_Simple_Firewall
-imports PF
+theory pfprefix_Pf_To_Simple_Firewall
+imports pfprefix_PF
         Simple_Firewall.SimpleFw_Semantics
 begin
 
@@ -205,7 +205,7 @@ next
       case True
       then have "filter (and_each (anchor_rule.get_match r) ls) \<gamma> packet (Preliminary x2)
                  = filter ls \<gamma> packet (Preliminary x2)" by auto
-      moreover have "PF.filter [Anchor r ls] \<gamma> packet (Preliminary x2)
+      moreover have "pfprefix_PF.filter [Anchor r ls] \<gamma> packet (Preliminary x2)
                  = filter ls \<gamma> packet (Preliminary x2)" by (simp add: True filter_foo)
       ultimately show ?thesis unfolding Preliminary
         by simp
@@ -256,7 +256,7 @@ proof(-)
     then show ?case
       proof(cases "matches \<gamma> (anchor_rule.get_match r) packet")
         case True
-        then have "PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = PF.filter (remove_anchors' l) \<gamma> packet d" by simp
+        then have "pfprefix_PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = PF.filter (remove_anchors' l) \<gamma> packet d" by simp
         then show ?thesis
         proof(cases d)
           case (Final x1)
@@ -267,7 +267,7 @@ proof(-)
         qed
       next
         case False
-        then have "PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = d" by simp
+        then have "pfprefix_PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = d" by simp
         then show ?thesis
         proof(cases d)
           case (Final x1)

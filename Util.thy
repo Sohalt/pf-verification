@@ -1,5 +1,5 @@
-theory Util
-  imports PF
+theory pfprefix_Util
+  imports pfprefix_PF
 begin
 
 (* ruleset transformations *)

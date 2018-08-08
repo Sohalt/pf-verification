@@ -1,9 +1,9 @@
-theory Negation_Type_Matching
+theory pfprefix_Negation_Type_Matching
   imports
   Iptables_Semantics.Negation_Type
-  Matching_Ternary
+  pfprefix_Matching_Ternary
   Iptables_Semantics.Datatype_Selectors
-  Normalized_Matches
+  pfprefix_Normalized_Matches
 begin
 
 (* adapted from Iptables_Semantics.Negation_Type_Matching *)

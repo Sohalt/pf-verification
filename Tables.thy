@@ -1,6 +1,6 @@
-theory Tables
+theory pfprefix_Tables
 imports
-  Primitives
+  pfprefix_Primitives
   "HOL-Library.Simps_Case_Conv"
 begin
 

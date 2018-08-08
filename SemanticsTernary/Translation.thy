@@ -1,9 +1,12 @@
-theory Translation
+theory pfprefix_Translation
 imports
-  "../Firewall_Common"
-  "../PrimitiveMatchers"
-  Matching_Ternary
+  "../pfprefix_Firewall_Common"
+  "../pfprefix_PrimitiveMatchers"
+  pfprefix_Matching_Ternary
   IP_Addresses.CIDR_Split
+  Iptables_Semantics.Negation_Type
+  pfprefix_Negation_Type_Matching
+  
 begin
 
 (* normalize matches to representation closest to simple_matcher *)
