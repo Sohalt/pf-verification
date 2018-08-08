@@ -616,7 +616,7 @@ qed
 
 fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_matches [] = []"
-|"remove_matches ((PfRule r)#ls) = (if ((pf_rule.get_action r) = action.Match) then remove_matches ls else (PfRule r)#remove_matches ls)"
+|"remove_matches ((PfRule r)#ls) = (if ((pf_rule.get_action r) = ActionMatch) then remove_matches ls else (PfRule r)#remove_matches ls)"
 |"remove_matches (l#ls) = l#(remove_matches ls)"
 
 lemma remove_matches_preserves_semantics:

@@ -10,24 +10,24 @@ text\<open>in-doubt-tactics\<close>
 fun in_doubt_allow :: "'packet unknown_match_tac" where
   "in_doubt_allow Pass _ _ = True" |
   "in_doubt_allow Block _ _ = False" |
-  "in_doubt_allow action.Match Accept _ = True" |
-  "in_doubt_allow action.Match Reject _ = False"
+  "in_doubt_allow ActionMatch Accept _ = True" |
+  "in_doubt_allow ActionMatch Reject _ = False"
 
 fun in_doubt_deny :: "'packet unknown_match_tac" where
   "in_doubt_deny Pass _ _ = False" |
   "in_doubt_deny Block _ _ = True" |
-  "in_doubt_deny action.Match Accept _ = False" |
-  "in_doubt_deny action.Match Reject _ = True"
+  "in_doubt_deny ActionMatch Accept _ = False" |
+  "in_doubt_deny ActionMatch Reject _ = True"
 
 (* a good matcher decides independent of the decision for actions other than Match *)
 definition good_matcher :: "('a, 'p) match_tac \<Rightarrow> bool" where
-"good_matcher \<gamma> \<longleftrightarrow> (\<forall>a. a \<noteq> action.Match \<longrightarrow> (\<forall>d1 d2. (snd \<gamma>) a d1 = (snd \<gamma>) a d2))"
+"good_matcher \<gamma> \<longleftrightarrow> (\<forall>a. a \<noteq> ActionMatch \<longrightarrow> (\<forall>d1 d2. (snd \<gamma>) a d1 = (snd \<gamma>) a d2))"
 
 lemma "good_matcher (\<alpha>,in_doubt_allow)"
   unfolding good_matcher_def
 proof
   fix a 
-  show "a \<noteq> action.Match \<longrightarrow> (\<forall>d1 d2. snd (\<alpha>, in_doubt_allow) a d1 = snd (\<alpha>, in_doubt_allow) a d2)"
+  show "a \<noteq> ActionMatch \<longrightarrow> (\<forall>d1 d2. snd (\<alpha>, in_doubt_allow) a d1 = snd (\<alpha>, in_doubt_allow) a d2)"
     by (cases a) auto
 qed
 
@@ -35,7 +35,7 @@ lemma "good_matcher (\<alpha>,in_doubt_deny)"
   unfolding good_matcher_def
 proof
   fix a 
-  show "a \<noteq> action.Match \<longrightarrow> (\<forall>d1 d2. snd (\<alpha>, in_doubt_deny) a d1 = snd (\<alpha>, in_doubt_deny) a d2)"
+  show "a \<noteq> ActionMatch \<longrightarrow> (\<forall>d1 d2. snd (\<alpha>, in_doubt_deny) a d1 = snd (\<alpha>, in_doubt_deny) a d2)"
     by (cases a) auto
 qed
 

@@ -112,7 +112,7 @@ next
 qed
 
 lemma match_list_True: "match_list \<gamma> ms a d p \<Longrightarrow> filter_approx (map (\<lambda>m. PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>) ms) \<gamma> p (Preliminary d) =
- (case a of Pass \<Rightarrow> (Preliminary decision.Accept) | Block \<Rightarrow> (Preliminary decision.Reject) | action.Match \<Rightarrow> (Preliminary d))"
+ (case a of Pass \<Rightarrow> (Preliminary decision.Accept) | Block \<Rightarrow> (Preliminary decision.Reject) | ActionMatch \<Rightarrow> (Preliminary d))"
 proof(induction ms arbitrary:d)
 case Nil
   then show ?case by simp

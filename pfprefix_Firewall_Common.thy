@@ -4,7 +4,7 @@ theory pfprefix_Firewall_Common
 Iptables_Semantics.Firewall_Common
 begin
 (* Block return semantically equal to Block (without return)*)
-datatype action = Pass | Match | Block
+datatype action = Pass | ActionMatch | Block
 
 definition MatchNone :: "'a match_expr" where
 "MatchNone = MatchNot MatchAny"
@@ -36,7 +36,7 @@ abbreviation no_quick :: "'a ruleset \<Rightarrow> bool" where
 "no_quick ls \<equiv> (\<forall> l \<in> set ls. \<not>is_quick_rule l)"
 
 abbreviation no_match :: "'a ruleset \<Rightarrow> bool" where
-"no_match ls \<equiv> (\<forall> l \<in> set ls. (case l of (PfRule r) \<Rightarrow> (pf_rule.get_action r) \<noteq> action.Match | _ \<Rightarrow> True))"
+"no_match ls \<equiv> (\<forall> l \<in> set ls. (case l of (PfRule r) \<Rightarrow> (pf_rule.get_action r) \<noteq> ActionMatch | _ \<Rightarrow> True))"
 
 definition simple_ruleset :: "'a ruleset \<Rightarrow> bool" where
 "simple_ruleset rs \<equiv> (no_anchors rs \<and> no_quick rs \<and> no_match rs)"
@@ -48,7 +48,7 @@ datatype decision =
 fun action_to_decision :: "action \<Rightarrow> decision \<Rightarrow> decision" where
 "action_to_decision Pass _ = Accept"|
 "action_to_decision Block _ = Reject"|
-"action_to_decision action.Match d = d"
+"action_to_decision ActionMatch d = d"
 
 case_of_simps action_to_decision_cases: action_to_decision.simps
 

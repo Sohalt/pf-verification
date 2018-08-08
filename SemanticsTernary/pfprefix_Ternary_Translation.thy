@@ -115,7 +115,7 @@ lemma all_PfRules_append[simp]:
   by (induction P xs rule: all_PfRules_P.induct) auto
 
 definition no_match_quick :: "'a ruleset \<Rightarrow> bool" where
-"no_match_quick rs = all_PfRules_P (\<lambda>r. \<not>((pf_rule.get_action r) = action.Match \<and> pf_rule.get_quick r)) rs"
+"no_match_quick rs = all_PfRules_P (\<lambda>r. \<not>((pf_rule.get_action r) = ActionMatch \<and> pf_rule.get_quick r)) rs"
 
 (* remove anchors *)
 
@@ -322,7 +322,7 @@ qed
 
 fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_matches [] = []"
-|"remove_matches ((PfRule r)#ls) = (if ((pf_rule.get_action r) = action.Match) then remove_matches ls else (PfRule r)#remove_matches ls)"
+|"remove_matches ((PfRule r)#ls) = (if ((pf_rule.get_action r) = ActionMatch) then remove_matches ls else (PfRule r)#remove_matches ls)"
 |"remove_matches (l#ls) = l#(remove_matches ls)"
 
 lemma remove_matches_preverses_semantics:
