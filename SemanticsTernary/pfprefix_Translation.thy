@@ -21,6 +21,19 @@ fun all_match :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr  \<Rightar
 "all_match P (MatchAnd m1 m2) = (all_match P m1 \<and> all_match P m2)" |
 "all_match P (Match m) = P m"
 
+definition no_ipv6 :: "common_primitive match_expr \<Rightarrow> bool" where
+"no_ipv6 mexpr =
+all_match (\<lambda>m. (case m of
+(Src (Hostspec (Address (IPv6 _)))) \<Rightarrow> False
+| (Dst (Address (IPv6 _))) \<Rightarrow> False
+| _ \<Rightarrow> True)) mexpr"
+
+definition no_af :: "common_primitive match_expr \<Rightarrow> bool" where
+"no_af mexpr = all_match (\<lambda>m. (case m of (Address_Family _) \<Rightarrow> False)) mexpr"
+
+definition good_match_expr :: "pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> bool" where
+"good_match_expr ctx mexpr = all_match (good_primitive ctx) mexpr"
+
 (* words wrap \<rightarrow> needs explicit check for 0 and max_word *)
 value "(WordInterval (max_word + 1) max_word)::16 wordinterval"
 
@@ -144,14 +157,20 @@ lemma normalize_ports_preserves_semantics:
  "matches (common_matcher ctx, \<alpha>) m a d p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (normalize_ports m) a d p"
   apply(simp add:matches_def) using normalize_ports_preserves_semantics' by auto
 
-lemma normalize_ports_ok:
-  "all_match 
+definition normalized_ports :: "common_primitive match_expr \<Rightarrow> bool" where
+"normalized_ports mexpr =
+all_match 
 (\<lambda>m. (case m of
 (Src_Ports (Binary bop)) \<Rightarrow> is_RangeIncl bop
 | (Src_Ports (Unary _)) \<Rightarrow> False
 | (Dst_Ports (Binary bop)) \<Rightarrow> is_RangeIncl bop
 | (Dst_Ports (Unary _)) \<Rightarrow> False
-| _ \<Rightarrow> True)) (normalize_ports m)"
+| _ \<Rightarrow> True))
+mexpr"
+
+
+lemma normalize_ports_ok:
+  "normalized_ports (normalize_ports m)"
 proof(induction m rule:normalize_ports.induct)
   fix xs have "\<forall> x\<in> set (map (\<lambda>(l, u). Src_Ports (Binary (RangeIncl l u))) xs). is_Src_Ports x"
   proof(induction xs)
@@ -165,14 +184,14 @@ proof(induction m rule:normalize_ports.induct)
   case (1 p)
   have "\<And>x. is_Src_Ports ((\<lambda>(l, u). Src_Ports (Binary (RangeIncl l u))) x)"
     by auto
-  then show ?case apply simp using *[of "(wi2l (normalize_ports' p))"]
+  then show ?case apply (simp add:normalized_ports_def) using *[of "(wi2l (normalize_ports' p))"]
 apply (auto) (* simp add:is_Src_Ports_def)*)
     apply(induction "(wi2l (normalize_ports' p))" rule:match_or.induct)
     sorry
 next
   case (2 p)
   then show ?case sorry
-qed simp+
+qed (simp add:normalized_ports_def)+
 
 
 
@@ -194,12 +213,6 @@ lemma common_matcher_Src_IPv6_TernaryFalse[simp]: "ternary_ternary_eval (map_mat
 lemma common_matcher_Dst_IPv6_TernaryFalse[simp]: "ternary_ternary_eval (map_match_tac (common_matcher ctx) p
 (match_or (map (\<lambda>a. Dst (Address (IPv6 a))) l))) = TernaryFalse"
   by (induction l;simp add:matches_def MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple(1))
-
-fun good_match_expr :: "pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> bool" where
-"good_match_expr _ MatchAny = True" |
-"good_match_expr ctx (MatchNot m) = good_match_expr ctx m" |
-"good_match_expr ctx (MatchAnd m1 m2)= (good_match_expr ctx m1 \<and> good_match_expr ctx m2)" |
-"good_match_expr ctx (Match p) = good_primitive ctx p"
 
 
 lemma src_addr_disjunction_helper:
@@ -264,7 +277,7 @@ proof(induction m rule:remove_tables.induct)
   case (1 ctx name)
   then have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (match_expr.Match (Src (Hostspec (Table name)))))) =
              ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (remove_tables ctx (match_expr.Match (Src (Hostspec (Table name)))))))"
-    by (simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple ternary_to_bool_bool_to_ternary
+    by (simp add:good_match_expr_def MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple ternary_to_bool_bool_to_ternary
                  src_addr_disjunction_helper[of "wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name))" _ _]
                  match_table_v4_wordinterval
                  wordinterval_CIDR_split_prefixmatch_all_valid_Ball wordinterval_CIDR_split_prefixmatch)
@@ -273,30 +286,35 @@ next
   case (2 ctx name)
   then have "ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (match_expr.Match (Dst (Table name))))) =
              ternary_to_bool (ternary_ternary_eval (map_match_tac (common_matcher ctx) p (remove_tables ctx (match_expr.Match (Dst (Table name))))))"
-    by (simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple ternary_to_bool_bool_to_ternary
+    by (simp add:good_match_expr_def MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple ternary_to_bool_bool_to_ternary
                  dst_addr_disjunction_helper[of "wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name))" _ _]
                  match_table_v4_wordinterval
                  wordinterval_CIDR_split_prefixmatch_all_valid_Ball wordinterval_CIDR_split_prefixmatch)
   then show ?case using ternary_to_bool_eq by auto
-qed simp+
+qed (simp add:good_match_expr_def)+
 
 
 lemma remove_tables_preserves_semantics :
   assumes "good_match_expr ctx m"
   shows "matches (common_matcher ctx, \<alpha>) m a d p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (remove_tables ctx m) a d p"
-  using assms by (simp add:matches_def remove_tables_preserves_semantics')
+  using assms by (simp add:good_match_expr_def matches_def remove_tables_preserves_semantics')
 
-lemma remove_tables_ok:
-  "all_match (\<lambda>m. (case m of
+definition no_tables :: "common_primitive match_expr \<Rightarrow> bool" where
+"no_tables mexpr = all_match 
+(\<lambda>m. (case m of
 (Src (Hostspec (Table _))) \<Rightarrow> False
 |(Dst (Table _)) \<Rightarrow> False
-| _ \<Rightarrow> True)) (remove_tables ctx m)"
+| _ \<Rightarrow> True))
+mexpr"
+
+lemma remove_tables_ok:
+  "(no_tables (remove_tables ctx m))"
 proof(induction ctx m rule:remove_tables.induct)
   case (1 ctx name)
   then show ?case sorry
 next
   case (2 ctx name)
   then show ?case sorry
-qed simp+
+qed (simp add:no_tables_def)+
 
 end
