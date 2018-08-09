@@ -69,6 +69,12 @@ fun common_matcher :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 32
 "common_matcher _ (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags  (p_tcp_flags p))"|
 "common_matcher _ (Extra _) _ = TernaryUnknown"
 
+fun rewrite_match_any :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+"rewrite_match_any (Match (Src (Hostspec AnyHost))) = MatchAny" |
+"rewrite_match_any (Match (Dst AnyHost)) = MatchAny" |
+"rewrite_match_any (Match (Protocol ProtoAny)) = MatchAny" |
+"rewrite_match_any m = m"
+
 subsection\<open>Abstracting over unknowns\<close>
   text\<open>remove match expressions which evaluate to @{const TernaryUnknown}\<close>
   fun upper_closure_matchexpr :: "action \<Rightarrow> decision \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
