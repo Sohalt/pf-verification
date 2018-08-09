@@ -338,6 +338,89 @@ lemma remove_matches_ok:
     shows "no_match (remove_matches rules)"
   using assms
   by (induction rules rule: remove_matches.induct; (simp add:no_match_quick_def))
+
+
+fun match_pf_rule :: "'a line \<Rightarrow> ('a,'p) match_tac \<Rightarrow> 'p \<Rightarrow> bool" where
+(* Accept is arbitrary here, \<gamma> should be independent of d *)
+"match_pf_rule (PfRule r) \<gamma> p = matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) decision.Accept p"
+
+lemma rev_preserves_no_match[simp]:
+  assumes "no_match rules"
+  shows "no_match (rev rules)"
+  using assms by (induction rules) auto
+
+lemma rev_preserves_no_quick[simp]:
+  assumes "no_quick rules"
+  shows "no_quick (rev rules)"
+  using assms by (induction rules) auto
+
+lemma rev_preserves_no_anchors[simp]:
+  assumes "no_anchors rules"
+  shows "no_anchors (rev rules)"
+  using assms by (induction rules) auto
+
+lemma good_matcher_match:
+  assumes "good_matcher \<gamma>"
+      and "matches \<gamma> m a d p"
+      and "a \<noteq> ActionMatch"
+    shows "\<And>d. matches \<gamma> m a d p"
+  using assms
+  apply(cases "(ternary_ternary_eval (map_match_tac (fst \<gamma>) p m))")
+    apply (auto simp:matches_def good_matcher_def) by metis
+
+lemma good_matcher_match_not:
+  assumes "good_matcher \<gamma>"
+      and "\<not>matches \<gamma> m a d p"
+      and "a \<noteq> ActionMatch"
+    shows "\<And>d. \<not>matches \<gamma> m a d p"
+  using assms
+  apply(cases "(ternary_ternary_eval (map_match_tac (fst \<gamma>) p m))")
+  apply (auto simp:matches_def good_matcher_def) by metis
+
+lemma pf_reverse_semantics:
+  assumes "no_match rules"
+      and "no_quick rules"
+      and "no_anchors rules"
+      and "good_matcher \<gamma>"
+    shows "pf_approx (rev rules) \<gamma> p = (case (find (\<lambda>r. match_pf_rule r \<gamma> p) rules) of
+(Some (PfRule r)) \<Rightarrow> (action_to_decision (pf_rule.get_action r) decision.Accept)
+| None \<Rightarrow> decision.Accept)"
+    using assms unfolding pf_approx_def
+proof(induction rules)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a rs)
+  then show ?case
+  proof(cases a)
+    case (PfRule r)
+    then show ?thesis
+    proof(cases "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) decision.Accept p")
+      have "is_Preliminary (filter_approx (rev rs) \<gamma> p (Preliminary decision.Accept))" using Cons by (simp add:no_quick_preliminary[of "(rev rs)"])
+      then obtain d where *:"(filter_approx (rev rs) \<gamma> p (Preliminary decision.Accept)) = (Preliminary d)"
+        using is_Preliminary_def by blast
+      case True
+      then have "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p"
+        using Cons PfRule by(auto simp:good_matcher_match)
+      then have "(filter_approx (rev rs @ [PfRule r]) \<gamma> p (Preliminary decision.Accept)) =
+                        Preliminary (action_to_decision (pf_rule.get_action r) d)"
+        using Cons PfRule * by (simp add:filter_approx_chain)
+      then show ?thesis using Cons PfRule True by (cases "pf_rule.get_action r") auto
+    next
+      case False
+      then have "\<not>matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) (unwrap_decision (filter_approx (rev rs) \<gamma> p (Preliminary decision.Accept))) p"
+        using Cons PfRule by(auto simp:good_matcher_match_not)
+      then have "filter_approx (rev rs @ [PfRule r]) \<gamma> p (Preliminary decision.Accept) =
+                  filter_approx (rev rs) \<gamma> p (Preliminary decision.Accept)" by simp
+      then show ?thesis using Cons PfRule False by auto
+    qed
+  next
+    case (Anchor x21 x22)
+    then show ?thesis using Cons by auto
+  qed
+qed
+
+
 (*
 fun pf_approx_to_simplefw :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "pf_approx_to_simplefw rules = (map to_simple_match (reverse (normalize_firewall (remove_quick (remove_matches (remove_anchors rules))))))"
