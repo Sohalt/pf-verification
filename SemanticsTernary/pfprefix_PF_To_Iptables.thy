@@ -2,6 +2,7 @@ theory pfprefix_PF_To_Iptables
   imports pfprefix_Semantics_Ternary
           pfprefix_Unknown_Match_Tacs
           pfprefix_Translation
+          pfprefix_Ternary_Translation
           "../pfprefix_Primitives"
           "../pfprefix_PrimitiveMatchers"
           Iptables_Semantics.Common_Primitive_Syntax
@@ -46,7 +47,7 @@ fun pfm_to_iptm :: "pfprefix_Primitives.common_primitive match_expr \<Rightarrow
 
 fun pfa_to_ipta :: "pfprefix_Firewall_Common.action \<Rightarrow> Firewall_Common.action" where
 "pfa_to_ipta Pass = Firewall_Common.action.Accept" |
-"pfa_to_ipta Block = Drop" |
+"pfa_to_ipta Block = Firewall_Common.action.Drop" |
 "pfa_to_ipta ActionMatch = undefined"
 
 lemma pf_ipt_aggre_on_addr_match:
@@ -361,14 +362,23 @@ next
     qed
 qed
 
-(*
+
+definition normalize_ports_rs :: "pfprefix_Primitives.common_primitive ruleset \<Rightarrow> pfprefix_Primitives.common_primitive ruleset" where
+"normalize_ports_rs = optimize_matches normalize_ports"
+
+definition remove_tables_rs :: "pfcontext \<Rightarrow> pfprefix_Primitives.common_primitive ruleset \<Rightarrow> pfprefix_Primitives.common_primitive ruleset" where
+"remove_tables_rs ctx = optimize_matches (remove_tables ctx)"
+
+definition pfcp_to_iptcp_rs :: "pfprefix_Primitives.common_primitive ruleset \<Rightarrow> 32 common_primitive rule list" where
+"pfcp_to_iptcp_rs = map (\<lambda>l. (case l of (PfRule r) \<Rightarrow> (Rule (pfm_to_iptm (pf_rule.get_match r)) (pfa_to_ipta (pf_rule.get_action r)))))"
+
 fun pf_to_ipt :: "pfcontext \<Rightarrow> pfprefix_Primitives.common_primitive ruleset \<Rightarrow> 32 common_primitive rule list" where
-"pf_to_ipt ctx rs = pfcp_to_iptcp (reverse (normalize_ports (remove_tables (remove_quick (remove_match (remove_anchors rs))))))"
-*)
+"pf_to_ipt ctx rs = pfcp_to_iptcp_rs (rev (normalize_ports_rs (remove_tables_rs ctx (remove_quick' (remove_matches (remove_anchors' rs))))))"
+
 
 fun pf_decision_to_ipt_decision :: "decision \<Rightarrow> state" where
-"pf_decision_to_ipt_decision Accept = Decision FinalAllow" |
-"pf_decision_to_ipt_decision Reject = Decision FinalDeny"
+"pf_decision_to_ipt_decision decision.Accept = Decision FinalAllow" |
+"pf_decision_to_ipt_decision decision.Reject = Decision FinalDeny"
 
 theorem "pf_decision_to_ipt_decision
  (pf_approx rs (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) (tagged_packet_untag p)) =
