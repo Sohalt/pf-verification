@@ -25,10 +25,12 @@ fun pfcp_to_iptcp :: "pfprefix_Primitives.common_primitive \<Rightarrow> 32 comm
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst NoRoute) = (Extra ''noroute'')" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst (Table _)) = undefined" | (* tables have to be translated to addresses *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src_OS _) = (Extra ''src_os'')" |
-"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src_Ports (pfprefix_Primitives.L4Ports proto (Binary (RangeIncl l u)))) = (Src_Ports (L4Ports proto [(l,u)]))" |
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src_Ports (pfprefix_Primitives.L4Ports prot (Binary (RangeIncl l u)))) = (Src_Ports (L4Ports prot [(l,u)]))" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src_Ports _) = undefined" | (* ports have to be normalized *)
-"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst_Ports (pfprefix_Primitives.L4Ports proto (Binary (RangeIncl l u)))) = (Dst_Ports (L4Ports proto [(l,u)]))" |
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst_Ports (pfprefix_Primitives.L4Ports prot (Binary (RangeIncl l u)))) = (Dst_Ports (L4Ports prot [(l,u)]))" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst_Ports _) = undefined" | (* ports have to be normalized *)
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Interface (Some (InterfaceName name)) (Some In)) = (IIface (Iface name))" |
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Interface (Some (InterfaceName name)) (Some Out)) = (OIface (Iface name))" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Interface _ _) = undefined" | (* TODO *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Address_Family Inet) = undefined" | (* TODO true *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Address_Family Inet6) = undefined" |(* TODO false *)
