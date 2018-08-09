@@ -256,7 +256,7 @@ proof(-)
     then show ?case
       proof(cases "matches \<gamma> (anchor_rule.get_match r) packet")
         case True
-        then have "pfprefix_PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = PF.filter (remove_anchors' l) \<gamma> packet d" by simp
+        then have "pfprefix_PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = pfprefix_PF.filter (remove_anchors' l) \<gamma> packet d" by simp
         then show ?thesis
         proof(cases d)
           case (Final x1)

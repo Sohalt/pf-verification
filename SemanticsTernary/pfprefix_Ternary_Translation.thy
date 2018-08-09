@@ -1,4 +1,4 @@
-theory Ternary_pfprefix_Translation
+theory pfprefix_Ternary_Translation
   imports "../pfprefix_Pf_To_Simple_Firewall"
           pfprefix_Semantics_Ternary
           pfprefix_Unknown_Match_Tacs
