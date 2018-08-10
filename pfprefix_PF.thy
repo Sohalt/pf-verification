@@ -19,16 +19,16 @@ fun matches :: "('a, 'p) matcher \<Rightarrow> 'a match_expr \<Rightarrow> 'p \<
 
 lemma "matches \<gamma> (MatchOr e1 e2) p \<longleftrightarrow> matches \<gamma> e1 p \<or> matches \<gamma> e2 p" unfolding MatchOr_def by auto
 
-fun filter_spec :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
-"filter_spec [] \<gamma> p d = d" |
-"filter_spec ((PfRule r)#ls) \<gamma> p d = (if (matches \<gamma> (pf_rule.get_match r) p)
+fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
+"filter [] \<gamma> p d = d" |
+"filter ((PfRule r)#ls) \<gamma> p d = (if (matches \<gamma> (pf_rule.get_match r) p)
                                        then (if (pf_rule.get_quick r)
                                               then (action_to_decision (pf_rule.get_action r) d)
-                                              else (filter_spec ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
-                                       else filter_spec ls \<gamma> p d)" |
-"filter_spec ((Anchor r b)#ls) \<gamma> p d = (if (matches \<gamma> (anchor_rule.get_match r) p)
-                                         then (filter_spec (b@ls) \<gamma> p d)
-                                         else filter_spec ls \<gamma> p d)"
+                                              else (filter ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
+                                       else filter ls \<gamma> p d)" |
+"filter ((Anchor r b)#ls) \<gamma> p d = (if (matches \<gamma> (anchor_rule.get_match r) p)
+                                         then (filter (b@ls) \<gamma> p d)
+                                         else filter ls \<gamma> p d)"
 
 fun filter' :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
 "filter' _ _ _ (Final d) = Final d" |
@@ -90,8 +90,8 @@ qed
 qed
 qed
 
-lemma "filter_spec rules \<gamma> p start_decision = unwrap_decision (filter' rules \<gamma> p (Preliminary start_decision))"
-proof(induction rules \<gamma> p start_decision rule: filter_spec.induct)
+lemma "filter rules \<gamma> p start_decision = unwrap_decision (filter' rules \<gamma> p (Preliminary start_decision))"
+proof(induction rules \<gamma> p start_decision rule: filter.induct)
   case (1 \<gamma> p d)
   then show ?case by simp
 next
