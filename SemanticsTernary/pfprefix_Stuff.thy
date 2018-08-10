@@ -1,5 +1,5 @@
 theory pfprefix_Stuff
-  imports Ternary_pfprefix_Translation
+  imports pfprefix_Ternary_Translation
 begin
 
 (* unused but might come in handy at some point *)
@@ -104,7 +104,7 @@ next
           case Pass
           then show ?thesis using Cons PfRule True TernaryUnknown by (simp add:matches_def)
         next
-          case Match
+          case ActionMatch
           then show ?thesis using Cons PfRule True TernaryUnknown by(cases d;simp add:matches_def no_match_quick_def)
         next
           case Block
@@ -121,7 +121,7 @@ next
           case Pass
           then show ?thesis using Cons PfRule False TernaryTrue by (simp add:matches_def no_match_quick_def)
         next
-          case Match
+          case ActionMatch
           then show ?thesis using Cons PfRule False TernaryTrue by (simp add:matches_def no_match_quick_def)
         next
           case Block
@@ -138,7 +138,7 @@ next
           case Pass
           then show ?thesis using Cons PfRule False TernaryUnknown by (simp add:matches_def no_match_quick_def)
         next
-          case Match
+          case ActionMatch
           then show ?thesis using Cons PfRule False TernaryUnknown by (cases d;simp add:matches_def no_match_quick_def)
         next
           case Block
