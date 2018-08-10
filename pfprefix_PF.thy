@@ -201,21 +201,4 @@ PfRule \<lparr>
 ] matcher test_packet = Reject" by code_simp
 *)
 
-(*
-
-ignore options
-
-include (similar to call, includes other file \<rightarrow> inlining)
-
-define tables:
-datatype table_rule
-
-
-regular rules:
-datatype pf_rule
-
-anchors:
-datatype anchor_rule = Anchor
-
-*)
 end
