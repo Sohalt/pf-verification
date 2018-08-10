@@ -373,12 +373,18 @@ fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 |"remove_matches ((PfRule r)#ls) = (if ((pf_rule.get_action r) = ActionMatch) then remove_matches ls else (PfRule r)#remove_matches ls)"
 |"remove_matches (l#ls) = l#(remove_matches ls)"
 
-lemma remove_matches_preverses_semantics:
+lemma remove_matches_preserves_filter_semantics:
   assumes "no_match_quick rules"
       and "no_anchors rules"
   shows "filter_approx rules matcher packet (Preliminary start_decision) = filter_approx (remove_matches rules) matcher packet (Preliminary start_decision)"
   using assms
   by (induction rules arbitrary:start_decision rule: remove_matches.induct; (simp add:no_match_quick_def))
+
+lemma remove_matches_preserves_semantics:
+  assumes "no_match_quick rules"
+      and "no_anchors rules"
+  shows "pf_approx rules matcher packet = pf_approx (remove_matches rules) matcher packet"
+  using assms unfolding pf_approx_def by (simp add:remove_matches_preserves_filter_semantics)
 
 lemma remove_matches_ok:
   assumes "no_match_quick rules"
