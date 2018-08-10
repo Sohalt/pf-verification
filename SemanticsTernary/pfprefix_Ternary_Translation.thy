@@ -259,7 +259,14 @@ lemma remove_quick_approx_ok:
 lemma remove_quick_approx_preserves_no_anchors:
   assumes "no_anchors rules"
   shows "no_anchors (remove_quick_approx rules)"
-    using assms by (induction rules rule:remove_quick_approx.induct) auto
+  using assms by (induction rules rule:remove_quick_approx.induct) simp+
+
+lemma remove_quick_approx_preserves_no_match:
+  assumes "no_anchors rules"
+      and "no_match rules"
+    shows "no_match (remove_quick_approx rules)"
+  using assms
+  by (induction rules rule:remove_quick_approx.induct) simp+
 
 lemma remove_quick_approx_preserves_semantics:
   assumes "no_anchors rules"
@@ -393,6 +400,11 @@ lemma remove_matches_ok:
   using assms
   by (induction rules rule: remove_matches.induct; (simp add:no_match_quick_def))
 
+lemma remove_matches_preserves_no_anchors:
+  assumes "no_anchors rules"
+    shows "no_anchors (remove_matches rules)"
+  using assms
+  by (induction rules rule: remove_matches.induct) simp+
 
 fun match_pf_rule :: "'a line \<Rightarrow> ('a,'p) match_tac \<Rightarrow> 'p \<Rightarrow> bool" where
 (* Accept is arbitrary here, \<gamma> should be independent of d *)
