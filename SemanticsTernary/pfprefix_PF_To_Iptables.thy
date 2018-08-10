@@ -19,7 +19,7 @@ fun pfcp_to_iptcp :: "pfprefix_Primitives.common_primitive \<Rightarrow> 32 comm
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src (Hostspec NoRoute)) = (Extra ''noroute'')" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src UrpfFailed) = (Extra ''urpf_failed'')" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src (Hostspec (Table _))) = undefined" | (* tables have to be translated to addresses *)
-"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst (Address (IPv4 a))) = (case prefix_match_to_CIDR a of (a,m) \<Rightarrow> (Dst (IpAddrNetmask a m)))" |
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst (Address (IPv4 a))) = (let (a,m) = prefix_match_to_CIDR a in (Dst (IpAddrNetmask a m)))" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst (Address (IPv6 a))) = undefined" | (* TODO *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst AnyHost) = undefined" |  (* has to be translated to MatchAny first *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst (Route r)) = (Extra ''route'')" |
@@ -52,12 +52,12 @@ fun pfa_to_ipta :: "pfprefix_Firewall_Common.action \<Rightarrow> Firewall_Commo
 
 lemma pf_ipt_aggre_on_addr_match:
   assumes "valid_prefix pfx"
-  shows "(prefix_match_semantics pfx ip) = 
+  shows "(prefix_match_semantics pfx ip) =
 (ip \<in> (ipt_iprange_to_set (case prefix_match_to_CIDR pfx of
  (a, m) \<Rightarrow> (IpAddrNetmask a m))))"
   using assms by (simp add: prefix_match_to_CIDR_def prefix_match_semantics_ipset_from_netmask2)
 
-lemma pf_ipt_agree_on_primitives: 
+lemma pf_ipt_agree_on_primitives:
   assumes "no_tables (Match m)"
       and "normalized_ports (Match m)"
       and "no_ipv6 (Match m)"
@@ -152,9 +152,9 @@ next
     next
       case (Binary x2)
       then show ?thesis using Src_Ports L4Ports Binary assms
-      proof(cases x2) 
+      proof(cases x2)
         case (RangeIncl l u)
-        then show ?thesis using Src_Ports L4Ports Binary 
+        then show ?thesis using Src_Ports L4Ports Binary
           by (simp add:tagged_packet_untag_def match_port_def)
       qed (auto simp: normalized_ports_def)
     qed
@@ -171,9 +171,9 @@ next
     next
       case (Binary x2)
       then show ?thesis using Dst_Ports L4Ports Binary assms
-      proof(cases x2) 
+      proof(cases x2)
         case (RangeIncl l u)
-        then show ?thesis using Dst_Ports L4Ports Binary 
+        then show ?thesis using Dst_Ports L4Ports Binary
           by (simp add:tagged_packet_untag_def match_port_def)
       qed (auto simp: normalized_ports_def)
     qed
@@ -223,7 +223,7 @@ next
   then show ?case by simp
 qed
 
-lemma pf_ipt_matches_eq: 
+lemma pf_ipt_matches_eq:
   assumes "no_tables m"
       and "normalized_ports m"
       and "no_ipv6 m"

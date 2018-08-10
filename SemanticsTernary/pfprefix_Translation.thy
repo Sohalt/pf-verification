@@ -7,7 +7,7 @@ imports
   IP_Addresses.CIDR_Split
   Iptables_Semantics.Negation_Type
   pfprefix_Negation_Type_Matching
-  
+
 begin
 
 (* normalize matches to representation closest to simple_matcher *)
@@ -162,7 +162,7 @@ lemma normalize_ports_preserves_semantics:
 
 definition normalized_ports :: "common_primitive match_expr \<Rightarrow> bool" where
 "normalized_ports mexpr =
-all_match 
+all_match
 (\<lambda>m. (case m of
 (Src_Ports (L4Ports _ (Binary bop))) \<Rightarrow> is_RangeIncl bop
 | (Src_Ports (L4Ports _ (Unary _))) \<Rightarrow> False
@@ -171,16 +171,25 @@ all_match
 | _ \<Rightarrow> True))
 mexpr"
 
+(* FIXME remove after Isabelle2018 *)
+lemma [simp]: "wi2l Empty_WordInterval = []"
+  unfolding Empty_WordInterval_def
+  by simp
+
+lemma [simp]:
+  "normalized_ports
+          (match_or (map (\<lambda>(l, u). Src_Ports (L4Ports proto (Binary (RangeIncl l u)))) xs))"
+  by (induction xs) (auto simp: MatchOr_def normalized_ports_def)
+
+lemma [simp]:
+  "normalized_ports
+          (match_or (map (\<lambda>(l, u). Dst_Ports (L4Ports proto (Binary (RangeIncl l u)))) xs))"
+  by (induction xs) (auto simp: MatchOr_def normalized_ports_def)
 
 lemma normalize_ports_ok:
   "normalized_ports (normalize_ports m)"
-proof(induction m rule:normalize_ports.induct)
-  case (1 proto p)
-  then show ?case sorry
-next
-  case (2 proto p)
-  then show ?case sorry
-qed (simp add:normalized_ports_def)+
+by (induction m rule:normalize_ports.induct)
+   ((simp add:normalized_ports_def; fail) | simp)+
 
 
 fun remove_tables ::"pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
@@ -288,7 +297,7 @@ lemma remove_tables_preserves_semantics :
   using assms by (simp add:good_match_expr_def matches_def remove_tables_preserves_semantics')
 
 definition no_tables :: "common_primitive match_expr \<Rightarrow> bool" where
-"no_tables mexpr = all_match 
+"no_tables mexpr = all_match
 (\<lambda>m. (case m of
 (Src (Hostspec (Table _))) \<Rightarrow> False
 |(Dst (Table _)) \<Rightarrow> False
