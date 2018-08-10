@@ -21,28 +21,31 @@ lemma "matches \<gamma> (MatchOr e1 e2) p \<longleftrightarrow> matches \<gamma>
 
 fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
 "filter [] \<gamma> p d = d" |
-"filter ((PfRule r)#ls) \<gamma> p d = (if (matches \<gamma> (pf_rule.get_match r) p)
-                                       then (if (pf_rule.get_quick r)
-                                              then (action_to_decision (pf_rule.get_action r) d)
-                                              else (filter ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
-                                       else filter ls \<gamma> p d)" |
-"filter ((Anchor r b)#ls) \<gamma> p d = (if (matches \<gamma> (anchor_rule.get_match r) p)
-                                         then (filter (b@ls) \<gamma> p d)
-                                         else filter ls \<gamma> p d)"
+"filter ((PfRule r)#ls) \<gamma> p d =
+(if (matches \<gamma> (pf_rule.get_match r) p)
+  then (if (pf_rule.get_quick r)
+          then (action_to_decision (pf_rule.get_action r) d)
+          else (filter ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
+  else filter ls \<gamma> p d)" |
+"filter ((Anchor r b)#ls) \<gamma> p d =
+(if (matches \<gamma> (anchor_rule.get_match r) p)
+  then (filter (b@ls) \<gamma> p d)
+  else filter ls \<gamma> p d)"
 
 fun filter' :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
 "filter' _ _ _ (Final d) = Final d" |
 "filter' [] _ _ d = d" |
 "filter' (l#ls) \<gamma> p (Preliminary d) =
-  filter' ls \<gamma> p (case l of
-                  (PfRule r) \<Rightarrow> (if (matches \<gamma> (pf_rule.get_match r) p)
-                                               then (if (get_quick r)
-                                                      then (Final (action_to_decision (get_action r) d))
-                                                      else (Preliminary (action_to_decision (get_action r) d)))
-                                               else (Preliminary d))
-                  | (Anchor r body) \<Rightarrow> (if (matches \<gamma> (anchor_rule.get_match r) p)
-                                                    then filter' (body) \<gamma> p (Preliminary d)
-                                                    else (Preliminary d)))"
+  filter' ls \<gamma> p
+    (case l of
+      (PfRule r) \<Rightarrow> (if (matches \<gamma> (pf_rule.get_match r) p)
+                                    then (if (get_quick r)
+                                          then (Final (action_to_decision (get_action r) d))
+                                          else (Preliminary (action_to_decision (get_action r) d)))
+                                    else (Preliminary d))
+      | (Anchor r body) \<Rightarrow> (if (matches \<gamma> (anchor_rule.get_match r) p)
+                                        then filter' (body) \<gamma> p (Preliminary d)
+                                        else (Preliminary d)))"
 
 
 lemma filter_chain:
@@ -50,13 +53,7 @@ lemma filter_chain:
 proof(induction l1 arbitrary: d)
   case Nil
   then show ?case
-  proof(cases d)
-    case (Final x1)
-    then show ?thesis by simp
-  next
-    case (Preliminary x2)
-    then show ?thesis by simp
-  qed
+    by (cases d) simp+
 next
   case IH:(Cons a l1)
   then show ?case
@@ -67,55 +64,33 @@ next
     case Prem: (Preliminary x2)
     then show ?thesis
     proof(cases a)
-case (PfRule r)
-  then show ?thesis
-    proof(cases "matches \<gamma> (pf_rule.get_match r) p")
-    case True
-    then show ?thesis unfolding PfRule using Prem IH by auto
-  next
-    case False
-    then show ?thesis using Prem IH by auto
+      case (PfRule r)
+      then show ?thesis using Prem IH
+        by (cases "matches \<gamma> (pf_rule.get_match r) p") auto
+    next
+      case (Anchor r l)
+      then show ?thesis using Prem IH
+        by (cases "matches \<gamma> (anchor_rule.get_match r) p") auto
+    qed
   qed
-next
-  case (Anchor r l)
-  then show ?thesis
-  proof(cases "matches \<gamma> (anchor_rule.get_match r) p")
-    case True
-    then show ?thesis using Prem IH by auto
-  next
-    case False
-    then show ?thesis using Prem IH by auto
-  qed
-qed
-qed
 qed
 
-lemma "filter rules \<gamma> p start_decision = unwrap_decision (filter' rules \<gamma> p (Preliminary start_decision))"
-proof(induction rules \<gamma> p start_decision rule: filter.induct)
-  case (1 \<gamma> p d)
-  then show ?case by simp
-next
-  case (2 ls \<gamma> p d)
-  then show ?case by simp
-next
-  case IH: (3 r b ls \<gamma> p d)
+lemma "filter rs \<gamma> p d = unwrap_decision (filter' rs \<gamma> p (Preliminary d))"
+proof(induction rs \<gamma> p d rule: filter.induct)
+  case (3 r b ls \<gamma> p d)
   then show ?case
-  proof(cases "matches \<gamma> (anchor_rule.get_match r) p")
-    case True
-    then show ?thesis using IH by (auto simp: filter_chain)
-  next
-    case False
-    then show ?thesis using IH by auto
-  qed
-qed
+    by (cases "matches \<gamma> (anchor_rule.get_match r) p")
+       (auto simp: filter_chain)
+qed simp+
 
 (* default behavior is Accept *)
 definition pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
-"pf rules \<gamma> packet = unwrap_decision (filter' rules \<gamma> packet (Preliminary Accept))"
+"pf rs \<gamma> p = unwrap_decision (filter' rs \<gamma> p (Preliminary Accept))"
 
 lemma filter_to_pf:
-  assumes "\<forall> d. (filter' l1 m p d = filter' l2 m p d)"
-  shows "pf l1 m p = pf l2 m p" unfolding pf_def using assms by simp
+  assumes "\<forall> d. (filter' rs1 m p d = filter' rs2 m p d)"
+  shows "pf rs1 m p = pf rs2 m p"
+  unfolding pf_def using assms by simp
 
 (*
 definition test_packet :: "('i::len) simple_packet" where
