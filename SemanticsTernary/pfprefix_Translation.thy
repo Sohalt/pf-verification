@@ -304,14 +304,46 @@ definition no_tables :: "common_primitive match_expr \<Rightarrow> bool" where
 | _ \<Rightarrow> True))
 mexpr"
 
+lemma [simp]:
+  "no_tables
+          (match_or (map (\<lambda>a. Src (Hostspec (Address (IPv4 a)))) xs))"
+  by (induction xs) (auto simp: MatchOr_def no_tables_def)
+
+lemma [simp]:
+  "no_tables
+          (match_or (map (\<lambda>a. Src (Hostspec (Address (IPv6 a)))) xs))"
+  by (induction xs) (auto simp: MatchOr_def no_tables_def)
+
+lemma [simp]:
+  "no_tables
+          (match_or (map (\<lambda>a. Dst (Address (IPv4 a))) xs))"
+  by (induction xs) (auto simp: MatchOr_def no_tables_def)
+
+lemma [simp]:
+  "no_tables
+          (match_or (map (\<lambda>a. Dst (Address (IPv6 a))) xs))"
+  by (induction xs) (auto simp: MatchOr_def no_tables_def)
+
 lemma remove_tables_ok:
   "(no_tables (remove_tables ctx m))"
 proof(induction ctx m rule:remove_tables.induct)
   case (1 ctx name)
-  then show ?case sorry
+  then have "no_tables (match_or
+         (map (\<lambda>a. Src (Hostspec (Address (IPv4 a))))
+           (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))" by simp
+  moreover have "no_tables (match_or
+         (map (\<lambda>a. Src (Hostspec (Address (IPv6 a))))
+           (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name)))))" by simp
+  ultimately show ?case by (simp add:MatchOr_def no_tables_def)
 next
   case (2 ctx name)
-  then show ?case sorry
+  then have "no_tables (match_or
+         (map (\<lambda>a. Dst (Address (IPv4 a)))
+           (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))" by simp
+  moreover have "no_tables (match_or
+         (map (\<lambda>a. Dst (Address (IPv6 a)))
+           (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name)))))" by simp
+  ultimately show ?case by (simp add:MatchOr_def no_tables_def)
 qed (simp add:no_tables_def)+
 
 end
