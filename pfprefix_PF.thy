@@ -17,15 +17,16 @@ fun matches :: "('a, 'p) matcher \<Rightarrow> 'a match_expr \<Rightarrow> 'p \<
 "matches \<gamma> (Match e) p \<longleftrightarrow> \<gamma> e p" |
 "matches _ MatchAny _ \<longleftrightarrow> True"
 
-lemma "matches \<gamma> (MatchOr e1 e2) p \<longleftrightarrow> matches \<gamma> e1 p \<or> matches \<gamma> e2 p" unfolding MatchOr_def by auto
+lemma "matches \<gamma> (MatchOr e1 e2) p \<longleftrightarrow> matches \<gamma> e1 p \<or> matches \<gamma> e2 p"
+  unfolding MatchOr_def by auto
 
 fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
 "filter [] \<gamma> p d = d" |
 "filter ((PfRule r)#ls) \<gamma> p d =
 (if (matches \<gamma> (pf_rule.get_match r) p)
   then (if (pf_rule.get_quick r)
-          then (action_to_decision (pf_rule.get_action r) d)
-          else (filter ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
+         then (action_to_decision (pf_rule.get_action r) d)
+         else (filter ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
   else filter ls \<gamma> p d)" |
 "filter ((Anchor r b)#ls) \<gamma> p d =
 (if (matches \<gamma> (anchor_rule.get_match r) p)
@@ -39,13 +40,13 @@ fun filter' :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rig
   filter' ls \<gamma> p
     (case l of
       (PfRule r) \<Rightarrow> (if (matches \<gamma> (pf_rule.get_match r) p)
-                                    then (if (get_quick r)
-                                          then (Final (action_to_decision (get_action r) d))
-                                          else (Preliminary (action_to_decision (get_action r) d)))
-                                    else (Preliminary d))
+                      then (if (get_quick r)
+                             then (Final (action_to_decision (get_action r) d))
+                             else (Preliminary (action_to_decision (get_action r) d)))
+                      else (Preliminary d))
       | (Anchor r body) \<Rightarrow> (if (matches \<gamma> (anchor_rule.get_match r) p)
-                                        then filter' (body) \<gamma> p (Preliminary d)
-                                        else (Preliminary d)))"
+                             then filter' (body) \<gamma> p (Preliminary d)
+                             else (Preliminary d)))"
 
 
 lemma filter_chain:
