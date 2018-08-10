@@ -151,6 +151,54 @@ proof(-)
   then show ?thesis by (simp add: filter_approx_to_pf_approx)
 qed
 
+(* lemma and_each_preserves_action_and_quick[simp,intro]:
+  assumes "all_PfRules_P (\<lambda>r. P (pf_rule.get_action r) (pf_rule.get_quick r)) ls"
+  shows "all_PfRules_P (\<lambda>r. P (pf_rule.get_action r) (pf_rule.get_quick r)) (and_each m ls)"
+  using assms proof(induction ls)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons l ls)
+  then show ?case by(cases l;auto)
+qed *)
+
+lemma and_each_preserves_no_match_quick[simp,intro]:
+  assumes "no_match_quick l"
+  shows "no_match_quick (and_each m l)"
+  using assms
+proof(induction l)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a l)
+  then show ?case by (cases a; auto simp add:no_match_quick_def)
+qed
+
+lemma no_match_quick_append[simp]:
+  "no_match_quick (l1@l2) \<longleftrightarrow> no_match_quick l1 \<and> no_match_quick l2"
+  by (auto simp:no_match_quick_def)
+
+lemma remove_anchors'_preserves_no_match_quick:
+  assumes "no_match_quick l"
+  shows "no_match_quick (remove_anchors' l)"
+  using assms
+proof(induction l rule:remove_anchors'.induct)
+  case 1
+  then show ?case by simp
+next
+  case (2 r l rs)
+  have "no_match_quick (remove_anchors' l)" using 2(1) 2(3) by (simp add:no_match_quick_def)
+  then have *:"no_match_quick (and_each (anchor_rule.get_match r) (remove_anchors' l))" by simp
+  have "no_match_quick (remove_anchors' rs)" using 2(2) 2(3) by (simp add:no_match_quick_def)
+  then show ?case using * by simp
+next
+  case (3 v rs)
+  then show ?case by (simp add:no_match_quick_def)
+qed
+
+  
+
+
 (* helpers for remove quick *)
 
 lemma remove_suffix[simp]:
