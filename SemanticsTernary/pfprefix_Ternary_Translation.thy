@@ -406,6 +406,45 @@ lemma remove_matches_preserves_no_anchors:
   using assms
   by (induction rules rule: remove_matches.induct) simp+
 
+(* to_simple_ruleset *)
+
+definition to_simple_ruleset :: "'a line list \<Rightarrow> 'a line list" where
+"to_simple_ruleset rs = remove_quick_approx (remove_matches (remove_anchors' rs))"
+
+lemma to_simple_ruleset:
+  assumes "no_match_quick rs"
+      and "no_unknown_anchors (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) rs"
+  shows
+ "pf_approx rs (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) p =
+  pf_approx (to_simple_ruleset rs) (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) p"
+  and "simple_ruleset (to_simple_ruleset rs)"
+proof(-)
+  have *: "(pf_approx rs (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) p) =
+        (pf_approx (remove_anchors' rs) (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) p)"
+    (is "?original = pf_approx (?anchors_removed) ?m ?p")
+    using assms by (simp add:remove_anchors'_preserves_semantics)
+  have na:"no_anchors ?anchors_removed" by (simp add:remove_anchors'_ok)
+  have nmq:"no_match_quick ?anchors_removed" using assms remove_anchors'_preserves_no_match_quick by blast
+  have *: "?original = pf_approx (remove_matches ?anchors_removed) ?m ?p"
+(is "?original = pf_approx (?matches_removed) ?m ?p")
+    using * na nmq assms by(auto simp add:remove_matches_preserves_semantics)
+  have nm:"no_match ?matches_removed" using na nmq remove_matches_ok by blast
+  have na:"no_anchors ?matches_removed" using na using remove_matches_preserves_no_anchors by blast
+  have gm:"good_matcher ?m" by (simp add:in_doubt_allow_good_matcher)
+  have *: "?original = pf_approx (remove_quick_approx ?matches_removed) ?m ?p"
+    (is "?original = pf_approx (?quick_removed) ?m ?p")
+    using * na nm gm assms by(simp add:remove_quick_approx_preserves_semantics)
+  then show "pf_approx rs (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) p =
+  pf_approx (to_simple_ruleset rs) (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) p" 
+    unfolding to_simple_ruleset_def by simp
+  have nq:"no_quick ?quick_removed" using na remove_quick_approx_ok by blast
+  have nm:"no_match ?quick_removed" using na nm remove_quick_approx_preserves_no_match by blast
+  have na:"no_anchors ?quick_removed" using na remove_quick_approx_preserves_no_anchors by blast
+  from nq nm na show "simple_ruleset (to_simple_ruleset rs)" unfolding to_simple_ruleset_def by (simp add:simple_ruleset_def)
+qed
+
+(* simple ruleset reverse *)
+
 fun match_pf_rule :: "'a line \<Rightarrow> ('a,'p) match_tac \<Rightarrow> 'p \<Rightarrow> bool" where
 (* Accept is arbitrary here, \<gamma> should be independent of d *)
 "match_pf_rule (PfRule r) \<gamma> p = matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) decision.Accept p"
@@ -444,14 +483,12 @@ lemma good_matcher_match_not:
   apply (auto simp:matches_def good_matcher_def) by metis
 
 lemma pf_reverse_semantics:
-  assumes "no_match rules"
-      and "no_quick rules"
-      and "no_anchors rules"
+  assumes "simple_ruleset rules"
       and "good_matcher \<gamma>"
     shows "pf_approx (rev rules) \<gamma> p = (case (find (\<lambda>r. match_pf_rule r \<gamma> p) rules) of
 (Some (PfRule r)) \<Rightarrow> (action_to_decision (pf_rule.get_action r) decision.Accept)
 | None \<Rightarrow> decision.Accept)"
-    using assms unfolding pf_approx_def
+    using assms unfolding pf_approx_def simple_ruleset_def
 proof(induction rules)
   case Nil
   then show ?case by simp
@@ -486,9 +523,4 @@ next
   qed
 qed
 
-
-(*
-fun pf_approx_to_simplefw :: "'a ruleset \<Rightarrow> 'a ruleset" where
-"pf_approx_to_simplefw rules = (map to_simple_match (reverse (normalize_firewall (remove_quick (remove_matches (remove_anchors rules))))))"
-*)
 end
