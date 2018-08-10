@@ -30,25 +30,25 @@ fun filter_spec :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \
                                          then (filter_spec (b@ls) \<gamma> p d)
                                          else filter_spec ls \<gamma> p d)"
 
-fun filter :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
-"filter _ _ _ (Final d) = Final d" |
-"filter [] _ _ d = d" |
-"filter (l#ls) \<gamma> p (Preliminary d) =
-  filter ls \<gamma> p (case l of
+fun filter' :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
+"filter' _ _ _ (Final d) = Final d" |
+"filter' [] _ _ d = d" |
+"filter' (l#ls) \<gamma> p (Preliminary d) =
+  filter' ls \<gamma> p (case l of
                   (PfRule r) \<Rightarrow> (if (matches \<gamma> (pf_rule.get_match r) p)
                                                then (if (get_quick r)
                                                       then (Final (action_to_decision (get_action r) d))
                                                       else (Preliminary (action_to_decision (get_action r) d)))
                                                else (Preliminary d))
                   | (Anchor r body) \<Rightarrow> (if (matches \<gamma> (anchor_rule.get_match r) p)
-                                                    then filter (body) \<gamma> p (Preliminary d)
+                                                    then filter' (body) \<gamma> p (Preliminary d)
                                                     else (Preliminary d)))"
 
 case_of_simps filter_cases: filter.simps
 
 
 lemma filter_chain:
-  shows "filter (l1@l2) \<gamma> p d = filter l2 \<gamma> p (filter l1 \<gamma> p d)"
+  shows "filter' (l1@l2) \<gamma> p d = filter' l2 \<gamma> p (filter' l1 \<gamma> p d)"
 proof(induction l1 arbitrary: d)
   case Nil
   then show ?case
@@ -92,7 +92,7 @@ qed
 qed
 qed
 
-lemma "filter_spec rules \<gamma> p start_decision = unwrap_decision (filter rules \<gamma> p (Preliminary start_decision))"
+lemma "filter_spec rules \<gamma> p start_decision = unwrap_decision (filter' rules \<gamma> p (Preliminary start_decision))"
 proof(induction rules \<gamma> p start_decision rule: filter_spec.induct)
   case (1 \<gamma> p d)
   then show ?case by simp
@@ -113,10 +113,10 @@ qed
 
 (* default behavior is Accept *)
 definition pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
-"pf rules \<gamma> packet = unwrap_decision (filter rules \<gamma> packet (Preliminary Accept))"
+"pf rules \<gamma> packet = unwrap_decision (filter' rules \<gamma> packet (Preliminary Accept))"
 
 lemma filter_to_pf:
-  assumes "\<forall> d. (filter l1 m p d = filter l2 m p d)"
+  assumes "\<forall> d. (filter' l1 m p d = filter' l2 m p d)"
   shows "pf l1 m p = pf l2 m p" unfolding pf_def using assms by simp
 
 (*

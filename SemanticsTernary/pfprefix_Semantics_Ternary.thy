@@ -157,12 +157,12 @@ definition pf_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarro
 "pf_approx rules \<gamma> packet = unwrap_decision (filter_approx rules \<gamma> packet (Preliminary Accept))"
 (*
 definition filter' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
-"filter' rules \<gamma> d = filter rules (\<lambda>a p. \<gamma> a) () d"
+"filter' rules \<gamma> d = filter' rules (\<lambda>a p. \<gamma> a) () d"
 
 lemma matches_equiv[simp]: "matches (\<lambda>a p. \<gamma> a packet) me () = matches \<gamma> me packet"
   by (induction me, auto)
 
-lemma filter_filter'_eq[simp]: "filter' rules (\<lambda>a. \<gamma> a packet) d = filter rules \<gamma> packet d"
+lemma filter_filter'_eq[simp]: "filter' rules (\<lambda>a. \<gamma> a packet) d = filter' rules \<gamma> packet d"
 unfolding filter'_def
 by (induction rules \<gamma> packet d rule: filter.induct) (auto split: line.splits)
 

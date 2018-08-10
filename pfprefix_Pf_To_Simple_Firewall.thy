@@ -126,28 +126,28 @@ qed
 
 
 lemma filter_add_equiv_prefix :
-  assumes "filter l1 m p d = filter l2 m p d"
-          "\<And>d. filter l3 m p d = filter l4 m p d"
-  shows "filter (l1@l3) m p d = filter (l2@l4) m p d"
+  assumes "filter' l1 m p d = filter' l2 m p d"
+          "\<And>d. filter' l3 m p d = filter' l4 m p d"
+  shows "filter' (l1@l3) m p d = filter' (l2@l4) m p d"
 proof -
-    have "filter (l1@l3) m p d = filter l3 m p (filter l1 m p d)" by (simp add: filter_chain)
-    moreover have "filter (l2@l4) m p d = filter l4 m p (filter l2 m p d)" by (simp add: filter_chain)
+    have "filter' (l1@l3) m p d = filter' l3 m p (filter' l1 m p d)" by (simp add: filter_chain)
+    moreover have "filter' (l2@l4) m p d = filter' l4 m p (filter' l2 m p d)" by (simp add: filter_chain)
     ultimately show ?thesis using assms by auto
   qed
 
 lemma filter_add_same_prefix :
-  assumes "\<And>d. filter l1 m p d = filter l2 m p d"
-  shows "filter (l@l1) m p d = filter (l@l2) m p d"
+  assumes "\<And>d. filter' l1 m p d = filter' l2 m p d"
+  shows "filter' (l@l1) m p d = filter' (l@l2) m p d"
   by (metis assms filter_add_equiv_prefix)
 
 lemma filter_cons_same_prefix :
-  assumes "\<And>d. filter l1 m p d = filter l2 m p d"
-  shows "filter (l#l1) m p d = filter (l#l2) m p d"
+  assumes "\<And>d. filter' l1 m p d = filter' l2 m p d"
+  shows "filter' (l#l1) m p d = filter' (l#l2) m p d"
   by (metis append_Cons append_Nil assms filter_chain)
 
 lemma and_each_false[simp]:
   assumes "\<not>matches \<gamma> e p"
-  shows "filter (and_each e l) \<gamma> p d = d"
+  shows "filter' (and_each e l) \<gamma> p d = d"
 proof(induction l)
   case Nil
   then show ?case by (cases d, auto)
@@ -159,7 +159,7 @@ qed
 
 lemma and_each_true[simp]:
   assumes "matches \<gamma> e p"
-  shows "filter (and_each e l) \<gamma> p d = filter l \<gamma> p d"
+  shows "filter' (and_each e l) \<gamma> p d = filter' l \<gamma> p d"
 proof(induction l arbitrary:d)
   case Nil
   then show ?case by (cases d, auto)
@@ -176,12 +176,12 @@ next
   qed
 qed
 
-lemma filter_foo: "filter [] \<gamma> p (filter l \<gamma> p (Preliminary d)) = filter l \<gamma> p (Preliminary d)"
+lemma filter_foo: "filter' [] \<gamma> p (filter' l \<gamma> p (Preliminary d)) = filter' l \<gamma> p (Preliminary d)"
   by (metis append.right_neutral filter_chain)
 
 lemma remove_anchors_preserves_semantics : "pf (remove_anchors rules) \<gamma> packet = pf rules \<gamma> packet"
 proof(-)
-  have "(filter rules \<gamma> packet d = filter (remove_anchors rules) \<gamma> packet d)" for d
+  have "(filter' rules \<gamma> packet d = filter' (remove_anchors rules) \<gamma> packet d)" for d
 proof (induction rules arbitrary: d)
   case Nil
   then show ?case by auto
@@ -199,21 +199,21 @@ next
     then show ?thesis unfolding PfRule using IH by (cases d, auto)
   next
     case (Anchor r ls)
-    then have "filter [(Anchor r ls)] \<gamma> packet d =
-               filter (and_each (anchor_rule.get_match r) ls) \<gamma> packet d"
+    then have "filter' [(Anchor r ls)] \<gamma> packet d =
+               filter' (and_each (anchor_rule.get_match r) ls) \<gamma> packet d"
     proof(cases "matches \<gamma> (anchor_rule.get_match r) packet")
       case True
-      then have "filter (and_each (anchor_rule.get_match r) ls) \<gamma> packet (Preliminary x2)
-                 = filter ls \<gamma> packet (Preliminary x2)" by auto
-      moreover have "pfprefix_PF.filter [Anchor r ls] \<gamma> packet (Preliminary x2)
-                 = filter ls \<gamma> packet (Preliminary x2)" by (simp add: True filter_foo)
+      then have "filter' (and_each (anchor_rule.get_match r) ls) \<gamma> packet (Preliminary x2)
+                 = filter' ls \<gamma> packet (Preliminary x2)" by auto
+      moreover have "pfprefix_PF.filter' [Anchor r ls] \<gamma> packet (Preliminary x2)
+                 = filter' ls \<gamma> packet (Preliminary x2)" by (simp add: True filter_foo)
       ultimately show ?thesis unfolding Preliminary
         by simp
     next
       case False
       then show ?thesis unfolding Preliminary by auto
     qed
-    then have "filter ([Anchor r ls] @ rules) \<gamma> packet d = filter (and_each (get_match r) ls @ remove_anchors rules) \<gamma> packet d"
+    then have "filter' ([Anchor r ls] @ rules) \<gamma> packet d = filter' (and_each (get_match r) ls @ remove_anchors rules) \<gamma> packet d"
       apply (rule filter_add_equiv_prefix)
       using IH by auto
 
@@ -247,7 +247,7 @@ qed
 
 lemma remove_anchors'_preserves_semantics:"pf (remove_anchors' rules) \<gamma> packet = pf rules \<gamma> packet"
 proof(-)
-  have "(filter rules \<gamma> packet d = filter (remove_anchors' rules) \<gamma> packet d)" for d
+  have "(filter' rules \<gamma> packet d = filter' (remove_anchors' rules) \<gamma> packet d)" for d
   proof(induction rules arbitrary: d rule:remove_anchors'.induct)
     case 1
     then show ?case by simp
@@ -256,7 +256,7 @@ proof(-)
     then show ?case
       proof(cases "matches \<gamma> (anchor_rule.get_match r) packet")
         case True
-        then have "pfprefix_PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = pfprefix_PF.filter (remove_anchors' l) \<gamma> packet d" by simp
+        then have "pfprefix_PF.filter' (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = pfprefix_PF.filter' (remove_anchors' l) \<gamma> packet d" by simp
         then show ?thesis
         proof(cases d)
           case (Final x1)
@@ -267,7 +267,7 @@ proof(-)
         qed
       next
         case False
-        then have "pfprefix_PF.filter (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = d" by simp
+        then have "pfprefix_PF.filter' (and_each (anchor_rule.get_match r) (remove_anchors' l)) \<gamma> packet d = d" by simp
         then show ?thesis
         proof(cases d)
           case (Final x1)
@@ -454,8 +454,8 @@ lemma remove_all_quick_ok:
 
 lemma remove_suffix[simp]:
   assumes "\<not>matches \<gamma> (pf_rule.get_match r) p"
-  shows "filter (l@[(PfRule r)]) \<gamma> p d = filter l \<gamma> p d"
-proof(cases "filter l \<gamma> p d")
+  shows "filter' (l@[(PfRule r)]) \<gamma> p d = filter' l \<gamma> p d"
+proof(cases "filter' l \<gamma> p d")
   case (Final x1)
   then show ?thesis by (simp add: filter_chain)
 next
@@ -467,7 +467,7 @@ lemma remove_single_quick_preserves_semantics:
   assumes "no_anchors rules"
   shows "pf rules \<gamma> packet = pf (remove_single_quick rules) \<gamma> packet"
 proof(-)
-  from assms have "(unwrap_decision (filter rules \<gamma> packet d) = unwrap_decision (filter (remove_single_quick rules) \<gamma> packet d))" for d
+  from assms have "(unwrap_decision (filter' rules \<gamma> packet d) = unwrap_decision (filter' (remove_single_quick rules) \<gamma> packet d))" for d
   proof(induction rules arbitrary: d)
     case Nil
     then show ?case by simp
@@ -547,7 +547,7 @@ lemma remove_quick'_preserves_no_anchors :
 lemma no_quick_preliminary:
   assumes "no_quick rules"
     and "no_anchors rules" (* not necessary but makes things easier *)
-  shows "is_Preliminary (filter rules \<gamma> p (Preliminary d))"
+  shows "is_Preliminary (filter' rules \<gamma> p (Preliminary d))"
   using assms
 proof(induction rules arbitrary: d)
   case Nil
@@ -579,7 +579,7 @@ lemma remove_quick'_preserves_semantics:
   assumes "no_anchors rules"
   shows "pf rules \<gamma> p = pf (remove_quick' rules) \<gamma> p"
 proof(-)
-  from assms have  "(unwrap_decision (filter rules \<gamma> p d) = unwrap_decision (filter (remove_quick' rules) \<gamma> p d))" for d
+  from assms have  "(unwrap_decision (filter' rules \<gamma> p d) = unwrap_decision (filter' (remove_quick' rules) \<gamma> p d))" for d
 proof(induction rules arbitrary:d rule:remove_quick'.induct)
 case 1
 then show ?case by simp
@@ -624,7 +624,7 @@ lemma remove_matches_preserves_semantics:
           "no_anchors rules"
     shows "pf rules matcher packet = pf (remove_matches rules) matcher packet"
 proof(-)
-  have "\<And>start_decision. filter rules matcher packet (Preliminary start_decision) = filter (remove_matches rules) matcher packet (Preliminary start_decision)"
+  have "\<And>start_decision. filter' rules matcher packet (Preliminary start_decision) = filter' (remove_matches rules) matcher packet (Preliminary start_decision)"
   using assms
   by (induction rules arbitrary:start_decision rule: remove_matches.induct; simp)
   then show ?thesis by (simp add:pf_def)
