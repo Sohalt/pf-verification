@@ -115,24 +115,6 @@ qed
 definition pf :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rightarrow> decision" where
 "pf rules \<gamma> packet = unwrap_decision (filter rules \<gamma> packet (Preliminary Accept))"
 
-definition filter' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
-"filter' rules \<gamma> d = filter rules (\<lambda>a p. \<gamma> a) () d"
-
-lemma matches_equiv[simp]: "matches (\<lambda>a p. \<gamma> a packet) me () = matches \<gamma> me packet"
-  by (induction me, auto)
-
-lemma filter_filter'_eq[simp]: "filter' rules (\<lambda>a. \<gamma> a packet) d = filter rules \<gamma> packet d"
-unfolding filter'_def
-by (induction rules \<gamma> packet d rule: filter.induct) (auto split: line.splits)
-
-(* default behavior is Accept *)
-definition pf' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> decision" where
-"pf' rules \<gamma> = unwrap_decision (filter' rules \<gamma> (Preliminary Accept))"
-
-lemma "pf rules \<gamma> packet = pf' rules (\<lambda>a. \<gamma> a packet)"
-  unfolding pf_def pf'_def
-  by simp
-
 lemma filter_to_pf:
   assumes "\<forall> d. (filter l1 m p d = filter l2 m p d)"
   shows "pf l1 m p = pf l2 m p" unfolding pf_def using assms by simp
