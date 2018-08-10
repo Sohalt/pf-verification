@@ -121,7 +121,7 @@ definition no_match_quick :: "'a ruleset \<Rightarrow> bool" where
 
 (* remove_anchors implementation and remove_anchors_ok in Pf_To_SimpleFirewall *)
 
-lemma remove_anchors_preserves_semantics :
+lemma remove_anchors'_preserves_semantics :
   assumes "no_match_quick rules"
       and "no_unknown_anchors (exact_match_tac, in_doubt_allow) rules"
   shows "pf_approx (remove_anchors' rules) (exact_match_tac, in_doubt_allow) packet = pf_approx rules (exact_match_tac, in_doubt_allow) packet"
