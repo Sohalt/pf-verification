@@ -23,7 +23,8 @@ fun in_doubt_deny :: "'packet unknown_match_tac" where
 definition good_matcher :: "('a, 'p) match_tac \<Rightarrow> bool" where
 "good_matcher \<gamma> \<longleftrightarrow> (\<forall>a. a \<noteq> ActionMatch \<longrightarrow> (\<forall>d1 d2. (snd \<gamma>) a d1 = (snd \<gamma>) a d2))"
 
-lemma "good_matcher (\<alpha>,in_doubt_allow)"
+lemma in_doubt_allow_good_matcher:
+ "good_matcher (\<alpha>,in_doubt_allow)"
   unfolding good_matcher_def
 proof
   fix a 
@@ -31,7 +32,8 @@ proof
     by (cases a) auto
 qed
 
-lemma "good_matcher (\<alpha>,in_doubt_deny)"
+lemma in_doubt_deny_good_matcher:
+  "good_matcher (\<alpha>,in_doubt_deny)"
   unfolding good_matcher_def
 proof
   fix a 
