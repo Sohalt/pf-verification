@@ -109,7 +109,7 @@ proof -
     have "filter' (l1@l3) m p d = filter' l3 m p (filter' l1 m p d)" by (simp add: filter_chain)
     moreover have "filter' (l2@l4) m p d = filter' l4 m p (filter' l2 m p d)" by (simp add: filter_chain)
     ultimately show ?thesis using assms by auto
-  qed
+qed
 
 lemma filter_add_same_prefix :
   assumes "\<And>d. filter' l1 m p d = filter' l2 m p d"
