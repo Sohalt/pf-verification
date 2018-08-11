@@ -4,47 +4,50 @@ begin
 
 fun filter_approx_spec :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
 "filter_approx_spec [] \<gamma> p d = d" |
-"filter_approx_spec ((PfRule r)#ls) \<gamma> p d = (if (matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p)
-                                       then (if (pf_rule.get_quick r)
-                                              then (action_to_decision (pf_rule.get_action r) d)
-                                              else (filter_approx_spec ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
-                                       else filter_approx_spec ls \<gamma> p d)" |
-"filter_approx_spec ((Anchor r b)#ls) \<gamma> p d = (if (matches
-                                                     \<gamma>
-                                                     (anchor_rule.get_match r)
-                                                     (case (filter_approx_spec b \<gamma> p d) of
-                                                             (* if the body accepts the anchor is equal to pass *)
-                                                             Accept \<Rightarrow> Pass
-                                                             (* if the body rejects the anchor is equal to block *)
-                                                             | Reject \<Rightarrow> Block)
-                                                     d
-                                                     p)
-                                               then (filter_approx_spec (b@ls) \<gamma> p d)
-                                               else filter_approx_spec ls \<gamma> p d)"
+"filter_approx_spec ((PfRule r)#ls) \<gamma> p d =
+(if (matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p)
+  then (if (pf_rule.get_quick r)
+         then (action_to_decision (pf_rule.get_action r) d)
+         else (filter_approx_spec ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
+  else filter_approx_spec ls \<gamma> p d)" |
+"filter_approx_spec ((Anchor r b)#ls) \<gamma> p d =
+(if (matches
+       \<gamma>
+       (anchor_rule.get_match r)
+       (case (filter_approx_spec b \<gamma> p d) of
+               (* if the body accepts, the anchor is equal to pass *)
+               Accept \<Rightarrow> Pass
+               (* if the body rejects, the anchor is equal to block *)
+               | Reject \<Rightarrow> Block)
+       d
+       p)
+  then (filter_approx_spec (b@ls) \<gamma> p d)
+  else filter_approx_spec ls \<gamma> p d)"
 
 
 fun filter_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
 "filter_approx _ _ _ (Final d) = Final d" |
 "filter_approx [] _ _ d = d" |
 "filter_approx (l#ls) \<gamma> p (Preliminary d) =
-  filter_approx ls \<gamma> p (case l of
-                  (PfRule r) \<Rightarrow> (if (matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p)
-                                               then (if (get_quick r)
-                                                      then (Final (action_to_decision (get_action r) d))
-                                                      else (Preliminary (action_to_decision (get_action r) d)))
-                                               else (Preliminary d))
-                  | (Anchor r body) \<Rightarrow> (if (matches
-                                              \<gamma>
-                                              (anchor_rule.get_match r)
-                                              (case (unwrap_decision (filter_approx body \<gamma> p (Preliminary d))) of
-                                                      (* if the body accepts the anchor is equal to pass *)
-                                                      Accept \<Rightarrow> Pass
-                                                      (* if the body rejects the anchor is equal to block *)
-                                                      | Reject \<Rightarrow> Block)
-                                              d
-                                              p)
-                                        then (filter_approx body \<gamma> p (Preliminary d))
-                                        else (Preliminary d)))"
+  filter_approx ls \<gamma> p 
+    (case l of
+      (PfRule r) \<Rightarrow> (if (matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p)
+                                   then (if (get_quick r)
+                                          then (Final (action_to_decision (get_action r) d))
+                                          else (Preliminary (action_to_decision (get_action r) d)))
+                                   else (Preliminary d))
+      | (Anchor r body) \<Rightarrow> (if (matches
+                                 \<gamma>
+                                 (anchor_rule.get_match r)
+                                 (case (unwrap_decision (filter_approx body \<gamma> p (Preliminary d))) of
+                                   (* if the body accepts the anchor is equal to pass *)
+                                   Accept \<Rightarrow> Pass
+                                   (* if the body rejects the anchor is equal to block *)
+                                   | Reject \<Rightarrow> Block)
+                                 d
+                                 p)
+                            then (filter_approx body \<gamma> p (Preliminary d))
+                            else (Preliminary d)))"
 
 case_of_simps filter_approx_cases: filter_approx.simps
 (*
