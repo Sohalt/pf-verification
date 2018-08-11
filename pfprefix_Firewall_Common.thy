@@ -150,11 +150,7 @@ next
   proof(cases a)
     case (PfRule x1)
     then have "simple_ruleset rs" using Cons(2) by (simp add: simple_ruleset_def)
-    then show ?thesis 
-      (* TODO make less ugly *)
-      unfolding PfRule using Cons apply (simp add: simple_ruleset_def) apply auto
-      using PfRule is_quick_rule.simps(1) apply blast
-      by (simp add: PfRule)
+    then show ?thesis using Cons PfRule by (simp add:simple_ruleset_def)
   next
     case (Anchor x21 x22)
     then show ?thesis using Cons(2) by (auto simp add: simple_ruleset_def)
