@@ -48,6 +48,7 @@ fun filter' :: "'a ruleset \<Rightarrow> ('a, 'p) matcher \<Rightarrow> 'p \<Rig
                              then filter' (body) \<gamma> p (Preliminary d)
                              else (Preliminary d)))"
 
+case_of_simps filter'_cases: filter'.simps
 
 lemma filter_chain:
   shows "filter' (l1@l2) \<gamma> p d = filter' l2 \<gamma> p (filter' l1 \<gamma> p d)"

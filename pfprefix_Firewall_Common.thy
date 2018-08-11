@@ -32,6 +32,8 @@ fun is_quick_rule :: "'a line \<Rightarrow> bool" where
 "is_quick_rule (PfRule r) = (get_quick r)"
 | "is_quick_rule _ = False"
 
+case_of_simps is_quick_rule_cases:is_quick_rule.simps
+
 abbreviation no_quick :: "'a ruleset \<Rightarrow> bool" where
 "no_quick ls \<equiv> (\<forall> l \<in> set ls. \<not>is_quick_rule l)"
 
