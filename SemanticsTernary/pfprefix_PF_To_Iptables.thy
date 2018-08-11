@@ -1,7 +1,7 @@
 theory pfprefix_PF_To_Iptables
   imports pfprefix_Semantics_Ternary
           pfprefix_Unknown_Match_Tacs
-          pfprefix_Translation
+          pfprefix_Primitive_Translation
           pfprefix_Ternary_Translation
           "../pfprefix_Primitives"
           "../pfprefix_PrimitiveMatchers"

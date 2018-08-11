@@ -1,4 +1,4 @@
-theory pfprefix_Translation
+theory pfprefix_Primitive_Translation
 imports
   "../pfprefix_Firewall_Common"
   "../pfprefix_PrimitiveMatchers"
