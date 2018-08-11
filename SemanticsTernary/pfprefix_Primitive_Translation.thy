@@ -7,6 +7,7 @@ imports
   IP_Addresses.CIDR_Split
   Iptables_Semantics.Negation_Type
   pfprefix_Negation_Type_Matching
+  pfprefix_Predicates
 begin
 
 (* normalize matches to representation closest to simple_matcher *)
@@ -14,25 +15,6 @@ begin
 fun match_or :: "'a list \<Rightarrow> 'a match_expr" where
 "match_or [] = MatchNot MatchAny" |
 "match_or (x#xs) = MatchOr (Match x) (match_or xs)"
-
-fun all_match :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr  \<Rightarrow> bool" where
-"all_match _ MatchAny = True" |
-"all_match P (MatchNot m) = all_match P m" |
-"all_match P (MatchAnd m1 m2) = (all_match P m1 \<and> all_match P m2)" |
-"all_match P (Match m) = P m"
-
-definition no_ipv6 :: "common_primitive match_expr \<Rightarrow> bool" where
-"no_ipv6 mexpr =
-all_match (\<lambda>m. (case m of
-(Src (Hostspec (Address (IPv6 _)))) \<Rightarrow> False
-| (Dst (Address (IPv6 _))) \<Rightarrow> False
-| _ \<Rightarrow> True)) mexpr"
-
-definition no_af :: "common_primitive match_expr \<Rightarrow> bool" where
-"no_af mexpr = all_match (\<lambda>m. (case m of (Address_Family _) \<Rightarrow> False)) mexpr"
-
-definition good_match_expr :: "pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> bool" where
-"good_match_expr ctx mexpr = all_match (good_primitive ctx) mexpr"
 
 (* words wrap \<rightarrow> needs explicit check for 0 and max_word *)
 value "(WordInterval (max_word + 1) max_word)::16 wordinterval"

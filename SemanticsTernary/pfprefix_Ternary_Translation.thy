@@ -3,6 +3,7 @@ theory pfprefix_Ternary_Translation
           "../pfprefix_PrimitiveMatchers"
           pfprefix_Semantics_Ternary
           pfprefix_Unknown_Match_Tacs
+          pfprefix_Predicates
 begin
 
 lemma filter_approx_to_pf_approx:
@@ -32,53 +33,6 @@ next
        (auto simp:matches_def eval_ternary_simps_simple(1))
 qed
 
-fun all_AnchorRules_P :: "('a anchor_rule \<Rightarrow> bool) \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
-"all_AnchorRules_P P rs = (\<forall> l \<in> set rs. (case l of (Anchor r b) \<Rightarrow> P r \<and> all_AnchorRules_P P b | _ \<Rightarrow> True))"
-
-fun all_AnchorRules_P' :: "('a anchor_rule \<Rightarrow> bool) \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
-"all_AnchorRules_P' _ [] \<longleftrightarrow> True" |
-"all_AnchorRules_P' P ((PfRule r)#ls) \<longleftrightarrow> all_AnchorRules_P' P ls" |
-"all_AnchorRules_P' P ((Anchor r b)#ls) \<longleftrightarrow> P r \<and> all_AnchorRules_P' P b \<and> all_AnchorRules_P' P ls"
-
-lemma "all_AnchorRules_P P l= all_AnchorRules_P' P l"
-  by (induction P l rule: all_AnchorRules_P'.induct) auto
-
-lemma all_AnchorRules_append[simp]:
-  "all_AnchorRules_P P (xs @ ys) \<longleftrightarrow> all_AnchorRules_P P xs \<and> all_AnchorRules_P P ys"
-  by (induction P xs rule: all_AnchorRules_P.induct) auto
-
-definition no_anchors' :: "'a ruleset \<Rightarrow> bool" where
-"no_anchors' rs = all_AnchorRules_P (\<lambda>r. False) rs"
-
-lemma no_anchors_no_anchors'_eq:
- "no_anchors rs \<longleftrightarrow> no_anchors' rs"
-  unfolding no_anchors'_def
-  by (induction rs) (auto split:line.splits)
-
-
-definition no_unknown_anchors :: "('a,'p) match_tac \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
-"no_unknown_anchors \<gamma> rs = all_AnchorRules_P
- (\<lambda>r. (\<forall> p. ternary_ternary_eval (map_match_tac (fst \<gamma>) p (anchor_rule.get_match r)) \<noteq> TernaryUnknown))
- rs"
-
-
-fun all_PfRules_P :: "('a pf_rule \<Rightarrow> bool) \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
-"all_PfRules_P P rs = (\<forall> l \<in> set rs. (case l of (PfRule r) \<Rightarrow> P r | (Anchor r b) \<Rightarrow> all_PfRules_P P b))"
-
-fun all_PfRules_P' :: "('a pf_rule \<Rightarrow> bool) \<Rightarrow> 'a ruleset \<Rightarrow> bool" where
-"all_PfRules_P' _ [] \<longleftrightarrow> True" |
-"all_PfRules_P' P ((PfRule r)#ls) \<longleftrightarrow> P r \<and> all_PfRules_P' P ls" |
-"all_PfRules_P' P ((Anchor r b)#ls) \<longleftrightarrow> all_PfRules_P' P b \<and> all_PfRules_P' P ls"
-
-lemma "all_PfRules_P P l= all_PfRules_P' P l"
-  by (induction P l rule: all_PfRules_P'.induct) auto
-
-lemma all_PfRules_append[simp]:
-  "all_PfRules_P P (xs @ ys) \<longleftrightarrow> all_PfRules_P P xs \<and> all_PfRules_P P ys"
-  by (induction P xs rule: all_PfRules_P.induct) auto
-
-definition no_match_quick :: "'a ruleset \<Rightarrow> bool" where
-"no_match_quick rs = all_PfRules_P (\<lambda>r. \<not>((pf_rule.get_action r) = ActionMatch \<and> pf_rule.get_quick r)) rs"
 
 (* remove anchors *)
 
