@@ -2,6 +2,7 @@ theory pfprefix_Matching_Ternary
 imports Iptables_Semantics.Ternary "../pfprefix_Firewall_Common"
 begin
 
+(* adapted from Iptables_Semantics.Matching_Ternary *)
 
 section\<open>Packet Matching in Ternary Logic\<close>
 
