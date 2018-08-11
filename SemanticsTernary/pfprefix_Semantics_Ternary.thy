@@ -50,32 +50,6 @@ fun filter_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 
                             else (Preliminary d)))"
 
 case_of_simps filter_approx_cases: filter_approx.simps
-(*
-thm filter_approx.induct
-
-lemma fai[induct pred: filter_approx]:
-"(\<And>rules \<gamma> p d. P rules \<gamma> p (Final d)) \<Longrightarrow>
-(\<And>\<gamma> p d. P [] \<gamma> p (Preliminary d)) \<Longrightarrow>
-(\<And>l ls \<gamma> p d.
-    (\<And>r' b'. l = Anchor r' b' \<Longrightarrow> P b' \<gamma> p (Preliminary d)) \<Longrightarrow>
-    (\<And>r' b'.
-        l = Anchor r' b' \<Longrightarrow>
-        matches \<gamma> (anchor_rule.get_match r') (case unwrap_decision (filter_approx b' \<gamma> p (Preliminary d)) of Accept \<Rightarrow> Pass | Reject \<Rightarrow> Block)
-         p \<Longrightarrow>
-        P b' \<gamma> p (Preliminary d)) \<Longrightarrow>
-    P ls \<gamma> p
-     (case l of
-      PfRule r \<Rightarrow>
-        if matches \<gamma> (pf_rule.get_match r) (get_action r) p
-        then if get_quick r then Final (action_to_decision (get_action r) d) else Preliminary (action_to_decision (get_action r) d)
-        else Preliminary d
-      | Anchor r body \<Rightarrow>
-          if matches \<gamma> (anchor_rule.get_match r)
-              (case unwrap_decision (filter_approx body \<gamma> p (Preliminary d)) of Accept \<Rightarrow> Pass | Reject \<Rightarrow> Block) p
-          then filter_approx body \<gamma> p (Preliminary d) else Preliminary d) \<Longrightarrow>
-    P (l # ls) \<gamma> p (Preliminary d)) \<Longrightarrow>
-P rs \<gamma> p d" apply (induction rule:filter_approx.induct) *)
-
 
 lemma filter_approx_chain:
   shows "filter_approx (l1@l2) \<gamma> p d = filter_approx l2 \<gamma> p (filter_approx l1 \<gamma> p d)"
