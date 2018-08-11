@@ -401,8 +401,8 @@ qed
 
 (* simple ruleset reverse *)
 
-fun match_pf_rule :: "'a line \<Rightarrow> ('a,'p) match_tac \<Rightarrow> 'p \<Rightarrow> bool" where
 (* Accept is arbitrary here, \<gamma> should be independent of d *)
+fun match_pf_rule :: "'a line \<Rightarrow> ('a,'p) match_tac \<Rightarrow> 'p \<Rightarrow> bool" where
 "match_pf_rule (PfRule r) \<gamma> p = matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) decision.Accept p"
 
 lemma rev_preserves_no_match[simp]:
@@ -439,13 +439,13 @@ lemma good_matcher_match_not:
   apply (auto simp:matches_def good_matcher_def) by metis
 
 lemma pf_reverse_semantics:
-  assumes "simple_rset rs"
+  assumes "simple_ruleset rules"
       and "good_matcher \<gamma>"
-    shows "pf_approx (rev rs) \<gamma> p = (case (find (\<lambda>r. match_pf_rule r \<gamma> p) rs) of
+    shows "pf_approx (rev rules) \<gamma> p = (case (find (\<lambda>r. match_pf_rule r \<gamma> p) rules) of
 (Some (PfRule r)) \<Rightarrow> (action_to_decision (pf_rule.get_action r) decision.Accept)
 | None \<Rightarrow> decision.Accept)"
-    using assms unfolding pf_approx_def simple_rset_def
-proof(induction rs)
+    using assms unfolding pf_approx_def simple_ruleset_def
+proof(induction rules)
   case Nil
   then show ?case by simp
 next
@@ -455,7 +455,8 @@ next
     case (PfRule r)
     then show ?thesis
     proof(cases "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) decision.Accept p")
-      have "is_Preliminary (filter_approx (rev rs) \<gamma> p (Preliminary decision.Accept))" using Cons by (simp add:no_quick_preliminary[of "(rev rs)"])
+      have "is_Preliminary (filter_approx (rev rs) \<gamma> p (Preliminary decision.Accept))"
+        using Cons by (simp add:no_quick_preliminary[of "(rev rs)"])
       then obtain d where *:"(filter_approx (rev rs) \<gamma> p (Preliminary decision.Accept)) = (Preliminary d)"
         using is_Preliminary_def by blast
       case True
@@ -467,10 +468,11 @@ next
       then show ?thesis using Cons PfRule True by (cases "pf_rule.get_action r") auto
     next
       case False
-      then have "\<not>matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) (unwrap_decision (filter_approx (rev rs) \<gamma> p (Preliminary decision.Accept))) p"
+      then have "\<not>matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r)
+                    (unwrap_decision (filter_approx (rev rs) \<gamma> p (Preliminary decision.Accept))) p"
         using Cons PfRule by(auto simp:good_matcher_match_not)
       then have "filter_approx (rev rs @ [PfRule r]) \<gamma> p (Preliminary decision.Accept) =
-                  filter_approx (rev rs) \<gamma> p (Preliminary decision.Accept)" by simp
+                 filter_approx (rev rs) \<gamma> p (Preliminary decision.Accept)" by simp
       then show ?thesis using Cons PfRule False by auto
     qed
   next

@@ -7,7 +7,6 @@ imports
   IP_Addresses.CIDR_Split
   Iptables_Semantics.Negation_Type
   pfprefix_Negation_Type_Matching
-
 begin
 
 (* normalize matches to representation closest to simple_matcher *)
@@ -42,27 +41,32 @@ fun normalize_ports' :: "16 word opspec \<Rightarrow> 16 wordinterval" where
 "normalize_ports' (Unary (Eq p)) = (WordInterval p p)" |
 "normalize_ports' (Unary (NEq p)) = wordinterval_setminus wordinterval_UNIV (WordInterval p p)" |
 "normalize_ports' (Unary (GtEq p)) = (WordInterval p max_word)" |
-"normalize_ports' (Unary (Gt p)) = (if (p = max_word) then Empty_WordInterval else (WordInterval (p + 1) max_word))" |
+"normalize_ports' (Unary (Gt p)) = (if (p = max_word)
+                                     then Empty_WordInterval
+                                     else (WordInterval (p + 1) max_word))" |
 "normalize_ports' (Unary (LtEq p)) = (WordInterval 0 p)" |
-"normalize_ports' (Unary (Lt p)) = (if (p = 0) then Empty_WordInterval else (WordInterval 0 (p - 1)))" |
+"normalize_ports' (Unary (Lt p)) = (if (p = 0)
+                                     then Empty_WordInterval
+                                     else (WordInterval 0 (p - 1)))" |
 "normalize_ports' (Binary (RangeIncl from to)) = (WordInterval from to)" |
-"normalize_ports' (Binary (RangeExcl from to)) = (if (from = max_word \<or> to = 0) then Empty_WordInterval else (WordInterval (from + 1) (to -1)))" |
+"normalize_ports' (Binary (RangeExcl from to)) = (if (from = max_word \<or> to = 0) 
+                                                   then Empty_WordInterval
+                                                   else (WordInterval (from + 1) (to -1)))" |
 "normalize_ports' (Binary (RangeComp from to)) = wordinterval_setminus wordinterval_UNIV (WordInterval from to)"
-
-value "normalize_ports' (Binary (RangeComp 80 0))"
-
-value "0 < (0::16 word)"
 
 lemma normalize_ports' :
 "match_port spec p \<longleftrightarrow> wordinterval_element p (normalize_ports' spec)"
   unfolding match_port_def using linorder_not_less
-  by (induction spec rule: normalize_ports'.induct) (auto simp add: inc_le word_Suc_le minus_one_helper3 minus_one_helper5)
+  by (induction spec rule: normalize_ports'.induct)
+     (auto simp add: inc_le word_Suc_le minus_one_helper3 minus_one_helper5)
 
 fun normalize_ports :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
 "normalize_ports (Match (common_primitive.Src_Ports (L4Ports proto p))) =
- match_or (map (\<lambda>(l,u). (common_primitive.Src_Ports (L4Ports proto (Binary (RangeIncl l u))))) (wi2l (normalize_ports' p)))" |
+ match_or (map (\<lambda>(l,u). (common_primitive.Src_Ports (L4Ports proto (Binary (RangeIncl l u)))))
+            (wi2l (normalize_ports' p)))" |
 "normalize_ports (Match (common_primitive.Dst_Ports (L4Ports proto p))) =
- match_or (map (\<lambda>(l,u). (common_primitive.Dst_Ports (L4Ports proto (Binary (RangeIncl l u))))) (wi2l (normalize_ports' p)))" |
+ match_or (map (\<lambda>(l,u). (common_primitive.Dst_Ports (L4Ports proto (Binary (RangeIncl l u)))))
+            (wi2l (normalize_ports' p)))" |
 "normalize_ports (MatchNot m) = (MatchNot (normalize_ports m))" |
 "normalize_ports (MatchAnd m1 m2) = (MatchAnd (normalize_ports m1) (normalize_ports m2))" |
 "normalize_ports m = m"
@@ -87,21 +91,13 @@ next
   case 2
   then show ?case
     by (auto simp add:MatchOr_def eval_ternary_idempotence_Not
- eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
+                      eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
 next
   case (3 l u)
   then show ?case
-  proof(cases "(proto = p_proto p) \<and> (l \<le> p_sport p \<and> p_sport p \<le> u)")
-    case True
-    then show ?thesis using 3
-      by (auto simp add: eval_ternary_idempotence_Not MatchOr_def
- eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
-  next
-    case False
-    then show ?thesis using 3
-      by (auto simp add: eval_ternary_idempotence_Not MatchOr_def
- eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
-  qed
+    by (cases "(proto = p_proto p) \<and> (l \<le> p_sport p \<and> p_sport p \<le> u)")
+       (auto simp add: eval_ternary_idempotence_Not MatchOr_def
+                       eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
 qed
 
 lemma dst_ports_disjunction_helper:
@@ -118,21 +114,13 @@ next
   case 2
   then show ?case
     by (auto simp add:MatchOr_def eval_ternary_idempotence_Not
- eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
+                      eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
 next
   case (3 l u)
   then show ?case
-  proof(cases "(proto = p_proto p) \<and> (l \<le> p_dport p \<and> p_dport p \<le> u)")
-    case True
-    then show ?thesis using 3
-      by (auto simp add: eval_ternary_idempotence_Not MatchOr_def
- eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
-  next
-    case False
-    then show ?thesis using 3
-      by (auto simp add: eval_ternary_idempotence_Not MatchOr_def
- eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
-  qed
+    by (cases "(proto = p_proto p) \<and> (l \<le> p_dport p \<and> p_dport p \<le> u)")
+       (auto simp add: eval_ternary_idempotence_Not MatchOr_def
+                       eval_ternary_simps_simple match_port_def ternary_to_bool_bool_to_ternary)
 qed
 
 lemma normalize_ports_preserves_semantics':
@@ -193,23 +181,33 @@ by (induction m rule:normalize_ports.induct)
 
 
 fun remove_tables ::"pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
-"remove_tables ctx (Match (common_primitive.Src (Hostspec (Table name)))) = (MatchOr
-(match_or (map (\<lambda> a. (common_primitive.Src (Hostspec (Address (IPv4 a))))) (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))
-(match_or (map (\<lambda> a. (common_primitive.Src (Hostspec (Address (IPv6 a))))) (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name))))))" |
-"remove_tables ctx (Match (common_primitive.Dst (Table name))) = (MatchOr
-(match_or (map (\<lambda> a. (common_primitive.Dst (Address (IPv4 a)))) (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))
-(match_or (map (\<lambda> a. (common_primitive.Dst (Address (IPv6 a)))) (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name))))))" |
+"remove_tables ctx (Match (common_primitive.Src (Hostspec (Table name)))) = 
+  (MatchOr
+    (match_or (map (\<lambda> a. (common_primitive.Src (Hostspec (Address (IPv4 a)))))
+                (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))
+    (match_or (map (\<lambda> a. (common_primitive.Src (Hostspec (Address (IPv6 a)))))
+                (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name))))))" |
+"remove_tables ctx (Match (common_primitive.Dst (Table name))) =
+  (MatchOr
+    (match_or (map (\<lambda> a. (common_primitive.Dst (Address (IPv4 a))))
+                (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))
+    (match_or (map (\<lambda> a. (common_primitive.Dst (Address (IPv6 a))))
+                (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name))))))" |
 "remove_tables ctx (MatchNot m) = (MatchNot (remove_tables ctx m))" |
 "remove_tables ctx (MatchAnd m1 m2) = (MatchAnd (remove_tables ctx m1) (remove_tables ctx m2))" |
 "remove_tables ctx m = m"
 
-lemma common_matcher_Src_IPv6_TernaryFalse[simp]: "ternary_ternary_eval (map_match_tac (common_matcher ctx) p
+lemma common_matcher_Src_IPv6_TernaryFalse[simp]:
+"ternary_ternary_eval (map_match_tac (common_matcher ctx) p
 (match_or (map (\<lambda>a. Src (Hostspec (Address (IPv6 a)))) l))) = TernaryFalse"
-  by (induction l;simp add:matches_def MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple(1))
+  by (induction l)
+     (simp add:matches_def MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple(1))+
 
-lemma common_matcher_Dst_IPv6_TernaryFalse[simp]: "ternary_ternary_eval (map_match_tac (common_matcher ctx) p
+lemma common_matcher_Dst_IPv6_TernaryFalse[simp]:
+"ternary_ternary_eval (map_match_tac (common_matcher ctx) p
 (match_or (map (\<lambda>a. Dst (Address (IPv6 a))) l))) = TernaryFalse"
-  by (induction l;simp add:matches_def MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple(1))
+  by (induction l)
+     (simp add:matches_def MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple(1))+
 
 
 lemma src_addr_disjunction_helper:
@@ -227,15 +225,9 @@ proof(induction l)
 next
   case (Cons a l)
   then show ?case
-  proof(cases "p_src p \<in> prefix_to_wordset a")
-    case True
-    then show ?thesis using Cons(2)
-      by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
-  next
-    case False
-    then show ?thesis using Cons
-      by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
-  qed
+    by (cases "p_src p \<in> prefix_to_wordset a")
+       (simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple
+                 prefix_match_semantics_wordset)+
 qed
 
 lemma dst_addr_disjunction_helper:
@@ -253,15 +245,9 @@ proof(induction l)
 next
   case (Cons a l)
   then show ?case
-  proof(cases "p_dst p \<in> prefix_to_wordset a")
-    case True
-    then show ?thesis using Cons(2)
-      by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
-  next
-    case False
-    then show ?thesis using Cons
-      by(simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple prefix_match_semantics_wordset)
-  qed
+    by (cases "p_dst p \<in> prefix_to_wordset a")
+       (simp add:MatchOr_def eval_ternary_idempotence_Not eval_ternary_simps_simple
+                 prefix_match_semantics_wordset)+
 qed
 
 
@@ -293,7 +279,7 @@ qed (simp add:good_match_expr_def)+
 
 lemma remove_tables_preserves_semantics :
   assumes "good_match_expr ctx m"
-  shows "matches (common_matcher ctx, \<alpha>) m a d p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (remove_tables ctx m) a d p"
+    shows "matches (common_matcher ctx, \<alpha>) m a d p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (remove_tables ctx m) a d p"
   using assms by (simp add:good_match_expr_def matches_def remove_tables_preserves_semantics')
 
 definition no_tables :: "common_primitive match_expr \<Rightarrow> bool" where
