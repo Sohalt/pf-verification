@@ -362,13 +362,6 @@ next
     qed
 qed
 
-
-definition normalize_ports_rs :: "pfprefix_Primitives.common_primitive ruleset \<Rightarrow> pfprefix_Primitives.common_primitive ruleset" where
-"normalize_ports_rs = optimize_matches normalize_ports"
-
-definition remove_tables_rs :: "pfcontext \<Rightarrow> pfprefix_Primitives.common_primitive ruleset \<Rightarrow> pfprefix_Primitives.common_primitive ruleset" where
-"remove_tables_rs ctx = optimize_matches (remove_tables ctx)"
-
 definition pfcp_to_iptcp_rs :: "pfprefix_Primitives.common_primitive ruleset \<Rightarrow> 32 common_primitive rule list" where
 "pfcp_to_iptcp_rs = map (\<lambda>l. (case l of (PfRule r) \<Rightarrow> (Rule (pfm_to_iptm (pf_rule.get_match r)) (pfa_to_ipta (pf_rule.get_action r)))))"
 

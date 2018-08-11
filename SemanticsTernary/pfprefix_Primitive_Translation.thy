@@ -161,6 +161,8 @@ lemma normalize_ports_ok:
 by (induction m rule:normalize_ports.induct)
    ((simp add:normalized_ports_def; fail) | simp)+
 
+definition normalize_ports_rs :: "pfprefix_Primitives.common_primitive ruleset \<Rightarrow> pfprefix_Primitives.common_primitive ruleset" where
+"normalize_ports_rs = optimize_matches normalize_ports"
 
 fun remove_tables ::"pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
 "remove_tables ctx (Match (common_primitive.Src (Hostspec (Table name)))) = 
@@ -314,4 +316,6 @@ next
   ultimately show ?case by (simp add:MatchOr_def no_tables_def)
 qed (simp add:no_tables_def)+
 
+definition remove_tables_rs :: "pfcontext \<Rightarrow> pfprefix_Primitives.common_primitive ruleset \<Rightarrow> pfprefix_Primitives.common_primitive ruleset" where
+"remove_tables_rs ctx = optimize_matches (remove_tables ctx)"
 end
