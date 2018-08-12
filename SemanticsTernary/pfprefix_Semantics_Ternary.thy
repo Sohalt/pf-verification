@@ -92,8 +92,8 @@ next
   qed
 qed
 
-lemma "filter_approx rules \<gamma> p start_decision = unwrap_decision (filter_approx' rules \<gamma> p (Preliminary start_decision))"
-proof(induction rules \<gamma> p start_decision rule: filter_approx.induct)
+lemma "filter_approx rs \<gamma> p d = unwrap_decision (filter_approx' rs \<gamma> p (Preliminary d))"
+proof(induction rs \<gamma> p d rule: filter_approx.induct)
   case (1 \<gamma> p d)
   then show ?case by simp
 next
@@ -120,11 +120,11 @@ qed
 
 (* default behavior is Accept *)
 definition pf_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision" where
-"pf_approx rules \<gamma> packet = unwrap_decision (filter_approx' rules \<gamma> packet (Preliminary Accept))"
+"pf_approx rs \<gamma> p = unwrap_decision (filter_approx' rs \<gamma> p (Preliminary Accept))"
 
 lemma filter_approx'_to_pf_approx:
-  assumes "\<forall> d. (filter_approx' l1 m p d = filter_approx' l2 m p d)"
-  shows "pf_approx l1 m p = pf_approx l2 m p" unfolding pf_approx_def using assms by simp
+  assumes "\<forall> d. (filter_approx' rs1 m p d = filter_approx' rs2 m p d)"
+  shows "pf_approx rs1 m p = pf_approx rs2 m p" unfolding pf_approx_def using assms by simp
 
 
 subsection\<open>Matching\<close> (* adapted from Iptables_Semantics.Semantics_Ternary *)
@@ -145,7 +145,8 @@ next
   then show ?case
   proof(cases "f (pf_rule.get_match r)")
     case None
-    then have "\<not>matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) (unwrap_decision d) p" using 2(1) 2(3) 2(6) apply (auto simp add: simple_ruleset_def)
+    then have "\<not>matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) (unwrap_decision d) p"
+      using 2(1) 2(3) 2(6) apply (auto simp add: simple_ruleset_def)
       using "2.prems"(2) by auto
     then show ?thesis using 2(1) 2(3) 2(6) apply (auto simp add: simple_ruleset_def)
       by (cases d;simp add: "2.prems"(2) "2.prems"(3) None)
@@ -160,27 +161,31 @@ next
     proof(cases "matches \<gamma> a (get_action r) (unwrap_decision d) p")
       case T1:True
       then have T2:"matches \<gamma> (pf_rule.get_match r) (get_action r) (unwrap_decision d) p"
-        using \<open>matches \<gamma> (pf_rule.get_match r) (get_action r) (unwrap_decision d) p = matches \<gamma> a (get_action r) (unwrap_decision d) p\<close> by blast
+        using \<open>matches \<gamma> (pf_rule.get_match r) (get_action r) (unwrap_decision d) p =
+               matches \<gamma> a (get_action r) (unwrap_decision d) p\<close> by blast
       then show ?thesis 
       proof(cases d)
         case (Final x1)
         then show ?thesis by simp
       next
         case (Preliminary x2)
-        then show ?thesis using T1 T2 "2.IH" "2.prems"(1) "2.prems"(2) Some P apply (simp add:simple_ruleset_def)
+        then show ?thesis using T1 T2 "2.IH" "2.prems"(1) "2.prems"(2) Some P
+          apply (simp add:simple_ruleset_def)
           using "2.prems"(3) "2.prems"(4) by blast
       qed
     next
       case F1:False
       then have F2:"\<not>matches \<gamma> (pf_rule.get_match r) (get_action r) (unwrap_decision d) p"
-        using \<open>matches \<gamma> (pf_rule.get_match r) (get_action r) (unwrap_decision d) p = matches \<gamma> a (get_action r) (unwrap_decision d) p\<close> by blast
+        using \<open>matches \<gamma> (pf_rule.get_match r) (get_action r) (unwrap_decision d) p =
+               matches \<gamma> a (get_action r) (unwrap_decision d) p\<close> by blast
       then show ?thesis
       proof(cases d)
         case (Final x1)
         then show ?thesis by simp
       next
         case (Preliminary x2)
-        then show ?thesis using F1 F2 "2.IH" "2.prems"(1) "2.prems"(2) Some P apply (simp add:simple_ruleset_def)
+        then show ?thesis using F1 F2 "2.IH" "2.prems"(1) "2.prems"(2) Some P
+          apply (simp add:simple_ruleset_def)
           using "2.prems"(3) "2.prems"(4) by blast
       qed
     qed
@@ -224,8 +229,8 @@ lemma optimize_matches':
       and "\<forall>m a. matches \<gamma> (f m) a d p = matches \<gamma> m a d p"
     shows "pf_approx (optimize_matches f rs) \<gamma> p = pf_approx rs \<gamma> p"
 proof(-)
-  from assms(2) assms(3) have "\<And> m a d. a \<noteq> ActionMatch \<Longrightarrow> matches \<gamma> (f m) a d p = matches \<gamma> m a d p" apply (auto simp:good_matcher_def)
-    by (metis matches_case)+
+  from assms(2) assms(3) have "\<And> m a d. a \<noteq> ActionMatch \<Longrightarrow> matches \<gamma> (f m) a d p = matches \<gamma> m a d p"
+    apply (auto simp:good_matcher_def) by (metis matches_case)+
   then show ?thesis using assms optimize_matches_generic[where P="\<lambda> m a. a \<noteq> ActionMatch"]
 (* TODO more elegant *)
     by (simp add: \<open>\<And>rs p f \<gamma>. \<lbrakk>pfprefix_Firewall_Common.simple_ruleset rs; no_match rs;
