@@ -4,27 +4,27 @@ begin
 
 (* unused but might come in handy at some point *)
 
-lemma filter_approx_add_equiv_prefix :
-  assumes "filter_approx l1 \<gamma> p d = filter_approx l2 \<gamma> p d"
-          "\<And>d. filter_approx l3 \<gamma> p d = filter_approx l4 \<gamma> p d"
-  shows "filter_approx (l1@l3) \<gamma> p d = filter_approx (l2@l4) \<gamma> p d"
+lemma filter_approx'_add_equiv_prefix :
+  assumes "filter_approx' l1 \<gamma> p d = filter_approx' l2 \<gamma> p d"
+          "\<And>d. filter_approx' l3 \<gamma> p d = filter_approx' l4 \<gamma> p d"
+  shows "filter_approx' (l1@l3) \<gamma> p d = filter_approx' (l2@l4) \<gamma> p d"
 proof -
-    have "filter_approx (l1@l3) \<gamma> p d = filter_approx l3 \<gamma> p (filter_approx l1 \<gamma> p d)" by (simp add: filter_approx_chain)
-    moreover have "filter_approx (l2@l4) \<gamma> p d = filter_approx l4 \<gamma> p (filter_approx l2 \<gamma> p d)" by (simp add: filter_approx_chain)
+    have "filter_approx' (l1@l3) \<gamma> p d = filter_approx' l3 \<gamma> p (filter_approx' l1 \<gamma> p d)" by (simp add: filter_approx'_chain)
+    moreover have "filter_approx' (l2@l4) \<gamma> p d = filter_approx' l4 \<gamma> p (filter_approx' l2 \<gamma> p d)" by (simp add: filter_approx'_chain)
     ultimately show ?thesis using assms by auto
   qed
 
 
-lemma filter_approx_add_same_prefix :
-  assumes "\<And>d. filter_approx l1 \<gamma> p d = filter_approx l2 \<gamma> p d"
-  shows "filter_approx (l@l1) \<gamma> p d = filter_approx (l@l2) \<gamma> p d"
-  by (metis assms filter_approx_add_equiv_prefix)
+lemma filter_approx'_add_same_prefix :
+  assumes "\<And>d. filter_approx' l1 \<gamma> p d = filter_approx' l2 \<gamma> p d"
+  shows "filter_approx' (l@l1) \<gamma> p d = filter_approx' (l@l2) \<gamma> p d"
+  by (metis assms filter_approx'_add_equiv_prefix)
 
 
 
 lemma filter_final[simp]:
-  assumes "filter_approx l \<gamma> p d = Final d'"
-  shows "filter_approx (l@l') \<gamma> p d = Final d'"
+  assumes "filter_approx' l \<gamma> p d = Final d'"
+  shows "filter_approx' (l@l') \<gamma> p d = Final d'"
 proof(cases d)
   case (Final x1)
   then show ?thesis using assms by simp
@@ -36,7 +36,7 @@ next
     then show ?case by simp
   next
     case (Cons a l)
-    then show ?case by (simp add: filter_approx_chain)
+    then show ?case by (simp add: filter_approx'_chain)
   qed
 qed
 
@@ -44,8 +44,8 @@ lemma decision_change:
   assumes "d \<noteq> d'"
       and "no_match_quick l"
       and "no_anchors l"
-      and "unwrap_decision (filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d)) = d'"
-    shows "\<And>d'' .filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d'') = filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d)"
+      and "unwrap_decision (filter_approx' l (exact_match_tac, in_doubt_allow) p (Preliminary d)) = d'"
+    shows "\<And>d'' .filter_approx' l (exact_match_tac, in_doubt_allow) p (Preliminary d'') = filter_approx' l (exact_match_tac, in_doubt_allow) p (Preliminary d)"
   using assms
 proof(induction l arbitrary:d)
 case Nil
@@ -53,10 +53,10 @@ case Nil
 next
   case (Cons a l)
   then have no_anchors:"no_anchors l" by simp
-  have chain:"unwrap_decision (filter_approx (a # l) (exact_match_tac, in_doubt_allow) p (Preliminary d)) =
-              unwrap_decision (filter_approx l (exact_match_tac, in_doubt_allow) p
-               (filter_approx [a] (exact_match_tac, in_doubt_allow) p (Preliminary d)))"
-    using filter_approx_chain by (metis append_Cons append_Nil)
+  have chain:"unwrap_decision (filter_approx' (a # l) (exact_match_tac, in_doubt_allow) p (Preliminary d)) =
+              unwrap_decision (filter_approx' l (exact_match_tac, in_doubt_allow) p
+               (filter_approx' [a] (exact_match_tac, in_doubt_allow) p (Preliminary d)))"
+    using filter_approx'_chain by (metis append_Cons append_Nil)
   show ?case
   proof(cases a)
     case (PfRule r)
@@ -72,10 +72,10 @@ qed
 
 lemma and_each_unknown[simp]:
   assumes unknown:"(ternary_ternary_eval (map_match_tac exact_match_tac p m)) = TernaryUnknown"
-      and accepts:"unwrap_decision(filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d)) = decision.Accept"
+      and accepts:"unwrap_decision(filter_approx' l (exact_match_tac, in_doubt_allow) p (Preliminary d)) = decision.Accept"
       and no_match_quick:"no_match_quick l"
       and no_anchors:"no_anchors l"
-    shows "(filter_approx (and_each m l) (exact_match_tac,in_doubt_allow) p (Preliminary d)) =(filter_approx l (exact_match_tac, in_doubt_allow) p (Preliminary d))"
+    shows "(filter_approx' (and_each m l) (exact_match_tac,in_doubt_allow) p (Preliminary d)) =(filter_approx' l (exact_match_tac, in_doubt_allow) p (Preliminary d))"
   using assms
 proof(induction l arbitrary:d)
   case Nil
@@ -198,9 +198,9 @@ qed
 
 lemma no_pf_rules_no_change:
   assumes "no_pf_rules ls"
-  shows "filter_approx ls m p d = d"
+  shows "filter_approx' ls m p d = d"
   using assms
-proof(induction ls m p d rule:filter_approx.induct)
+proof(induction ls m p d rule:filter_approx'.induct)
 case (1 uu uv uw d)
 then show ?case by simp
 next

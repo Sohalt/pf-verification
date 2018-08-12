@@ -3,34 +3,34 @@ theory pfprefix_Semantics_Ternary
           pfprefix_Unknown_Match_Tacs
 begin
 
-fun filter_approx_spec :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
-"filter_approx_spec [] \<gamma> p d = d" |
-"filter_approx_spec ((PfRule r)#ls) \<gamma> p d =
+fun filter_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
+"filter_approx [] \<gamma> p d = d" |
+"filter_approx ((PfRule r)#ls) \<gamma> p d =
   (if (matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p)
     then (if (pf_rule.get_quick r)
            then (action_to_decision (pf_rule.get_action r) d)
-           else (filter_approx_spec ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
-    else filter_approx_spec ls \<gamma> p d)" |
-"filter_approx_spec ((Anchor r b)#ls) \<gamma> p d =
+           else (filter_approx ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
+    else filter_approx ls \<gamma> p d)" |
+"filter_approx ((Anchor r b)#ls) \<gamma> p d =
   (if (matches
          \<gamma>
          (anchor_rule.get_match r)
-         (case (filter_approx_spec b \<gamma> p d) of
+         (case (filter_approx b \<gamma> p d) of
                  (* if the body accepts, the anchor is equal to pass *)
                  Accept \<Rightarrow> Pass
                  (* if the body rejects, the anchor is equal to block *)
                  | Reject \<Rightarrow> Block)
          d
          p)
-    then (filter_approx_spec (b@ls) \<gamma> p d)
-    else filter_approx_spec ls \<gamma> p d)"
+    then (filter_approx (b@ls) \<gamma> p d)
+    else filter_approx ls \<gamma> p d)"
 
 
-fun filter_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
-"filter_approx _ _ _ (Final d) = Final d" |
-"filter_approx [] _ _ d = d" |
-"filter_approx (l#ls) \<gamma> p (Preliminary d) =
-  filter_approx ls \<gamma> p 
+fun filter_approx' :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
+"filter_approx' _ _ _ (Final d) = Final d" |
+"filter_approx' [] _ _ d = d" |
+"filter_approx' (l#ls) \<gamma> p (Preliminary d) =
+  filter_approx' ls \<gamma> p 
     (case l of
       (PfRule r) \<Rightarrow> (if (matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p)
                                    then (if (get_quick r)
@@ -40,20 +40,20 @@ fun filter_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 
       | (Anchor r body) \<Rightarrow> (if (matches
                                  \<gamma>
                                  (anchor_rule.get_match r)
-                                 (case (unwrap_decision (filter_approx body \<gamma> p (Preliminary d))) of
+                                 (case (unwrap_decision (filter_approx' body \<gamma> p (Preliminary d))) of
                                    (* if the body accepts the anchor is equal to pass *)
                                    Accept \<Rightarrow> Pass
                                    (* if the body rejects the anchor is equal to block *)
                                    | Reject \<Rightarrow> Block)
                                  d
                                  p)
-                            then (filter_approx body \<gamma> p (Preliminary d))
+                            then (filter_approx' body \<gamma> p (Preliminary d))
                             else (Preliminary d)))"
 
-case_of_simps filter_approx_cases: filter_approx.simps
+case_of_simps filter_approx'_cases: filter_approx'.simps
 
-lemma filter_approx_chain:
-  shows "filter_approx (l1@l2) \<gamma> p d = filter_approx l2 \<gamma> p (filter_approx l1 \<gamma> p d)"
+lemma filter_approx'_chain:
+  shows "filter_approx' (l1@l2) \<gamma> p d = filter_approx' l2 \<gamma> p (filter_approx' l1 \<gamma> p d)"
 proof(induction l1 arbitrary: d)
   case Nil
   then show ?case
@@ -83,7 +83,7 @@ next
         by (cases "(matches
                      m
                      (anchor_rule.get_match r)
-                     (case (unwrap_decision (filter_approx body \<gamma> p d)) of
+                     (case (unwrap_decision (filter_approx' body \<gamma> p d)) of
                              Accept \<Rightarrow> Pass
                              | Reject \<Rightarrow> Block)
                      d'
@@ -92,8 +92,8 @@ next
   qed
 qed
 
-lemma "filter_approx_spec rules \<gamma> p start_decision = unwrap_decision (filter_approx rules \<gamma> p (Preliminary start_decision))"
-proof(induction rules \<gamma> p start_decision rule: filter_approx_spec.induct)
+lemma "filter_approx rules \<gamma> p start_decision = unwrap_decision (filter_approx' rules \<gamma> p (Preliminary start_decision))"
+proof(induction rules \<gamma> p start_decision rule: filter_approx.induct)
   case (1 \<gamma> p d)
   then show ?case by simp
 next
@@ -105,13 +105,13 @@ next
   proof(cases "(matches
                 \<gamma>
                 (anchor_rule.get_match r)
-                (case (filter_approx_spec b \<gamma> p d) of
+                (case (filter_approx b \<gamma> p d) of
                         Accept \<Rightarrow> Pass
                         | Reject \<Rightarrow> Block)
                 d
                 p)")
     case True
-    then show ?thesis using IH by (auto simp: filter_approx_chain)
+    then show ?thesis using IH by (auto simp: filter_approx'_chain)
   next
     case False
     then show ?thesis using IH by auto
@@ -120,10 +120,10 @@ qed
 
 (* default behavior is Accept *)
 definition pf_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision" where
-"pf_approx rules \<gamma> packet = unwrap_decision (filter_approx rules \<gamma> packet (Preliminary Accept))"
+"pf_approx rules \<gamma> packet = unwrap_decision (filter_approx' rules \<gamma> packet (Preliminary Accept))"
 
-lemma filter_approx_to_pf_approx:
-  assumes "\<forall> d. (filter_approx l1 m p d = filter_approx l2 m p d)"
+lemma filter_approx'_to_pf_approx:
+  assumes "\<forall> d. (filter_approx' l1 m p d = filter_approx' l2 m p d)"
   shows "pf_approx l1 m p = pf_approx l2 m p" unfolding pf_approx_def using assms by simp
 
 
@@ -135,7 +135,7 @@ lemma optimize_matches_option_generic:
       and "(\<And>m a d. P m a \<Longrightarrow> f m = None \<Longrightarrow> \<not> matches \<gamma> m a d p)"
     shows "pf_approx (optimize_matches_option f rs) \<gamma> p = pf_approx rs \<gamma> p"
 proof(-)
-  have "\<And>d. filter_approx (optimize_matches_option f rs) \<gamma> p d = filter_approx rs \<gamma> p d"
+  have "\<And>d. filter_approx' (optimize_matches_option f rs) \<gamma> p d = filter_approx' rs \<gamma> p d"
   using assms proof(induction rs arbitrary:d rule:optimize_matches_option.induct)
 case (1 uu)
   then show ?case by simp
@@ -189,7 +189,7 @@ next
   case (3 a vb vc va)
   then show ?case by (auto simp add: simple_ruleset_def)
 qed
-  then show ?thesis by (simp add: filter_approx_to_pf_approx)
+  then show ?thesis by (simp add: filter_approx'_to_pf_approx)
 qed
 
 

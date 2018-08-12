@@ -10,7 +10,7 @@ text\<open>If firewall rules have the same action, we can focus on the matching 
 
 lemma [simp]:
   assumes "\<not>(matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) (unwrap_decision d) p)"
-  shows "filter_approx ((PfRule r)#rs) \<gamma> p d = filter_approx rs \<gamma> p d"
+  shows "filter_approx' ((PfRule r)#rs) \<gamma> p d = filter_approx' rs \<gamma> p d"
 proof(cases d)
   case (Final x1)
   then show ?thesis by simp
@@ -22,7 +22,7 @@ qed
 (*
 text\<open>Applying a rule once or several times makes no difference.\<close>
 lemma pf_approx_prepend_replicate: 
-  "n > 0 \<Longrightarrow> filter_approx (r#rs) \<gamma> p d = filter_approx ((replicate n r)@rs) \<gamma> p d"
+  "n > 0 \<Longrightarrow> filter_approx' (r#rs) \<gamma> p d = filter_approx' ((replicate n r)@rs) \<gamma> p d"
 proof(induction n arbitrary:d)
   case 0
   then show ?case by simp
@@ -37,7 +37,7 @@ next
       then show ?thesis sorry
     next
       case False
-      then have "filter_approx ((PfRule r) # rs) \<gamma> p d = filter_approx ((PfRule r) # ((PfRule r) # rs)) \<gamma> p d" by (rule meh[symmetric])
+      then have "filter_approx' ((PfRule r) # rs) \<gamma> p d = filter_approx' ((PfRule r) # ((PfRule r) # rs)) \<gamma> p d" by (rule meh[symmetric])
       then show ?thesis unfolding PfRule using Suc apply simp sorry
     qed
   next
@@ -101,7 +101,7 @@ subsection\<open>@{term match_list}\<close>
     by(induction ms, simp_all)
 
 
-lemma match_list_False: "\<not>match_list \<gamma> ms a (unwrap_decision d) p \<Longrightarrow> filter_approx (map (\<lambda>m. PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>) ms) \<gamma> p d =
+lemma match_list_False: "\<not>match_list \<gamma> ms a (unwrap_decision d) p \<Longrightarrow> filter_approx' (map (\<lambda>m. PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>) ms) \<gamma> p d =
  d"
 proof(induction ms)
   case Nil
@@ -111,7 +111,7 @@ next
   then show ?case by (cases d;auto)
 qed
 
-lemma match_list_True: "match_list \<gamma> ms a d p \<Longrightarrow> filter_approx (map (\<lambda>m. PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>) ms) \<gamma> p (Preliminary d) =
+lemma match_list_True: "match_list \<gamma> ms a d p \<Longrightarrow> filter_approx' (map (\<lambda>m. PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>) ms) \<gamma> p (Preliminary d) =
  (case a of Pass \<Rightarrow> (Preliminary decision.Accept) | Block \<Rightarrow> (Preliminary decision.Reject) | ActionMatch \<Rightarrow> (Preliminary d))"
 proof(induction ms arbitrary:d)
 case Nil
@@ -139,7 +139,7 @@ qed
   text\<open>The key idea behind @{const match_list}: Reducing semantics to match list\<close>
 lemma match_list_semantics:
   assumes match_list:"match_list \<gamma> ms1 a (unwrap_decision d) p \<longleftrightarrow> match_list \<gamma> ms2 a (unwrap_decision d) p"
-    shows "filter_approx (map (\<lambda>m. (PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>)) ms1) \<gamma> p d = filter_approx (map (\<lambda>m. (PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>)) ms2) \<gamma> p d"
+    shows "filter_approx' (map (\<lambda>m. (PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>)) ms1) \<gamma> p d = filter_approx' (map (\<lambda>m. (PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>)) ms2) \<gamma> p d"
 proof(cases "match_list \<gamma> ms1 a (unwrap_decision d) p")
     case m1T:True
     then have m2T:"match_list \<gamma> ms2 a (unwrap_decision d) p" using match_list by auto

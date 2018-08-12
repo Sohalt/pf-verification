@@ -79,10 +79,10 @@ theorem normalize_match_correct:
   shows "pf_approx (map (\<lambda>m. PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>) (normalize_match m)) \<gamma> p =
  pf_approx [PfRule \<lparr> get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>] \<gamma> p"
 proof(-)
-  have "\<And>d. filter_approx (map (\<lambda>m. PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>) (normalize_match m)) \<gamma> p d =
- filter_approx [PfRule \<lparr> get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>] \<gamma> p d"
+  have "\<And>d. filter_approx' (map (\<lambda>m. PfRule \<lparr>get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>) (normalize_match m)) \<gamma> p d =
+ filter_approx' [PfRule \<lparr> get_action = a, get_quick = False, pf_rule.get_match = m\<rparr>] \<gamma> p d"
     using match_list_semantics[of _ "[m]", simplified] match_list_normalize_match
     by (smt list.map(1) list.simps(9) map_eq_conv match_list_semantics)
-  then show ?thesis by (simp add:filter_approx_to_pf_approx)
+  then show ?thesis by (simp add:filter_approx'_to_pf_approx)
 qed
 end
