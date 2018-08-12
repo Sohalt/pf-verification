@@ -1,6 +1,5 @@
 theory pfprefix_Predicates
-imports
-  "../pfprefix_Firewall_Common"
+  imports
   "../pfprefix_Primitives"
   pfprefix_Matching_Ternary
 begin
