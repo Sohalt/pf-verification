@@ -152,24 +152,24 @@ lemma remove_suffix[simp]:
 
 (* remove quick rules *)
 
-fun remove_quick' :: "'a ruleset \<Rightarrow> 'a ruleset" where
-"remove_quick' [] = []" |
-"remove_quick' ((PfRule r)#ls) =
+fun remove_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_quick [] = []" |
+"remove_quick ((PfRule r)#ls) =
 (if (get_quick r)
-  then (and_each (MatchNot (pf_rule.get_match r)) (remove_quick' ls)) @ [PfRule (r\<lparr>get_quick := False\<rparr>)]
-  else (PfRule r)#(remove_quick' ls))"
+  then (and_each (MatchNot (pf_rule.get_match r)) (remove_quick ls)) @ [PfRule (r\<lparr>get_quick := False\<rparr>)]
+  else (PfRule r)#(remove_quick ls))"
 
-lemma remove_quick'_ok:
+lemma remove_quick_ok:
   assumes "no_anchors rules"
-  shows "no_quick (remove_quick' rules)"
+  shows "no_quick (remove_quick rules)"
   using assms
-  by (induction rules rule:remove_quick'.induct)
+  by (induction rules rule:remove_quick.induct)
      (auto simp: and_each_preserves_no_quick)
 
-lemma remove_quick'_preserves_no_anchors :
+lemma remove_quick_preserves_no_anchors :
   assumes "no_anchors rules"
-  shows "no_anchors (remove_quick' rules)"
-  using assms by(induction rules rule:remove_quick'.induct)
+  shows "no_anchors (remove_quick rules)"
+  using assms by(induction rules rule:remove_quick.induct)
                 (auto simp:and_each_preserves_no_anchors)
 
 lemma no_quick_preliminary:
@@ -203,13 +203,13 @@ next
 qed
 
 
-lemma remove_quick'_preserves_semantics:
+lemma remove_quick_preserves_semantics:
   assumes "no_anchors rules"
-  shows "pf rules \<gamma> p = pf (remove_quick' rules) \<gamma> p"
+  shows "pf rules \<gamma> p = pf (remove_quick rules) \<gamma> p"
 proof(-)
-  have "(unwrap_decision (filter' rules \<gamma> p d) = unwrap_decision (filter' (remove_quick' rules) \<gamma> p d))" for d
+  have "(unwrap_decision (filter' rules \<gamma> p d) = unwrap_decision (filter' (remove_quick rules) \<gamma> p d))" for d
     using assms
-  proof(induction rules arbitrary:d rule:remove_quick'.induct)
+  proof(induction rules arbitrary:d rule:remove_quick.induct)
   case 1
   then show ?case by simp
   next
