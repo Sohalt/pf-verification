@@ -327,4 +327,24 @@ qed (simp add:no_tables_def)+
 
 definition remove_tables_rs :: "pfcontext \<Rightarrow> pfprefix_Primitives.common_primitive ruleset \<Rightarrow> pfprefix_Primitives.common_primitive ruleset" where
 "remove_tables_rs ctx = optimize_matches (remove_tables ctx)"
+
+lemma remove_tables_rs_preserves_semantics:
+  assumes "good_ruleset ctx rs"
+      and "simple_ruleset rs"
+      and "good_matcher (common_matcher ctx,\<alpha>)"
+    shows "pf_approx rs (common_matcher ctx,\<alpha>) p = pf_approx (remove_tables_rs ctx rs) (common_matcher ctx,\<alpha>) p"
+proof(-)
+  have "\<forall>r\<in>set rs.
+       case r of PfRule r \<Rightarrow> pf_rule.get_action r \<noteq> ActionMatch \<and> good_match_expr ctx (pf_rule.get_match r)
+       | Anchor _ _ \<Rightarrow> True" using assms(1) assms(2) unfolding good_ruleset_def simple_ruleset_def
+    by (simp add: line.case_eq_if)
+  moreover have "(\<And>m a d. a \<noteq> ActionMatch \<and> good_match_expr ctx m \<Longrightarrow>
+  matches (common_matcher ctx,\<alpha>) (remove_tables ctx m) a d p = matches(common_matcher ctx,\<alpha>) m a d p)"
+    using remove_tables_preserves_semantics good_matcher_def assms(3)
+    by blast
+  ultimately show ?thesis unfolding remove_tables_rs_def
+    using assms(2) optimize_matches_generic[where P="\<lambda> m a. a \<noteq> ActionMatch \<and> good_match_expr ctx m"]
+    sorry (* sledgehammer *)
+qed
+
 end
