@@ -6,24 +6,24 @@ begin
 fun filter_approx_spec :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
 "filter_approx_spec [] \<gamma> p d = d" |
 "filter_approx_spec ((PfRule r)#ls) \<gamma> p d =
-(if (matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p)
-  then (if (pf_rule.get_quick r)
-         then (action_to_decision (pf_rule.get_action r) d)
-         else (filter_approx_spec ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
-  else filter_approx_spec ls \<gamma> p d)" |
+  (if (matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p)
+    then (if (pf_rule.get_quick r)
+           then (action_to_decision (pf_rule.get_action r) d)
+           else (filter_approx_spec ls \<gamma> p (action_to_decision (pf_rule.get_action r) d)))
+    else filter_approx_spec ls \<gamma> p d)" |
 "filter_approx_spec ((Anchor r b)#ls) \<gamma> p d =
-(if (matches
-       \<gamma>
-       (anchor_rule.get_match r)
-       (case (filter_approx_spec b \<gamma> p d) of
-               (* if the body accepts, the anchor is equal to pass *)
-               Accept \<Rightarrow> Pass
-               (* if the body rejects, the anchor is equal to block *)
-               | Reject \<Rightarrow> Block)
-       d
-       p)
-  then (filter_approx_spec (b@ls) \<gamma> p d)
-  else filter_approx_spec ls \<gamma> p d)"
+  (if (matches
+         \<gamma>
+         (anchor_rule.get_match r)
+         (case (filter_approx_spec b \<gamma> p d) of
+                 (* if the body accepts, the anchor is equal to pass *)
+                 Accept \<Rightarrow> Pass
+                 (* if the body rejects, the anchor is equal to block *)
+                 | Reject \<Rightarrow> Block)
+         d
+         p)
+    then (filter_approx_spec (b@ls) \<gamma> p d)
+    else filter_approx_spec ls \<gamma> p d)"
 
 
 fun filter_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
@@ -71,37 +71,25 @@ next
     case (Final x1)
     then show ?thesis by simp
   next
-    case Prem: (Preliminary x2)
+    case (Preliminary x2)
     then show ?thesis
     proof(cases a)
-case (PfRule r)
-  then show ?thesis
-    proof(cases "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d' p")
-    case True
-    then show ?thesis unfolding PfRule using Prem IH by auto
-  next
-    case False
-    then show ?thesis using Prem IH by auto
+      case (PfRule r)
+      then show ?thesis using Preliminary IH
+        by (cases "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d' p") auto
+    next
+      case (Anchor r l)
+      then show ?thesis using Preliminary IH
+        by (cases "(matches
+                     m
+                     (anchor_rule.get_match r)
+                     (case (unwrap_decision (filter_approx body \<gamma> p d)) of
+                             Accept \<Rightarrow> Pass
+                             | Reject \<Rightarrow> Block)
+                     d'
+                     p)") auto
+    qed
   qed
-next
-  case (Anchor r l)
-  then show ?thesis
-  proof(cases "(matches
-                m
-                (anchor_rule.get_match r)
-                (case (unwrap_decision (filter_approx body \<gamma> p d)) of
-                        Accept \<Rightarrow> Pass
-                        | Reject \<Rightarrow> Block)
-                d'
-                p)")
-    case True
-    then show ?thesis using Prem IH by auto
-  next
-    case False
-    then show ?thesis using Prem IH by auto
-  qed
-qed
-qed
 qed
 
 lemma "filter_approx_spec rules \<gamma> p start_decision = unwrap_decision (filter_approx rules \<gamma> p (Preliminary start_decision))"
