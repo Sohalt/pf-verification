@@ -15,16 +15,12 @@ fun and_each :: "'a match_expr \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset
 "and_each _ [] = []" |
 "and_each m (l#ls) = (and_line m l)#(and_each m ls)"
 
+(* remove anchors *)
 fun remove_anchors' :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_anchors' [] = []" |
 "remove_anchors' ((Anchor r l) # rs) =
 (and_each (anchor_rule.get_match r) (remove_anchors' l)) @ (remove_anchors' rs)" |
 "remove_anchors' (r#rs) = r#(remove_anchors' rs)"
-
-fun remove_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
-"remove_anchors [] = []"|
-"remove_anchors ((Anchor r l) # rs) = (and_each (anchor_rule.get_match r) l) @ (remove_anchors rs)"|
-"remove_anchors (r#rs) = r#(remove_anchors rs)"
 
 fun count_anchors :: "'a ruleset \<Rightarrow> nat" where
 "count_anchors [] = 0"
@@ -44,52 +40,6 @@ lemma count_anchors_append[simp]:
 "count_anchors (l1 @ l2) = count_anchors l1 + count_anchors l2"
   by (induction l1) (simp split:line.splits add:count_anchors_cases)+
 
-
-lemma remove_anchors_only_subtracts:
-"count_anchors rules \<ge> count_anchors (remove_anchors rules)"
-  by (induction rule: remove_anchors.induct) simp+
-
-
-lemma remove_anchors_only_subtracts':
-  assumes "count_anchors rules > 0"
-  shows "count_anchors rules > count_anchors (remove_anchors rules)"
-proof(cases "count_anchors rules")
-  case 0
-  then show ?thesis using assms by auto
-next
-  case (Suc nat)
-  then show ?thesis
-  proof(induction rules)
-    case Nil
-    then show ?case by auto
-  next
-    case IH: (Cons a rules)
-    then show ?case
-    proof(cases a)
-      case (PfRule x2)
-      then show ?thesis using IH by auto
-    next
-      case (Anchor x31 x32)
-      then show ?thesis unfolding Anchor using remove_anchors_only_subtracts
-        apply(auto)
-        using le_imp_less_Suc by blast
-    qed
-  qed
-qed
-
-function remove_all_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
-"remove_all_anchors rules = (if \<not>no_anchors rules then remove_all_anchors (remove_anchors rules) else rules)"
-by pat_completeness auto
-
-termination
-  apply (relation "measure count_anchors")
-   apply rule
-  apply (subst in_measure)
-  apply (rule remove_anchors_only_subtracts')
-  using no_anchors_0_anchors by auto
-
-lemma remove_all_anchors_ok : "no_anchors (remove_all_anchors rules)"
-  by (induction rules rule: remove_all_anchors.induct) (metis remove_all_anchors.elims)
 
 lemma remove_anchors'_ok : "no_anchors (remove_anchors' rules)"
 proof(induction rules rule:remove_anchors'.induct)
@@ -121,6 +71,7 @@ lemma filter_cons_same_prefix :
   shows "filter' (l#l1) m p d = filter' (l#l2) m p d"
   by (metis append_Cons append_Nil assms filter_chain)
 
+
 lemma and_each_false[simp]:
   assumes "\<not>matches \<gamma> e p"
   shows "filter' (and_each e l) \<gamma> p d = d"
@@ -140,76 +91,6 @@ next
     by (cases d;cases a) auto
 qed
 
-lemma filter_foo: "filter' [] \<gamma> p (filter' l \<gamma> p (Preliminary d)) = filter' l \<gamma> p (Preliminary d)"
-  by (metis append.right_neutral filter_chain)
-
-lemma remove_anchors_preserves_semantics : "pf (remove_anchors rules) \<gamma> packet = pf rules \<gamma> packet"
-proof(-)
-  have "(filter' rules \<gamma> packet d = filter' (remove_anchors rules) \<gamma> packet d)" for d
-proof (induction rules arbitrary: d)
-  case Nil
-  then show ?case by auto
-next
-  case IH: (Cons a rules)
-  then show ?case
-  proof(cases d)
-    case (Final x1)
-    then show ?thesis by auto
-  next
-    case (Preliminary x2)
-    then show ?thesis
-  proof (cases a)
-    case (PfRule r)
-    then show ?thesis unfolding PfRule using IH by (cases d, auto)
-  next
-    case (Anchor r ls)
-    then have "filter' [(Anchor r ls)] \<gamma> packet d =
-               filter' (and_each (anchor_rule.get_match r) ls) \<gamma> packet d"
-    proof(cases "matches \<gamma> (anchor_rule.get_match r) packet")
-      case True
-      then have "filter' (and_each (anchor_rule.get_match r) ls) \<gamma> packet (Preliminary x2)
-                 = filter' ls \<gamma> packet (Preliminary x2)" by auto
-      moreover have "pfprefix_PF.filter' [Anchor r ls] \<gamma> packet (Preliminary x2)
-                 = filter' ls \<gamma> packet (Preliminary x2)" by (simp add: True filter_foo)
-      ultimately show ?thesis unfolding Preliminary
-        by simp
-    next
-      case False
-      then show ?thesis unfolding Preliminary by auto
-    qed
-    then have "filter' ([Anchor r ls] @ rules) \<gamma> packet d = filter' (and_each (get_match r) ls @ remove_anchors rules) \<gamma> packet d"
-      apply (rule filter_add_equiv_prefix)
-      using IH by auto
-    then show ?thesis unfolding Anchor
-      by simp
-  qed
-  qed
-qed
-  then show ?thesis
-    by (simp add: filter_to_pf)
-qed
-
-lemma remove_all_anchors_remove_anchors_idempotent:
-"pf (remove_all_anchors (remove_anchors rs)) \<gamma> packet = pf (remove_all_anchors rs) \<gamma> packet"
-  by (metis le_zero_eq no_anchors_0_anchors remove_all_anchors.simps
-            remove_anchors_only_subtracts remove_anchors_preserves_semantics)
-
-lemma remove_all_anchors_preserves_semantics : "pf rs \<gamma> p = pf (remove_all_anchors rs) \<gamma> p"
-proof(induction rs rule: remove_all_anchors.induct)
-  case (1 rs)
-  then show ?case
-  proof(cases "no_anchors rs")
-    case True
-    then show ?thesis by simp
-  next
-    case False
-    then have "pf (remove_anchors rs) \<gamma> p = pf (remove_all_anchors (remove_anchors rs)) \<gamma> p"
-      by (simp add: 1)
-    moreover have "pf (remove_all_anchors (remove_anchors rs)) \<gamma> p = pf (remove_all_anchors rs) \<gamma> p"
-      by (meson remove_all_anchors_remove_anchors_idempotent)
-    ultimately show ?thesis by (simp add: remove_anchors_preserves_semantics)
-  qed
-qed
 
 lemma remove_anchors'_preserves_semantics:
 "pf (remove_anchors' rules) \<gamma> packet = pf rules \<gamma> packet"
@@ -247,14 +128,6 @@ lemma and_each_preserves_no_quick:
   using assms
   by (induction rs) (auto split:line.splits simp:is_quick_rule_cases)
 
-fun remove_single_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
-"remove_single_quick [] = []"
-|"remove_single_quick ((PfRule r)#ls) =
-(if (get_quick r)
-then
-(and_each (MatchNot (pf_rule.get_match r)) ls)@[PfRule (r\<lparr>get_quick := False\<rparr>)]
-else
-((PfRule r)#(remove_single_quick ls)))"
 
 fun count_quick :: "'a ruleset \<Rightarrow> nat" where
 "count_quick [] = 0"
@@ -271,137 +144,13 @@ lemma count_quick_append[simp]:
 "count_quick (l1 @ l2) = count_quick l1 + count_quick l2"
   by (induction l1) (auto split:line.splits)
 
-lemma remove_single_quick_only_subtracts:
-  assumes "no_anchors rules"
-  shows "count_quick rules \<ge> count_quick (remove_single_quick rules)"
-  using assms
-proof(induction rule:remove_single_quick.induct)
-  case (2 r ls)
-  then show ?case
-    by (cases "get_quick r") simp+
-qed auto
-
-
-lemma remove_single_quick_only_subtracts':
-  assumes "no_anchors rules"
-      and "count_quick rules > 0"
-    shows "count_quick rules > count_quick (remove_single_quick rules)"
-proof(cases "count_quick rules")
-  case 0
-  then show ?thesis using assms by auto
-next
-  case (Suc nat)
-  then show ?thesis using \<open>no_anchors rules\<close>
-  proof(induction rules)
-    case Nil
-    then show ?case by auto
-  next
-    case IH: (Cons a rules)
-    then show ?case
-    proof(cases a)
-      case (PfRule x2)
-      then show ?thesis using IH by auto
-    next
-      case (Anchor x31 x32)
-      then show ?thesis using IH by auto
-    qed
-  qed
-qed
-
-
-function remove_all_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
-"remove_all_quick rules = (if no_anchors rules then (if no_quick rules then rules else (remove_all_quick (remove_single_quick rules))) else undefined)"
-  by pat_completeness auto
-
-termination remove_all_quick
-  apply (relation "measure count_quick")
-   apply rule
-  apply (subst in_measure)
-  apply (rule remove_single_quick_only_subtracts')
-  using no_quick_count_quick_0 by auto
-
-lemma andeach_no_anchors:
-  assumes "no_anchors rules"
-  shows "no_anchors (and_each m rules)"
-  using assms
-proof(induction rules)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons a rules)
-  then show ?case by (cases a) auto
-qed
-
-lemma remove_single_quick_preserves_no_anchors:
-  assumes "no_anchors rules"
-  shows "no_anchors (remove_single_quick rules)"
-  using assms
-  by (induction rules rule:remove_single_quick.induct) (auto simp: andeach_no_anchors)
-
-lemma remove_all_quick_ok:
-  assumes "no_anchors rules"
-  shows "no_quick (remove_all_quick rules)"
-  using assms
-  by (induction rules rule:remove_all_quick.induct) (metis remove_all_quick.elims remove_single_quick_preserves_no_anchors)
 
 lemma remove_suffix[simp]:
   assumes "\<not>matches \<gamma> (pf_rule.get_match r) p"
   shows "filter' (l@[(PfRule r)]) \<gamma> p d = filter' l \<gamma> p d"
   using assms by (cases "filter' l \<gamma> p d") (simp add: filter_chain)+
 
-lemma remove_single_quick_preserves_semantics:
-  assumes "no_anchors rules"
-  shows "pf rules \<gamma> packet = pf (remove_single_quick rules) \<gamma> packet"
-proof(-)
-  from assms have "(unwrap_decision (filter' rules \<gamma> packet d) = unwrap_decision (filter' (remove_single_quick rules) \<gamma> packet d))" for d
-  proof(induction rules arbitrary: d)
-    case Nil
-    then show ?case by simp
-  next
-    case IH: (Cons a rules)
-    then show ?case
-    proof(cases d)
-      case (Final x1)
-      then show ?thesis by simp
-    next
-      case (Preliminary x2)
-      then show ?thesis
-      proof(cases a)
-        case (PfRule r)
-        then show ?thesis
-        proof(cases "get_quick r")
-          case Quick:True
-          then show ?thesis
-          proof(cases "matches \<gamma> (pf_rule.get_match r) packet")
-            case True
-            then show ?thesis unfolding PfRule Preliminary using Quick by (simp add:filter_chain)
-          next
-            case False
-            then show ?thesis unfolding PfRule Preliminary using Quick by auto
-          qed
-        next
-          case False
-          then show ?thesis unfolding PfRule using IH by (cases d, auto)
-        qed
-      next
-        case (Anchor x31 x32)
-        then show ?thesis using IH by auto
-      qed
-    qed
-  qed
-  then show ?thesis by (simp add: pf_def)
-qed
-
-lemma remove_all_quick_preserves_semantics:
-  assumes "no_anchors rules"
-  shows "pf rules \<gamma> packet = pf (remove_all_quick rules) \<gamma> packet"
-  using assms
-proof(induction rules rule:remove_all_quick.induct)
-  case (1 rules)
-  then show ?case using remove_single_quick_preserves_no_anchors remove_single_quick_preserves_semantics unfolding pf_def
-    apply (simp del: remove_all_quick.simps)
-    sorry (* simplifier loops *)
-qed
+(* remove quick rules *)
 
 fun remove_quick' :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_quick' [] = []" |
@@ -493,6 +242,9 @@ proof(-)
   qed
   then show ?thesis by (simp add:pf_def)
 qed
+
+
+(* remove matches *)
 
 fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
 "remove_matches [] = []" |
