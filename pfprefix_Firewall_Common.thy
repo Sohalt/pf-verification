@@ -116,6 +116,10 @@ lemma optimize_matches_option_append:
 definition optimize_matches :: "('a match_expr \<Rightarrow> 'a match_expr) \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset" where
   "optimize_matches f rs =  optimize_matches_option (\<lambda>m. (if matcheq_matchNone (f m) then None else Some (f m))) rs"
 
+lemma optimize_matches_empty[simp]:
+"optimize_matches f [] = []"
+  unfolding optimize_matches_def by simp
+
 lemma optimize_matches_append:
   assumes "simple_ruleset rs1"
       and "simple_ruleset rs2"
