@@ -40,12 +40,12 @@ qed
 
 lemma remove_anchors_preserves_semantics :
   assumes "no_match_quick rs"
-      and "no_unknown_anchors (\<alpha>, in_doubt_allow) rs"
-    shows "pf_approx (remove_anchors rs) (\<alpha>, in_doubt_allow) p =
-           pf_approx rs (\<alpha>, in_doubt_allow) p"
+      and "no_unknown_anchors (\<beta>, in_doubt_allow) rs"
+    shows "pf_approx (remove_anchors rs) (\<beta>, in_doubt_allow) p =
+           pf_approx rs (\<beta>, in_doubt_allow) p"
 proof(-)
-  have "filter_approx' rs (\<alpha>, in_doubt_allow) p d =
-        filter_approx' (remove_anchors rs) (\<alpha>, in_doubt_allow) p d" for d 
+  have "filter_approx' rs (\<beta>, in_doubt_allow) p d =
+        filter_approx' (remove_anchors rs) (\<beta>, in_doubt_allow) p d" for d 
     using assms
   proof(induction rs arbitrary:d rule:remove_anchors.induct)
     case 1
@@ -53,7 +53,7 @@ proof(-)
   next
     case (2 r l rs)
     then show ?case
-    proof(cases "(ternary_ternary_eval (map_match_tac \<alpha> p (anchor_rule.get_match r)))")
+    proof(cases "(ternary_ternary_eval (map_match_tac \<beta> p (anchor_rule.get_match r)))")
       case TernaryTrue
       then show ?thesis using 2 apply (auto simp add: filter_approx'_chain)
         by (cases d;auto simp add:matches_def no_match_quick_def no_unknown_anchors_def)
@@ -142,31 +142,31 @@ fun remove_quick_approx :: "'a ruleset \<Rightarrow> 'a ruleset" where
   else (PfRule r)#(remove_quick_approx ls))"
 
 lemma remove_quick_approx_ok:
-  assumes "no_anchors rules"
-  shows "no_quick (remove_quick_approx rules)"
-    using assms by (induction rules rule:remove_quick_approx.induct) auto
+  assumes "no_anchors rs"
+  shows "no_quick (remove_quick_approx rs)"
+    using assms by (induction rs rule:remove_quick_approx.induct) auto
 
 lemma remove_quick_approx_preserves_no_anchors:
-  assumes "no_anchors rules"
-  shows "no_anchors (remove_quick_approx rules)"
-  using assms by (induction rules rule:remove_quick_approx.induct) simp+
+  assumes "no_anchors rs"
+  shows "no_anchors (remove_quick_approx rs)"
+  using assms by (induction rs rule:remove_quick_approx.induct) simp+
 
 lemma remove_quick_approx_preserves_no_match:
-  assumes "no_anchors rules"
-      and "no_match rules"
-    shows "no_match (remove_quick_approx rules)"
+  assumes "no_anchors rs"
+      and "no_match rs"
+    shows "no_match (remove_quick_approx rs)"
   using assms
-  by (induction rules rule:remove_quick_approx.induct) simp+
+  by (induction rs rule:remove_quick_approx.induct) simp+
 
 lemma remove_quick_approx_preserves_semantics:
-  assumes "no_anchors rules"
-      and "no_match rules"
+  assumes "no_anchors rs"
+      and "no_match rs"
       and "good_matcher \<gamma>"
-    shows "pf_approx rules \<gamma> p = pf_approx (remove_quick_approx rules) \<gamma> p"
+    shows "pf_approx rs \<gamma> p = pf_approx (remove_quick_approx rs) \<gamma> p"
 proof(-)
-  from assms have "(unwrap_decision (filter_approx' rules \<gamma> p d) =
-                    unwrap_decision (filter_approx' (remove_quick_approx rules) \<gamma> p d))" for d
-  proof(induction rules arbitrary:d rule:remove_quick_approx.induct)
+  from assms have "(unwrap_decision (filter_approx' rs \<gamma> p d) =
+                    unwrap_decision (filter_approx' (remove_quick_approx rs) \<gamma> p d))" for d
+  proof(induction rs arbitrary:d rule:remove_quick_approx.induct)
   case 1
   then show ?case by simp
   next
@@ -314,7 +314,7 @@ definition to_simple_ruleset :: "'a line list \<Rightarrow> 'a line list" where
 
 lemma to_simple_ruleset:
   assumes "no_match_quick rs"
-      and "no_unknown_anchors (common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) rs"
+      and "no_unknown_anchors (common_matcher ctx, in_doubt_allow) rs"
   shows
  "pf_approx rs (common_matcher ctx, in_doubt_allow) p =
   pf_approx (to_simple_ruleset rs) (common_matcher ctx, in_doubt_allow) p"
@@ -360,19 +360,19 @@ fun match_pf_rule :: "'a line \<Rightarrow> ('a,'p) match_tac \<Rightarrow> 'p \
 "match_pf_rule (PfRule r) \<gamma> p = matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) decision.Accept p"
 
 lemma rev_preserves_no_match[simp]:
-  assumes "no_match rules"
-  shows "no_match (rev rules)"
-  using assms by (induction rules) auto
+  assumes "no_match rs"
+  shows "no_match (rev rs)"
+  using assms by (induction rs) auto
 
 lemma rev_preserves_no_quick[simp]:
-  assumes "no_quick rules"
-  shows "no_quick (rev rules)"
-  using assms by (induction rules) auto
+  assumes "no_quick rs"
+  shows "no_quick (rev rs)"
+  using assms by (induction rs) auto
 
 lemma rev_preserves_no_anchors[simp]:
-  assumes "no_anchors rules"
-  shows "no_anchors (rev rules)"
-  using assms by (induction rules) auto
+  assumes "no_anchors rs"
+  shows "no_anchors (rev rs)"
+  using assms by (induction rs) auto
 
 lemma good_matcher_match:
   assumes "good_matcher \<gamma>"
@@ -393,40 +393,40 @@ lemma good_matcher_match_not:
   apply (auto simp:matches_def good_matcher_def) by metis
 
 lemma pf_reverse_semantics:
-  assumes "simple_ruleset rules"
+  assumes "simple_ruleset rs"
       and "good_matcher \<gamma>"
-    shows "pf_approx (rev rules) \<gamma> p = (case (find (\<lambda>r. match_pf_rule r \<gamma> p) rules) of
+    shows "pf_approx (rev rs) \<gamma> p = (case (find (\<lambda>r. match_pf_rule r \<gamma> p) rs) of
 (Some (PfRule r)) \<Rightarrow> (action_to_decision (pf_rule.get_action r) decision.Accept)
 | None \<Rightarrow> decision.Accept)"
     using assms unfolding pf_approx_def simple_ruleset_def
-proof(induction rules)
+proof(induction rs)
   case Nil
   then show ?case by simp
 next
-  case (Cons a rs)
+  case (Cons a ls)
   then show ?case
   proof(cases a)
     case (PfRule r)
     then show ?thesis
     proof(cases "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) decision.Accept p")
-      have "is_Preliminary (filter_approx' (rev rs) \<gamma> p (Preliminary decision.Accept))"
-        using Cons by (simp add:no_quick_preliminary[of "(rev rs)"])
-      then obtain d where *:"(filter_approx' (rev rs) \<gamma> p (Preliminary decision.Accept)) = (Preliminary d)"
+      have "is_Preliminary (filter_approx' (rev ls) \<gamma> p (Preliminary decision.Accept))"
+        using Cons by (simp add:no_quick_preliminary[of "(rev ls)"])
+      then obtain d where *:"(filter_approx' (rev ls) \<gamma> p (Preliminary decision.Accept)) = (Preliminary d)"
         using is_Preliminary_def by blast
       case True
       then have "matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r) d p"
         using Cons PfRule by(auto simp:good_matcher_match)
-      then have "(filter_approx' (rev rs @ [PfRule r]) \<gamma> p (Preliminary decision.Accept)) =
+      then have "(filter_approx' (rev ls @ [PfRule r]) \<gamma> p (Preliminary decision.Accept)) =
                         Preliminary (action_to_decision (pf_rule.get_action r) d)"
         using Cons PfRule * by (simp add:filter_approx'_chain)
       then show ?thesis using Cons PfRule True by (cases "pf_rule.get_action r") auto
     next
       case False
       then have "\<not>matches \<gamma> (pf_rule.get_match r) (pf_rule.get_action r)
-                    (unwrap_decision (filter_approx' (rev rs) \<gamma> p (Preliminary decision.Accept))) p"
+                    (unwrap_decision (filter_approx' (rev ls) \<gamma> p (Preliminary decision.Accept))) p"
         using Cons PfRule by(auto simp:good_matcher_match_not)
-      then have "filter_approx' (rev rs @ [PfRule r]) \<gamma> p (Preliminary decision.Accept) =
-                 filter_approx' (rev rs) \<gamma> p (Preliminary decision.Accept)" by simp
+      then have "filter_approx' (rev ls @ [PfRule r]) \<gamma> p (Preliminary decision.Accept) =
+                 filter_approx' (rev ls) \<gamma> p (Preliminary decision.Accept)" by simp
       then show ?thesis using Cons PfRule False by auto
     qed
   next
