@@ -40,12 +40,12 @@ qed
 
 lemma remove_anchors_preserves_semantics :
   assumes "no_match_quick rs"
-      and "no_unknown_anchors (\<beta>, in_doubt_allow) rs"
-    shows "pf_approx (remove_anchors rs) (\<beta>, in_doubt_allow) p =
-           pf_approx rs (\<beta>, in_doubt_allow) p"
+      and "no_unknown_anchors \<gamma> rs"
+    shows "pf_approx (remove_anchors rs) \<gamma> p =
+           pf_approx rs \<gamma> p"
 proof(-)
-  have "filter_approx' rs (\<beta>, in_doubt_allow) p d =
-        filter_approx' (remove_anchors rs) (\<beta>, in_doubt_allow) p d" for d 
+  have "filter_approx' rs \<gamma> p d =
+        filter_approx' (remove_anchors rs) \<gamma> p d" for d 
     using assms
   proof(induction rs arbitrary:d rule:remove_anchors.induct)
     case 1
@@ -53,7 +53,7 @@ proof(-)
   next
     case (2 r l rs)
     then show ?case
-    proof(cases "(ternary_ternary_eval (map_match_tac \<beta> p (anchor_rule.get_match r)))")
+    proof(cases "(ternary_ternary_eval (map_match_tac (fst \<gamma>) p (anchor_rule.get_match r)))")
       case TernaryTrue
       then show ?thesis using 2 apply (auto simp add: filter_approx'_chain)
         by (cases d;auto simp add:matches_def no_match_quick_def no_unknown_anchors_def)
@@ -314,14 +314,15 @@ definition to_simple_ruleset :: "'a line list \<Rightarrow> 'a line list" where
 
 lemma to_simple_ruleset:
   assumes "no_match_quick rs"
-      and "no_unknown_anchors (common_matcher ctx, in_doubt_allow) rs"
+      and "good_matcher \<gamma>"
+      and "no_unknown_anchors \<gamma> rs"
   shows
- "pf_approx rs (common_matcher ctx, in_doubt_allow) p =
-  pf_approx (to_simple_ruleset rs) (common_matcher ctx, in_doubt_allow) p"
+ "pf_approx rs \<gamma> p =
+  pf_approx (to_simple_ruleset rs) \<gamma> p"
   and "simple_ruleset (to_simple_ruleset rs)"
 proof(-)
-  have *: "(pf_approx rs (common_matcher ctx, in_doubt_allow) p) =
-        (pf_approx (remove_anchors rs) (common_matcher ctx, in_doubt_allow) p)"
+  have *: "(pf_approx rs \<gamma> p) =
+        (pf_approx (remove_anchors rs) \<gamma> p)"
     (is "?original = pf_approx (?anchors_removed) ?m ?p")
     using assms by (simp add:remove_anchors_preserves_semantics)
   have na:"no_anchors ?anchors_removed"
@@ -335,13 +336,11 @@ proof(-)
     using na nmq remove_matches_ok by blast
   have na:"no_anchors ?matches_removed"
     using na using remove_matches_preserves_no_anchors by blast
-  have gm:"good_matcher ?m"
-    by (simp add:in_doubt_allow_good_matcher)
   have *: "?original = pf_approx (remove_quick_approx ?matches_removed) ?m ?p"
     (is "?original = pf_approx (?quick_removed) ?m ?p")
-    using * na nm gm assms by(simp add:remove_quick_approx_preserves_semantics)
-  then show "pf_approx rs (common_matcher ctx, in_doubt_allow) p =
-  pf_approx (to_simple_ruleset rs) (common_matcher ctx, in_doubt_allow) p" 
+    using * na nm assms by(simp add:remove_quick_approx_preserves_semantics)
+  then show "pf_approx rs \<gamma> p =
+  pf_approx (to_simple_ruleset rs) \<gamma> p" 
     unfolding to_simple_ruleset_def by simp
   have nq:"no_quick ?quick_removed"
     using na remove_quick_approx_ok by blast
