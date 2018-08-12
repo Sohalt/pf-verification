@@ -180,11 +180,11 @@ fun no_pf_rules :: "'a ruleset \<Rightarrow> bool" where
 "no_pf_rules ((Anchor _ b)#ls) = (no_pf_rules b \<and> no_pf_rules ls)"
 
 
-lemma remove_anchors'_empty_no_pf_rules:
-  assumes "remove_anchors' l = []"
+lemma remove_anchors_empty_no_pf_rules:
+  assumes "remove_anchors l = []"
   shows "no_pf_rules l"
   using assms
-proof(induction l rule:remove_anchors'.induct)
+proof(induction l rule:remove_anchors.induct)
 case 1
 then show ?case by simp
 next
@@ -265,11 +265,11 @@ lemma no_match_quick_append[simp]:
   by (auto simp:no_match_quick_def)
 
 
-lemma remove_anchors'_preserves_no_match_quick[simp]:
+lemma remove_anchors_preserves_no_match_quick[simp]:
   assumes "no_match_quick rules"
-  shows "no_match_quick (remove_anchors' rules)"
+  shows "no_match_quick (remove_anchors rules)"
   using assms
-proof(induction rules rule:remove_anchors'.induct)
+proof(induction rules rule:remove_anchors.induct)
 case 1
 then show ?case by simp
 next
@@ -283,19 +283,19 @@ next
 qed
 
 
-lemma remove_anchors'_preserves_no_unknown_anchors[simp]:
+lemma remove_anchors_preserves_no_unknown_anchors[simp]:
   assumes "no_unknown_anchors \<gamma> rs"
-  shows "no_unknown_anchors \<gamma> (remove_anchors' rs)"
+  shows "no_unknown_anchors \<gamma> (remove_anchors rs)"
   using assms
-proof(induction rs rule:remove_anchors'.induct)
+proof(induction rs rule:remove_anchors.induct)
 case 1
 then show ?case by simp
 next
   case (2 r l rs)
-  then have "no_unknown_anchors \<gamma> (and_each (anchor_rule.get_match r) (remove_anchors' l))"
-    using remove_anchors'_ok and_each_no_anchors_no_unknown_anchors by blast
-  moreover have "no_unknown_anchors \<gamma> (remove_anchors' rs)"
-    using remove_anchors'_ok no_anchors_implies_no_unknown_anchors by blast
+  then have "no_unknown_anchors \<gamma> (and_each (anchor_rule.get_match r) (remove_anchors l))"
+    using remove_anchors_ok and_each_no_anchors_no_unknown_anchors by blast
+  moreover have "no_unknown_anchors \<gamma> (remove_anchors rs)"
+    using remove_anchors_ok no_anchors_implies_no_unknown_anchors by blast
   ultimately show ?case by (auto simp add:no_unknown_anchors_def)
 next
   case (3 v rs)

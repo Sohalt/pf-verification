@@ -366,7 +366,7 @@ definition pfcp_to_iptcp_rs :: "pfprefix_Primitives.common_primitive ruleset \<R
 "pfcp_to_iptcp_rs = map (\<lambda>l. (case l of (PfRule r) \<Rightarrow> (Rule (pfm_to_iptm (pf_rule.get_match r)) (pfa_to_ipta (pf_rule.get_action r)))))"
 
 fun pf_to_ipt :: "pfcontext \<Rightarrow> pfprefix_Primitives.common_primitive ruleset \<Rightarrow> 32 common_primitive rule list" where
-"pf_to_ipt ctx rs = pfcp_to_iptcp_rs (rev (normalize_ports_rs (remove_tables_rs ctx (remove_quick_approx (remove_matches (remove_anchors' rs))))))"
+"pf_to_ipt ctx rs = pfcp_to_iptcp_rs (rev (normalize_ports_rs (remove_tables_rs ctx (remove_quick_approx (remove_matches (remove_anchors rs))))))"
 
 
 fun pf_decision_to_ipt_decision :: "decision \<Rightarrow> state" where

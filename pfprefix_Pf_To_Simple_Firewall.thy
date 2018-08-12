@@ -16,11 +16,11 @@ fun and_each :: "'a match_expr \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset
 "and_each m (l#ls) = (and_line m l)#(and_each m ls)"
 
 (* remove anchors *)
-fun remove_anchors' :: "'a ruleset \<Rightarrow> 'a ruleset" where
-"remove_anchors' [] = []" |
-"remove_anchors' ((Anchor r l) # rs) =
-(and_each (anchor_rule.get_match r) (remove_anchors' l)) @ (remove_anchors' rs)" |
-"remove_anchors' (r#rs) = r#(remove_anchors' rs)"
+fun remove_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_anchors [] = []" |
+"remove_anchors ((Anchor r l) # rs) =
+(and_each (anchor_rule.get_match r) (remove_anchors l)) @ (remove_anchors rs)" |
+"remove_anchors (r#rs) = r#(remove_anchors rs)"
 
 fun count_anchors :: "'a ruleset \<Rightarrow> nat" where
 "count_anchors [] = 0"
@@ -41,12 +41,12 @@ lemma count_anchors_append[simp]:
   by (induction l1) (simp split:line.splits add:count_anchors_cases)+
 
 
-lemma remove_anchors'_ok : "no_anchors (remove_anchors' rules)"
-proof(induction rules rule:remove_anchors'.induct)
+lemma remove_anchors_ok : "no_anchors (remove_anchors rules)"
+proof(induction rules rule:remove_anchors.induct)
   case (2 r l rs)
-  then have "count_anchors (remove_anchors' l) = 0" by (simp add:no_anchors_0_anchors)
-  moreover have "count_anchors (remove_anchors' rs) = 0" using 2 by (simp add:no_anchors_0_anchors)
-  ultimately have "count_anchors (remove_anchors' (Anchor r l # rs)) = 0" by simp
+  then have "count_anchors (remove_anchors l) = 0" by (simp add:no_anchors_0_anchors)
+  moreover have "count_anchors (remove_anchors rs) = 0" using 2 by (simp add:no_anchors_0_anchors)
+  ultimately have "count_anchors (remove_anchors (Anchor r l # rs)) = 0" by simp
   then show ?case using no_anchors_0_anchors by blast
 qed simp+
 
@@ -92,11 +92,11 @@ next
 qed
 
 
-lemma remove_anchors'_preserves_semantics:
-"pf (remove_anchors' rules) \<gamma> packet = pf rules \<gamma> packet"
+lemma remove_anchors_preserves_semantics:
+"pf (remove_anchors rules) \<gamma> packet = pf rules \<gamma> packet"
 proof(-)
-  have "(filter' rules \<gamma> packet d = filter' (remove_anchors' rules) \<gamma> packet d)" for d
-  proof(induction rules arbitrary: d rule:remove_anchors'.induct)
+  have "(filter' rules \<gamma> packet d = filter' (remove_anchors rules) \<gamma> packet d)" for d
+  proof(induction rules arbitrary: d rule:remove_anchors.induct)
     case 1
     then show ?case by simp
   next

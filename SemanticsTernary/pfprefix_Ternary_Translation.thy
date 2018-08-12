@@ -38,16 +38,16 @@ qed
 
 (* remove_anchors implementation and remove_anchors_ok in Pf_To_SimpleFirewall *)
 
-lemma remove_anchors'_preserves_semantics :
+lemma remove_anchors_preserves_semantics :
   assumes "no_match_quick rs"
       and "no_unknown_anchors (\<alpha>, in_doubt_allow) rs"
-    shows "pf_approx (remove_anchors' rs) (\<alpha>, in_doubt_allow) p =
+    shows "pf_approx (remove_anchors rs) (\<alpha>, in_doubt_allow) p =
            pf_approx rs (\<alpha>, in_doubt_allow) p"
 proof(-)
   have "filter_approx rs (\<alpha>, in_doubt_allow) p d =
-        filter_approx (remove_anchors' rs) (\<alpha>, in_doubt_allow) p d" for d 
+        filter_approx (remove_anchors rs) (\<alpha>, in_doubt_allow) p d" for d 
     using assms
-  proof(induction rs arbitrary:d rule:remove_anchors'.induct)
+  proof(induction rs arbitrary:d rule:remove_anchors.induct)
     case 1
     then show ?case by simp
   next
@@ -100,18 +100,18 @@ lemma no_match_quick_append[simp]:
   "no_match_quick (l1@l2) \<longleftrightarrow> no_match_quick l1 \<and> no_match_quick l2"
   by (auto simp:no_match_quick_def)
 
-lemma remove_anchors'_preserves_no_match_quick:
+lemma remove_anchors_preserves_no_match_quick:
   assumes "no_match_quick l"
-  shows "no_match_quick (remove_anchors' l)"
+  shows "no_match_quick (remove_anchors l)"
   using assms
-proof(induction l rule:remove_anchors'.induct)
+proof(induction l rule:remove_anchors.induct)
   case 1
   then show ?case by simp
 next
   case (2 r l rs)
-  have "no_match_quick (remove_anchors' l)" using 2(1) 2(3) by (simp add:no_match_quick_def)
-  then have *:"no_match_quick (and_each (anchor_rule.get_match r) (remove_anchors' l))" by simp
-  have "no_match_quick (remove_anchors' rs)" using 2(2) 2(3) by (simp add:no_match_quick_def)
+  have "no_match_quick (remove_anchors l)" using 2(1) 2(3) by (simp add:no_match_quick_def)
+  then have *:"no_match_quick (and_each (anchor_rule.get_match r) (remove_anchors l))" by simp
+  have "no_match_quick (remove_anchors rs)" using 2(2) 2(3) by (simp add:no_match_quick_def)
   then show ?case using * by simp
 next
   case (3 v rs)
@@ -310,7 +310,7 @@ lemma remove_matches_preserves_no_anchors:
 (* to_simple_ruleset *)
 
 definition to_simple_ruleset :: "'a line list \<Rightarrow> 'a line list" where
-"to_simple_ruleset rs = remove_quick_approx (remove_matches (remove_anchors' rs))"
+"to_simple_ruleset rs = remove_quick_approx (remove_matches (remove_anchors rs))"
 
 lemma to_simple_ruleset:
   assumes "no_match_quick rs"
@@ -321,13 +321,13 @@ lemma to_simple_ruleset:
   and "simple_ruleset (to_simple_ruleset rs)"
 proof(-)
   have *: "(pf_approx rs (common_matcher ctx, in_doubt_allow) p) =
-        (pf_approx (remove_anchors' rs) (common_matcher ctx, in_doubt_allow) p)"
+        (pf_approx (remove_anchors rs) (common_matcher ctx, in_doubt_allow) p)"
     (is "?original = pf_approx (?anchors_removed) ?m ?p")
-    using assms by (simp add:remove_anchors'_preserves_semantics)
+    using assms by (simp add:remove_anchors_preserves_semantics)
   have na:"no_anchors ?anchors_removed"
-    by (simp add:remove_anchors'_ok)
+    by (simp add:remove_anchors_ok)
   have nmq:"no_match_quick ?anchors_removed"
-    using assms remove_anchors'_preserves_no_match_quick by blast
+    using assms remove_anchors_preserves_no_match_quick by blast
   have *: "?original = pf_approx (remove_matches ?anchors_removed) ?m ?p"
 (is "?original = pf_approx (?matches_removed) ?m ?p")
     using * na nmq assms by(auto simp add:remove_matches_preserves_semantics)
