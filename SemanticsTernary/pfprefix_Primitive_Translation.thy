@@ -426,9 +426,35 @@ lemma remove_tables_rs_preserves_simple_ruleset:
   assumes "simple_ruleset rs"
       and "good_ruleset ctx rs"
     shows "simple_ruleset (remove_tables_rs ctx rs)"
-      and "good_ruleset ctx (remove_tables_rs ctx rs)"
-  unfolding remove_tables_rs_def using assms optimize_matches_simple_ruleset apply blast
-  unfolding good_ruleset_def optimize_matches_def using assms apply(induction rs rule:optimize_matches_option.induct)
-  apply simp unfolding good_match_expr_def apply(simp split:option.splits) sorry
+  unfolding remove_tables_rs_def using assms optimize_matches_simple_ruleset by blast
 
+lemma foo:
+  assumes "simple_ruleset rs"
+  shows "all_AnchorRules_P P rs"
+  using assms
+proof(induction rs)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a rs)
+  then show ?case by (cases a) (auto simp:simple_ruleset_def)
+qed
+
+
+lemma remove_tables_rs_preserves_good_ruleset:
+  assumes "simple_ruleset rs"
+      and "good_ruleset ctx rs"
+    shows "good_ruleset ctx (remove_tables_rs ctx rs)"
+proof(-)
+  have "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r))
+     (pfprefix_Firewall_Common.optimize_matches (remove_tables ctx) rs)"
+    using optimize_matches_preserves[of rs "good_match_expr ctx" "remove_tables ctx"] assms
+          optimize_matches_simple_ruleset good_ruleset_def simple_ruleset_def
+          remove_tables_preserves_good_match_expr
+    sorry (*sledgehammer*)
+  moreover have "all_AnchorRules_P (\<lambda>a. good_match_expr ctx (anchor_rule.get_match a))
+       (remove_tables_rs ctx rs)"
+    using assms remove_tables_rs_preserves_simple_ruleset foo by blast
+  ultimately show ?thesis unfolding good_ruleset_def remove_tables_rs_def by auto
+qed
 end
