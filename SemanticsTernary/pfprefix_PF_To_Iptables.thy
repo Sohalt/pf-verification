@@ -376,6 +376,7 @@ fun pf_decision_to_ipt_decision :: "decision \<Rightarrow> state" where
 
 theorem
   assumes "no_match_quick rs"
+      and "pfprefix_Predicates.good_ruleset ctx rs"
       and "no_unknown_anchors (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) rs"
   shows
  "pf_decision_to_ipt_decision
