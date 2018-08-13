@@ -347,4 +347,13 @@ proof(-)
     sorry (* sledgehammer *)
 qed
 
+lemma remove_tables_rs_preserves_simple_ruleset:
+  assumes "simple_ruleset rs"
+      and "good_ruleset ctx rs"
+    shows "simple_ruleset (remove_tables_rs ctx rs)"
+      and "good_ruleset ctx (remove_tables_rs ctx rs)"
+  unfolding remove_tables_rs_def using assms optimize_matches_simple_ruleset apply blast
+  unfolding good_ruleset_def optimize_matches_def using assms apply(induction rs rule:optimize_matches_option.induct)
+  apply simp unfolding good_match_expr_def apply(simp split:option.splits) sorry
+
 end
