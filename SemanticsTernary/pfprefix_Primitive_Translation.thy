@@ -61,10 +61,10 @@ lemma ternary_to_bool_eq:
 
 lemma src_ports_disjunction_helper:
 "ternary_to_bool
-(ternary_ternary_eval
-     (map_match_tac (common_matcher ctx) p
-       (match_or
-         (map (\<lambda>(l, u). Src_Ports (L4Ports proto (Binary (RangeIncl l u)))) l)))) =
+  (ternary_ternary_eval
+    (map_match_tac (common_matcher ctx) p
+      (match_or
+        (map (\<lambda>(l, u). Src_Ports (L4Ports proto (Binary (RangeIncl l u)))) l)))) =
  Some (proto = (p_proto p) \<and>(p_sport p) \<in> (\<Union>x\<in>set l. wordinterval_to_set (l2wi l)))"
 proof(induction l rule: l2wi.induct)
   case 1
@@ -277,11 +277,11 @@ lemma remove_tables_preserves_semantics :
 
 definition no_tables :: "common_primitive match_expr \<Rightarrow> bool" where
 "no_tables mexpr = all_match
-(\<lambda>m. (case m of
-(Src (Hostspec (Table _))) \<Rightarrow> False
-|(Dst (Table _)) \<Rightarrow> False
-| _ \<Rightarrow> True))
-mexpr"
+                    (\<lambda>m. (case m of
+                      (Src (Hostspec (Table _))) \<Rightarrow> False
+                      |(Dst (Table _)) \<Rightarrow> False
+                      | _ \<Rightarrow> True))
+                    mexpr"
 
 lemma [simp]:
   "no_tables
@@ -325,14 +325,15 @@ next
   ultimately show ?case by (simp add:MatchOr_def no_tables_def)
 qed (simp add:no_tables_def)+
 
-definition remove_tables_rs :: "pfcontext \<Rightarrow> pfprefix_Primitives.common_primitive ruleset \<Rightarrow> pfprefix_Primitives.common_primitive ruleset" where
+definition remove_tables_rs :: "pfcontext \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive ruleset" where
 "remove_tables_rs ctx = optimize_matches (remove_tables ctx)"
 
 lemma remove_tables_rs_preserves_semantics:
   assumes "good_ruleset ctx rs"
       and "simple_ruleset rs"
       and "good_matcher (common_matcher ctx,\<alpha>)"
-    shows "pf_approx rs (common_matcher ctx,\<alpha>) p = pf_approx (remove_tables_rs ctx rs) (common_matcher ctx,\<alpha>) p"
+    shows "pf_approx rs (common_matcher ctx,\<alpha>) p =
+           pf_approx (remove_tables_rs ctx rs) (common_matcher ctx,\<alpha>) p"
 proof(-)
   have "\<forall>r\<in>set rs.
        case r of PfRule r \<Rightarrow> pf_rule.get_action r \<noteq> ActionMatch \<and> good_match_expr ctx (pf_rule.get_match r)
@@ -388,7 +389,7 @@ lemma dst_ipv6_good_match_expr_helper:
   using assms
   by (induction l) (auto simp:good_match_expr_def MatchOr_def)
 
-lemma remove_table_preserves_good_match_expr:
+lemma remove_tables_preserves_good_match_expr:
   assumes "good_match_expr ctx m"
   shows "good_match_expr ctx (remove_tables ctx m)"
   using assms
