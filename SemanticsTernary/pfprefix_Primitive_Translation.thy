@@ -31,7 +31,7 @@ fun normalize_ports' :: "16 word opspec \<Rightarrow> 16 wordinterval" where
                                      then Empty_WordInterval
                                      else (WordInterval 0 (p - 1)))" |
 "normalize_ports' (Binary (RangeIncl from to)) = (WordInterval from to)" |
-"normalize_ports' (Binary (RangeExcl from to)) = (if (from = max_word \<or> to = 0) 
+"normalize_ports' (Binary (RangeExcl from to)) = (if (from = max_word \<or> to = 0)
                                                    then Empty_WordInterval
                                                    else (WordInterval (from + 1) (to -1)))" |
 "normalize_ports' (Binary (RangeComp from to)) = wordinterval_setminus wordinterval_UNIV (WordInterval from to)"
@@ -174,7 +174,7 @@ lemma normalize_ports_rs_preserves_semantics:
 
 
 fun remove_tables ::"pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
-"remove_tables ctx (Match (common_primitive.Src (Hostspec (Table name)))) = 
+"remove_tables ctx (Match (common_primitive.Src (Hostspec (Table name)))) =
   (MatchOr
     (match_or (map (\<lambda> a. (common_primitive.Src (Hostspec (Address (IPv4 a)))))
                 (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))
@@ -338,13 +338,14 @@ proof(-)
        case r of PfRule r \<Rightarrow> pf_rule.get_action r \<noteq> ActionMatch \<and> good_match_expr ctx (pf_rule.get_match r)
        | Anchor _ _ \<Rightarrow> True" using assms(1) assms(2) unfolding good_ruleset_def simple_ruleset_def
     by (simp add: line.case_eq_if)
-  moreover have "(\<And>m a d. a \<noteq> ActionMatch \<and> good_match_expr ctx m \<Longrightarrow>
+  have "(\<And>m a d. a \<noteq> ActionMatch \<and> good_match_expr ctx m \<Longrightarrow>
   matches (common_matcher ctx,\<alpha>) (remove_tables ctx m) a d p = matches(common_matcher ctx,\<alpha>) m a d p)"
     using remove_tables_preserves_semantics good_matcher_def assms(3)
     by blast
-  ultimately show ?thesis unfolding remove_tables_rs_def
-    using assms(2) optimize_matches_generic[where P="\<lambda> m a. a \<noteq> ActionMatch \<and> good_match_expr ctx m"]
-    sorry (* sledgehammer *)
+
+  show ?thesis unfolding remove_tables_rs_def
+    apply (rule optimize_matches_generic[symmetric])
+    by fact+
 qed
 
 lemma remove_tables_rs_preserves_simple_ruleset:
