@@ -254,6 +254,10 @@ fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
   else (PfRule r)#remove_matches ls)" |
 "remove_matches (l#ls) = l#(remove_matches ls)"
 
+lemma remove_matches_ok:
+"no_match (remove_matches rs)"
+  by(induction rs rule:remove_matches.induct) auto
+
 lemma remove_matches_preserves_semantics:
   assumes "no_quick rs"
       and "no_anchors rs"
