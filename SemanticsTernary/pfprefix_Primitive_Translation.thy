@@ -348,6 +348,79 @@ proof(-)
     by fact+
 qed
 
+lemma src_ipv4_good_match_expr_helper:
+  assumes "\<forall> p \<in> set l. valid_prefix p"
+  shows
+ "good_match_expr ctx 
+   (match_or
+     (map (\<lambda>a. Src (Hostspec (Address (IPv4 a))))
+       l))"  
+  using assms
+  by (induction l) (auto simp:good_match_expr_def MatchOr_def)
+
+lemma src_ipv6_good_match_expr_helper:
+  assumes "\<forall> p \<in> set l. valid_prefix p"
+  shows
+ "good_match_expr ctx 
+   (match_or
+     (map (\<lambda>a. Src (Hostspec (Address (IPv6 a))))
+       l))"  
+  using assms
+  by (induction l) (auto simp:good_match_expr_def MatchOr_def)
+
+lemma dst_ipv4_good_match_expr_helper:
+  assumes "\<forall> p \<in> set l. valid_prefix p"
+  shows
+ "good_match_expr ctx 
+   (match_or
+     (map (\<lambda>a. Dst (Address (IPv4 a)))
+       l))"  
+  using assms
+  by (induction l) (auto simp:good_match_expr_def MatchOr_def)
+
+lemma dst_ipv6_good_match_expr_helper:
+  assumes "\<forall> p \<in> set l. valid_prefix p"
+  shows
+ "good_match_expr ctx 
+   (match_or
+     (map (\<lambda>a. Dst (Address (IPv6 a)))
+       l))"  
+  using assms
+  by (induction l) (auto simp:good_match_expr_def MatchOr_def)
+
+lemma remove_table_preserves_good_match_expr:
+  assumes "good_match_expr ctx m"
+  shows "good_match_expr ctx (remove_tables ctx m)"
+  using assms
+proof(induction m rule:remove_tables.induct)
+  case (1 ctx name)
+  have "good_match_expr ctx
+         (match_or
+           (map (\<lambda>a. Src (Hostspec (Address (IPv4 a))))
+             (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))"
+    using src_ipv4_good_match_expr_helper wordinterval_CIDR_split_prefixmatch_all_valid_Ball by blast
+  moreover have "good_match_expr ctx
+                  (match_or
+                    (map (\<lambda>a. Src (Hostspec (Address (IPv6 a))))
+                      (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name)))))"
+    using src_ipv6_good_match_expr_helper wordinterval_CIDR_split_prefixmatch_all_valid_Ball by blast
+  ultimately show ?case by (auto simp:MatchOr_def good_match_expr_def)
+next
+  case (2 ctx name)
+  have "good_match_expr ctx
+         (match_or
+           (map (\<lambda>a. Dst (Address (IPv4 a)))
+             (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))"
+    using dst_ipv4_good_match_expr_helper wordinterval_CIDR_split_prefixmatch_all_valid_Ball by blast
+  moreover have "good_match_expr ctx
+                  (match_or
+                    (map (\<lambda>a. Dst (Address (IPv6 a)))
+                      (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name)))))"
+    using dst_ipv6_good_match_expr_helper wordinterval_CIDR_split_prefixmatch_all_valid_Ball by blast
+  ultimately show ?case by (auto simp:MatchOr_def good_match_expr_def)
+qed (auto simp:MatchOr_def good_match_expr_def)
+
+
 lemma remove_tables_rs_preserves_simple_ruleset:
   assumes "simple_ruleset rs"
       and "good_ruleset ctx rs"
