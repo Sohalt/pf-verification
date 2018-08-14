@@ -57,16 +57,20 @@ lemma pf_ipt_aggre_on_addr_match:
  (a, m) \<Rightarrow> (IpAddrNetmask a m))))"
   using assms by (simp add: prefix_match_to_CIDR_def prefix_match_semantics_ipset_from_netmask2)
 
-lemma pf_ipt_agree_on_primitives:
+lemma pf_true_ipt_not_false:
   assumes "no_tables (Match m)"
       and "normalized_ports (Match m)"
       and "no_ipv6 (Match m)"
       and "no_af (Match m)"
+      and "no_anyhost (Match m)"
       and "good_match_expr ctx (Match m)"
       and "a \<noteq> ActionMatch"
     shows "
-(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) =
-(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m))))"
+(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryTrue \<Longrightarrow>
+(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) \<noteq> TernaryFalse"
+proof(-)
+assume prem:"(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryTrue"
+  show ?thesis
 proof(cases m)
 case (Src x1)
   then show ?thesis
@@ -75,20 +79,20 @@ case (Src x1)
     then show ?thesis
     proof(cases x1)
       case AnyHost
-      then show ?thesis sorry
+      then show ?thesis using Src Hostspec assms by (auto simp:no_anyhost_def)
     next
       case NoRoute
       then show ?thesis unfolding Src Hostspec by simp
     next
       case (Address x3)
-      then show ?thesis
+      then show ?thesis using Src Hostspec
       proof(cases x3)
         case (IPv4 x1)
         obtain addr where *:"addr = (p_src p)" by blast
         obtain a m where **: "prefix_match_to_CIDR x1 = (a,m)" by (cases "prefix_match_to_CIDR x1")
-        then have "prefix_match_semantics x1  addr = (addr \<in> ipt_iprange_to_set (IpAddrNetmask a m))"
-          using pf_ipt_aggre_on_addr_match[of x1] Src Hostspec Address IPv4 assms(5) by (auto simp add:good_match_expr_def)
-        then show ?thesis using * ** Src Hostspec Address IPv4 by (simp add: tagged_packet_untag_def)
+        then have "prefix_match_semantics x1 addr = (addr \<in> ipt_iprange_to_set (IpAddrNetmask a m))"
+          using pf_ipt_aggre_on_addr_match[of x1] Src Hostspec Address IPv4 assms(6) by (auto simp add:good_match_expr_def)
+        then show ?thesis using prem * ** Src Hostspec Address IPv4 by (simp add: tagged_packet_untag_def)
       next
         case (IPv6 x2)
         then show ?thesis
@@ -114,7 +118,7 @@ next
   then show ?thesis
     proof(cases x1)
       case AnyHost
-      then show ?thesis sorry
+      then show ?thesis using Dst assms by (auto simp:no_anyhost_def)
     next
       case NoRoute
       then show ?thesis unfolding Dst by simp
@@ -126,8 +130,8 @@ next
         obtain addr where *:"addr = (p_dst p)" by blast
         obtain a m where **: "prefix_match_to_CIDR x1 = (a,m)" by (cases "prefix_match_to_CIDR x1")
         then have "prefix_match_semantics x1  addr = (addr \<in> ipt_iprange_to_set (IpAddrNetmask a m))"
-          using pf_ipt_aggre_on_addr_match[of x1] Dst Address IPv4 assms(5) by (auto simp add:good_match_expr_def)
-        then show ?thesis using * ** Dst Address IPv4 by (simp add: tagged_packet_untag_def)
+          using pf_ipt_aggre_on_addr_match[of x1] Dst Address IPv4 assms(6) by (auto simp add:good_match_expr_def)
+        then show ?thesis using prem * ** Dst Address IPv4 by (simp add: tagged_packet_untag_def)
       next
         case (IPv6 x2)
         then show ?thesis
@@ -153,10 +157,10 @@ next
       case (Binary x2)
       then show ?thesis using Src_Ports L4Ports Binary assms
       proof(cases x2)
-        case (RangeIncl l u)
-        then show ?thesis using Src_Ports L4Ports Binary
+        case (RangeIncl x11 x12)
+        then show ?thesis using prem Src_Ports L4Ports Binary
           by (simp add:tagged_packet_untag_def match_port_def)
-      qed (auto simp: normalized_ports_def)
+      qed (auto simp:normalized_ports_def)
     qed
   qed
 next
@@ -173,48 +177,279 @@ next
       then show ?thesis using Dst_Ports L4Ports Binary assms
       proof(cases x2)
         case (RangeIncl l u)
-        then show ?thesis using Dst_Ports L4Ports Binary
+        then show ?thesis using prem Dst_Ports L4Ports Binary
           by (simp add:tagged_packet_untag_def match_port_def)
       qed (auto simp: normalized_ports_def)
     qed
   qed
 next
-  case (Interface x61 x62)
-  then show ?thesis sorry
+  case (Interface iface dir)
+  then show ?thesis using prem
+  proof(cases iface)
+    case None
+    then show ?thesis using Interface prem by auto
+  next
+    case *:(Some i)
+    then show ?thesis
+    proof(cases i)
+      case (InterfaceName x1)
+      then show ?thesis
+      proof(cases dir)
+        case None
+        then show ?thesis using Interface prem by auto
+      next
+        case (Some a)
+        then show ?thesis using * Interface InterfaceName prem
+          apply(cases a) apply (auto simp:tagged_packet_untag_def) 
+           apply(cases "p_iiface p = x1") apply auto apply (simp add: match_iface_eqI)
+          apply(cases "p_oiface p = x1") apply auto by (simp add: match_iface_eqI)
+      qed
+    next
+      case (InterfaceGroup x2)
+      then show ?thesis using Interface * prem by auto
+    qed
+  qed
 next
   case (Address_Family x7)
   then show ?thesis using assms by (auto simp: no_af_def)
 next
   case (Protocol x8)
-  then show ?thesis
+  then show ?thesis using prem
     by (cases x8; simp add: PF_Matching_Ternary.matches_def matches_def tagged_packet_untag_def)
 next
   case (L4_Flags x9)
-  then show ?thesis
+  then show ?thesis using prem
     by(simp add: PF_Matching_Ternary.matches_def matches_def tagged_packet_untag_def)
 next
   case (Extra x10)
   then show ?thesis by simp
 qed
+qed
+
+lemma pf_false_ipt_not_true:
+  assumes "no_tables (Match m)"
+      and "normalized_ports (Match m)"
+      and "no_ipv6 (Match m)"
+      and "no_af (Match m)"
+      and "no_anyhost (Match m)"
+      and "good_match_expr ctx (Match m)"
+      and "a \<noteq> ActionMatch"
+    shows "
+(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryFalse \<Longrightarrow>
+(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) \<noteq> TernaryTrue"
+proof(-)
+assume prem:"(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryFalse"
+  show ?thesis
+proof(cases m)
+case (Src x1)
+  then show ?thesis
+  proof(cases x1)
+    case (Hostspec x1)
+    then show ?thesis
+    proof(cases x1)
+      case AnyHost
+      then show ?thesis using Src Hostspec assms by (auto simp:no_anyhost_def)
+    next
+      case NoRoute
+      then show ?thesis unfolding Src Hostspec by simp
+    next
+      case (Address x3)
+      then show ?thesis using Src Hostspec
+      proof(cases x3)
+        case (IPv4 x1)
+        obtain addr where *:"addr = (p_src p)" by blast
+        obtain a m where **: "prefix_match_to_CIDR x1 = (a,m)" by (cases "prefix_match_to_CIDR x1")
+        then have "prefix_match_semantics x1 addr = (addr \<in> ipt_iprange_to_set (IpAddrNetmask a m))"
+          using pf_ipt_aggre_on_addr_match[of x1] Src Hostspec Address IPv4 assms(6) by (auto simp add:good_match_expr_def)
+        then show ?thesis using prem * ** Src Hostspec Address IPv4 by (simp add: tagged_packet_untag_def)
+      next
+        case (IPv6 x2)
+        then show ?thesis
+          using Src Hostspec Address assms by (auto simp:no_ipv6_def)
+      qed
+    next
+      case (Route x4)
+      then show ?thesis unfolding Src Hostspec by simp
+    next
+      case (Table x5)
+      then show ?thesis using Src Hostspec assms(1) by (auto simp:no_tables_def)
+    qed
+  next
+    case UrpfFailed
+    then show ?thesis unfolding Src by simp
+  qed
+next
+  case (Src_OS x2)
+  then show ?thesis by simp
+next
+  case (Dst x1)
+(* almost a copy of Src *)
+  then show ?thesis
+    proof(cases x1)
+      case AnyHost
+      then show ?thesis using Dst assms by (auto simp:no_anyhost_def)
+    next
+      case NoRoute
+      then show ?thesis unfolding Dst by simp
+    next
+      case (Address x3)
+      then show ?thesis
+      proof(cases x3)
+        case (IPv4 x1)
+        obtain addr where *:"addr = (p_dst p)" by blast
+        obtain a m where **: "prefix_match_to_CIDR x1 = (a,m)" by (cases "prefix_match_to_CIDR x1")
+        then have "prefix_match_semantics x1  addr = (addr \<in> ipt_iprange_to_set (IpAddrNetmask a m))"
+          using pf_ipt_aggre_on_addr_match[of x1] Dst Address IPv4 assms(6) by (auto simp add:good_match_expr_def)
+        then show ?thesis using prem * ** Dst Address IPv4 by (simp add: tagged_packet_untag_def)
+      next
+        case (IPv6 x2)
+        then show ?thesis
+          using Dst Address assms by (auto simp:no_ipv6_def)
+      qed
+    next
+      case (Route x4)
+      then show ?thesis unfolding Dst by simp
+    next
+      case (Table x5)
+      then show ?thesis using Dst assms(1) by (auto simp:no_tables_def)
+    qed
+next
+  case (Src_Ports sp)
+  then show ?thesis
+  proof(cases sp)
+    case (L4Ports x1 x2)
+    then show ?thesis
+    proof(cases x2)
+      case (Unary x1)
+      then show ?thesis using Src_Ports L4Ports assms by (auto simp: normalized_ports_def)
+    next
+      case (Binary x2)
+      then show ?thesis using Src_Ports L4Ports Binary assms
+      proof(cases x2)
+        case (RangeIncl x11 x12)
+        then show ?thesis using prem Src_Ports L4Ports Binary
+          by (simp add:tagged_packet_untag_def match_port_def)
+      qed (auto simp:normalized_ports_def)
+    qed
+  qed
+next
+  case (Dst_Ports dp)
+  then show ?thesis
+  proof(cases dp)
+    case (L4Ports x1 x2)
+    then show ?thesis
+    proof(cases x2)
+      case (Unary x1)
+      then show ?thesis using Dst_Ports L4Ports assms by (auto simp: normalized_ports_def)
+    next
+      case (Binary x2)
+      then show ?thesis using Dst_Ports L4Ports Binary assms
+      proof(cases x2)
+        case (RangeIncl l u)
+        then show ?thesis using prem Dst_Ports L4Ports Binary
+          by (simp add:tagged_packet_untag_def match_port_def)
+      qed (auto simp: normalized_ports_def)
+    qed
+  qed
+next
+  case (Interface iface dir)
+  then show ?thesis using prem
+  proof(cases iface)
+    case None
+    then show ?thesis using Interface prem by auto
+  next
+    case *:(Some i)
+    then show ?thesis
+    proof(cases i)
+      case (InterfaceName x1)
+      then show ?thesis
+      proof(cases dir)
+        case None
+        then show ?thesis using Interface prem by auto
+      next
+        case (Some d)
+        then show ?thesis using Interface InterfaceName * prem assms 
+          by(cases d)
+          (auto simp:good_ruleset_def good_match_expr_def match_iface_case_nowildcard tagged_packet_untag_def;
+              smt ternaryvalue.distinct(1))+
+      qed
+    next
+      case (InterfaceGroup x2)
+      then show ?thesis using Interface * prem by auto
+    qed
+  qed
+next
+  case (Address_Family x7)
+  then show ?thesis using assms by (auto simp: no_af_def)
+next
+  case (Protocol x8)
+  then show ?thesis using prem
+    by (cases x8; simp add: PF_Matching_Ternary.matches_def matches_def tagged_packet_untag_def)
+next
+  case (L4_Flags x9)
+  then show ?thesis using prem
+    by(simp add: PF_Matching_Ternary.matches_def matches_def tagged_packet_untag_def)
+next
+  case (Extra x10)
+  then show ?thesis by simp
+qed
+qed
+
+lemma ipt_false_pf_not_true:
+  assumes "no_tables (Match m)"
+      and "normalized_ports (Match m)"
+      and "no_ipv6 (Match m)"
+      and "no_af (Match m)"
+      and "no_anyhost (Match m)"
+      and "good_match_expr ctx (Match m)"
+      and "a \<noteq> ActionMatch"
+    shows "
+(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryFalse \<Longrightarrow>
+(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryTrue"
+proof(rule classical)
+  assume 1:"(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryFalse"
+  assume 2:"\<not> (ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryTrue"
+  then show "(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryFalse \<Longrightarrow>
+             (ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryTrue"
+    using 1 pf_true_ipt_not_false assms by auto
+qed
+
 
 lemma pf_ipt_ternary_eq:
   assumes "no_tables m"
       and "normalized_ports m"
       and "no_ipv6 m"
       and "no_af m"
+      and "no_anyhost m"
       and "good_match_expr ctx m"
       and "a \<noteq> ActionMatch"
     shows "(ternary_ternary_eval
          (PF_Matching_Ternary.map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
            (tagged_packet_untag p)
-           m)) =
-ternary_ternary_eval (Matching_Ternary.map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m))"
+           m)) = TernaryTrue \<Longrightarrow>
+ternary_ternary_eval (Matching_Ternary.map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m)) \<noteq> TernaryFalse"
   using assms proof(induction m)
   case (Match m)
-  then show ?case using pf_ipt_agree_on_primitives by simp
+  assume "(ternary_ternary_eval
+         (PF_Matching_Ternary.map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+           (tagged_packet_untag p)
+           (Match m))) = TernaryTrue"
+  then show ?case using pf_true_ipt_not_false Match by simp
 next
   case IH:(MatchNot m)
-  then show ?case by (auto simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def good_match_expr_def)
+  assume "ternary_ternary_eval
+         (map_match_tac common_matcher
+            p
+            (pfm_to_iptm (MatchNot m))) = TernaryTrue"
+  then have "ternary_ternary_eval
+         (map_match_tac common_matcher
+            p
+            (pfm_to_iptm m)) = TernaryFalse" by (simp add: ternary_lift)
+  then have "(ternary_ternary_eval
+         (PF_Matching_Ternary.map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+           (tagged_packet_untag p)
+           m)) \<noteq> TernaryTrue" using assms ipt_false_pf_not_true IH by auto
+  then show ?case using IH apply (auto simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def no_anyhost_def good_match_expr_def) sledgehammer
 next
   case (MatchAnd m1 m2)
   then show ?case by (auto simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def good_match_expr_def)
@@ -232,8 +467,8 @@ lemma pf_ipt_matches_eq:
       and "a \<noteq> ActionMatch"
     shows "PF_Matching_Ternary.matches
  (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
- m a d (tagged_packet_untag p) =
-matches (Common_Primitive_Matcher.common_matcher, in_doubt_allow) (pfm_to_iptm m) (pfa_to_ipta a) p"
+ m Pass d (tagged_packet_untag p) =
+matches (Common_Primitive_Matcher.common_matcher, in_doubt_allow) (pfm_to_iptm m) (pfa_to_ipta Pass) p"
   using assms
 proof(induction m rule:pfm_to_iptm.induct)
 case 1
@@ -252,8 +487,7 @@ case (2 m)
   next
     case TernaryUnknown
     then show ?thesis using 2 pf_ipt_agree_on_primitives
-      apply (simp add: PF_Matching_Ternary.matches_def matches_def tagged_packet_untag_def)
-      by (cases a; simp)
+      by (simp add: PF_Matching_Ternary.matches_def matches_def tagged_packet_untag_def)
   qed
 next
   case (3 m)
@@ -275,8 +509,7 @@ next
     case TernaryUnknown
     then have "ternary_ternary_eval (Matching_Ternary.map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m)) = TernaryUnknown"
       using 3 pf_ipt_ternary_eq by (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def good_match_expr_def)
-    then show ?thesis using 3 TernaryUnknown apply (simp add:PF_Matching_Ternary.matches_def Matching_Ternary.matches_def)
-      by(cases a) auto
+    then show ?thesis using 3 TernaryUnknown by (simp add:PF_Matching_Ternary.matches_def Matching_Ternary.matches_def)
   qed
 next
   case (4 m1 m2)
@@ -306,8 +539,7 @@ next
       case m2U:TernaryUnknown
       then have m2U':"ternary_ternary_eval (Matching_Ternary.map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m2)) = TernaryUnknown"
         using 4 pf_ipt_ternary_eq by (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def good_match_expr_def)
-      then show ?thesis using 4 m1T m2U m1T' m2U' apply (simp add:PF_Matching_Ternary.matches_def Matching_Ternary.matches_def)
-        by(cases a) auto
+      then show ?thesis using 4 m1T m2U m1T' m2U' by (simp add:PF_Matching_Ternary.matches_def Matching_Ternary.matches_def)
     qed
     next
       case m1F:TernaryFalse
@@ -345,8 +577,7 @@ next
         case m2T:TernaryTrue
         then have m2T':"ternary_ternary_eval (Matching_Ternary.map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m2)) = TernaryTrue"
           using 4 pf_ipt_ternary_eq by (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def good_match_expr_def)
-        then show ?thesis using 4 m1U m2T m1U' m2T' apply (simp add:PF_Matching_Ternary.matches_def Matching_Ternary.matches_def)
-          by(cases a) auto
+        then show ?thesis using 4 m1U m2T m1U' m2T' by (simp add:PF_Matching_Ternary.matches_def Matching_Ternary.matches_def)
       next
         case m2F:TernaryFalse
         then have m2F':"ternary_ternary_eval (Matching_Ternary.map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m2)) = TernaryFalse"
@@ -356,8 +587,7 @@ next
         case m2U:TernaryUnknown
         then have m2U':"ternary_ternary_eval (Matching_Ternary.map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m2)) = TernaryUnknown"
           using 4 pf_ipt_ternary_eq by (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def good_match_expr_def)
-        then show ?thesis using 4 m1U m2U m1U' m2U' apply (simp add:PF_Matching_Ternary.matches_def Matching_Ternary.matches_def)
-          by(cases a) auto
+        then show ?thesis using 4 m1U m2U m1U' m2U' by (simp add:PF_Matching_Ternary.matches_def Matching_Ternary.matches_def)
       qed
     qed
 qed
@@ -365,14 +595,8 @@ qed
 definition pfcp_to_iptcp_rs :: "PF_Primitives.common_primitive ruleset \<Rightarrow> 32 common_primitive rule list" where
 "pfcp_to_iptcp_rs = map (\<lambda>l. (case l of (PfRule r) \<Rightarrow> (Rule (pfm_to_iptm (pf_rule.get_match r)) (pfa_to_ipta (pf_rule.get_action r)))))"
 
-definition remove_match_any where
-"remove_match_any = id"  (* FIMXE *)
-
-definition ipv4_only where
-"ipv4_only = id" (* FIMXE *)
-
-definition add_default_policy where
-"add_default_policy = id" (* FIMXE *)
+definition add_default_policy :: "32 common_primitive rule list \<Rightarrow> 32 common_primitive rule list" where
+"add_default_policy rs = rs @ [Rule MatchAny Firewall_Common.Accept]"
 
 fun pf_to_ipt_v4_upper ::
 "pfcontext \<Rightarrow> PF_Primitives.common_primitive ruleset \<Rightarrow> 32 common_primitive rule list" where
