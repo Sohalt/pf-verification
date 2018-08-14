@@ -3,6 +3,7 @@ imports IP_Addresses.IPv4
         IP_Addresses.IPv6
         IP_Addresses.Prefix_Match
         Iptables_Semantics.L4_Protocol_Flags
+        Simple_Firewall.Iface
 begin
 
 (* names for users, groups, ports get resolved to numbers in the pfctl dump *)
@@ -100,6 +101,7 @@ fun good_hostspec :: "pfcontext \<Rightarrow> hostspec \<Rightarrow> bool" where
 fun good_primitive :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> bool" where
 "good_primitive ctx (Src (Hostspec h)) = good_hostspec ctx h" |
 "good_primitive ctx (Dst h) = good_hostspec ctx h" |
+"good_primitive _ (Interface (Some (InterfaceName name)) _) = (\<not>iface_name_is_wildcard name)" |
 "good_primitive _ _ = True"
 
 end
