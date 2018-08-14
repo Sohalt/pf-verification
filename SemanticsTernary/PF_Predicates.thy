@@ -17,7 +17,12 @@ all_match (\<lambda>m. (case m of
 | _ \<Rightarrow> True)) mexpr"
 
 definition no_af :: "common_primitive match_expr \<Rightarrow> bool" where
-"no_af mexpr = all_match (\<lambda>m. (case m of (Address_Family _) \<Rightarrow> False)) mexpr"
+"no_af mexpr = all_match (\<lambda>m. (case m of (Address_Family _) \<Rightarrow> False| _ \<Rightarrow> True)) mexpr"
+
+definition no_anyhost :: "common_primitive match_expr \<Rightarrow> bool" where
+"no_anyhost mexpr = all_match (\<lambda>m. (case m of (Src (Hostspec AnyHost)) \<Rightarrow> False
+                                              | (Dst AnyHost) \<Rightarrow> False
+                                              | _ \<Rightarrow> True)) mexpr"
 
 definition good_match_expr :: "pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> bool" where
 "good_match_expr ctx mexpr = all_match (good_primitive ctx) mexpr"
