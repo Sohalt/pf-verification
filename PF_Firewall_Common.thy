@@ -68,12 +68,13 @@ case_of_simps unwrap_decision_cases: unwrap_decision.simps
 
 text\<open>optimizing match expressions\<close> (* adapted from Iptables_Semantics.Firewall_Common *)
 
-fun optimize_matches_option :: "('a match_expr \<Rightarrow> 'a match_expr option) \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset" where
-  "optimize_matches_option _ [] = []" |
-  "optimize_matches_option f (PfRule r#rs) =
-(case f (pf_rule.get_match r) of
-  None \<Rightarrow> optimize_matches_option f rs 
-  | Some m \<Rightarrow> (PfRule (r\<lparr>pf_rule.get_match := m\<rparr>))#optimize_matches_option f rs)"
+fun optimize_matches_option ::
+"('a match_expr \<Rightarrow> 'a match_expr option) \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset" where
+"optimize_matches_option _ [] = []" |
+"optimize_matches_option f (PfRule r#rs) =
+  (case f (pf_rule.get_match r) of
+    None \<Rightarrow> optimize_matches_option f rs 
+    | Some m \<Rightarrow> (PfRule (r\<lparr>pf_rule.get_match := m\<rparr>))#optimize_matches_option f rs)"
 
 lemma optimize_matches_option_simple_ruleset:
 "simple_ruleset rs \<Longrightarrow> simple_ruleset (optimize_matches_option f rs)"
