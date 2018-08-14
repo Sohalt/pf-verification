@@ -523,7 +523,50 @@ next
     apply(rule impI) by fact
 next
   case (MatchAnd m1 m2)
-  then show ?case sorry
+  {
+    assume "pfeval ctx p (MatchAnd m1 m2) = TernaryTrue"
+    then have "pfeval ctx p m1 = TernaryTrue \<and> pfeval ctx p m2 = TernaryTrue" unfolding pfeval_def
+      by (simp add: ternary_lift)
+    then have "ipteval p m1 \<noteq> TernaryFalse \<and> ipteval p m2 \<noteq> TernaryFalse"
+      using MatchAnd by (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def no_anyhost_def good_match_expr_def)
+    then have "ipteval p (MatchAnd m1 m2) \<noteq> TernaryFalse"
+      by (simp add: MatchAnd.hyps(4) ternary_lift)
+  } note 1=this
+  {
+    assume "pfeval ctx p (MatchAnd m1 m2) = TernaryFalse"
+    then have "pfeval ctx p m1 = TernaryFalse \<or> pfeval ctx p m2 = TernaryFalse" unfolding pfeval_def
+      by (simp add: ternary_lift)
+    then have "ipteval p m1 \<noteq> TernaryTrue \<or> ipteval p m2 \<noteq> TernaryTrue"
+      using MatchAnd apply (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def no_anyhost_def good_match_expr_def)
+      by blast
+    then have "ipteval p (MatchAnd m1 m2) \<noteq> TernaryTrue"
+      by (simp add: MatchAnd.hyps(4) ternary_lift)
+  } note 2=this
+  {
+    assume "ipteval p (MatchAnd m1 m2) = TernaryTrue"
+    then have "ipteval p m1 = TernaryTrue \<or> ipteval p m2 = TernaryTrue" unfolding ipteval_def
+      by (simp add: ternary_lift)
+    then have "pfeval ctx p m1 \<noteq> TernaryFalse \<or> pfeval ctx p m2 \<noteq> TernaryFalse"
+      using MatchAnd apply (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def no_anyhost_def good_match_expr_def)
+      by blast
+    then have "pfeval ctx p (MatchAnd m1 m2) \<noteq> TernaryFalse"
+      using "2" \<open>ipteval p (MatchAnd m1 m2) = TernaryTrue\<close> by blast
+  } note 3=this
+  {
+    assume "ipteval p (MatchAnd m1 m2) = TernaryFalse"
+    then have "ipteval p m1 = TernaryFalse \<or> ipteval p m2 = TernaryFalse" unfolding ipteval_def
+      by (simp add: ternary_lift)
+    then have "pfeval ctx p m1 \<noteq> TernaryTrue \<or> pfeval ctx p m2 \<noteq> TernaryTrue"
+      using MatchAnd apply (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def no_anyhost_def good_match_expr_def)
+      by blast
+    then have "pfeval ctx p (MatchAnd m1 m2) \<noteq> TernaryTrue"
+      using "1" \<open>ipteval p (MatchAnd m1 m2) = TernaryFalse\<close> by blast
+  } note 4=this
+  show ?case
+    apply(rule conjI) apply(rule impI) apply fact
+    apply(rule conjI) apply(rule impI) apply fact
+    apply(rule conjI) apply(rule impI) apply fact
+    apply(rule impI) by fact
 next
   case MatchAny
   then show ?case by simp
