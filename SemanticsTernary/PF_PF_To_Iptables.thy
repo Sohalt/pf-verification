@@ -414,8 +414,32 @@ proof(rule classical)
     using 1 pf_true_ipt_not_false assms by auto
 qed
 
+lemma ipt_true_pf_not_false:
+  assumes "no_tables (Match m)"
+      and "normalized_ports (Match m)"
+      and "no_ipv6 (Match m)"
+      and "no_af (Match m)"
+      and "no_anyhost (Match m)"
+      and "good_match_expr ctx (Match m)"
+      and "a \<noteq> ActionMatch"
+    shows "
+(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryTrue \<Longrightarrow>
+(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryFalse"
+proof(rule classical)
+  assume 1:"(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryTrue"
+  assume 2:"\<not> (ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryFalse"
+  then show "(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryTrue \<Longrightarrow>
+             (ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryFalse"
+    using 1 pf_false_ipt_not_true assms by auto
+qed
 
-lemma pf_ipt_ternary_eq:
+
+lemma pf_ipt_ternary_eval:
+  defines "pfeval ctx p m \<equiv> (ternary_ternary_eval
+         (PF_Matching_Ternary.map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+           (tagged_packet_untag p)
+           m))"
+      and "ipteval p m \<equiv> ternary_ternary_eval (Matching_Ternary.map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m))"
   assumes "no_tables m"
       and "normalized_ports m"
       and "no_ipv6 m"
@@ -423,40 +447,88 @@ lemma pf_ipt_ternary_eq:
       and "no_anyhost m"
       and "good_match_expr ctx m"
       and "a \<noteq> ActionMatch"
-    shows "(ternary_ternary_eval
-         (PF_Matching_Ternary.map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
-           (tagged_packet_untag p)
-           m)) = TernaryTrue \<Longrightarrow>
-ternary_ternary_eval (Matching_Ternary.map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m)) \<noteq> TernaryFalse"
+    shows "(pfeval ctx p m = TernaryTrue \<longrightarrow>
+            ipteval p m \<noteq> TernaryFalse) \<and>
+           (pfeval ctx p m = TernaryFalse \<longrightarrow>
+            ipteval p m \<noteq> TernaryTrue) \<and>
+           (ipteval p m = TernaryFalse \<longrightarrow> 
+            pfeval ctx p m \<noteq> TernaryTrue) \<and>
+           (ipteval p m = TernaryTrue \<longrightarrow> 
+            pfeval ctx p m \<noteq> TernaryFalse)"
   using assms proof(induction m)
   case (Match m)
-  assume "(ternary_ternary_eval
-         (PF_Matching_Ternary.map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
-           (tagged_packet_untag p)
-           (Match m))) = TernaryTrue"
-  then show ?case using pf_true_ipt_not_false Match by simp
+  {
+    assume "pfeval ctx p (Match m) = TernaryTrue"
+    then have "ipteval p (Match m) \<noteq> TernaryFalse"
+      using pf_true_ipt_not_false Match by simp
+  } note 1=this
+  {
+  assume "pfeval ctx p (Match m) = TernaryFalse"
+  then have "ipteval p (Match m) \<noteq> TernaryTrue"
+    using pf_false_ipt_not_true Match by simp
+} note 2=this
+  {
+  assume "ipteval p (Match m) = TernaryTrue"
+  then have "pfeval ctx p (Match m) \<noteq> TernaryFalse"
+    using ipt_true_pf_not_false Match by simp
+} note 3=this
+  {
+  assume "ipteval p (Match m) = TernaryFalse"
+  then have "pfeval ctx p (Match m) \<noteq> TernaryTrue"
+    using ipt_false_pf_not_true Match by simp
+  } note 4=this
+  show ?case (* by (rule conjI|fail,rule impI, fact) *)
+    apply(rule conjI) apply(rule impI) apply fact
+    apply(rule conjI) apply(rule impI) apply fact
+    apply(rule conjI) apply(rule impI) apply fact
+    apply(rule impI) by fact
 next
-  case IH:(MatchNot m)
-  assume "ternary_ternary_eval
-         (map_match_tac common_matcher
-            p
-            (pfm_to_iptm (MatchNot m))) = TernaryTrue"
-  then have "ternary_ternary_eval
-         (map_match_tac common_matcher
-            p
-            (pfm_to_iptm m)) = TernaryFalse" by (simp add: ternary_lift)
-  then have "(ternary_ternary_eval
-         (PF_Matching_Ternary.map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
-           (tagged_packet_untag p)
-           m)) \<noteq> TernaryTrue" using assms ipt_false_pf_not_true IH by auto
-  then show ?case using IH apply (auto simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def no_anyhost_def good_match_expr_def) sledgehammer
+  case (MatchNot m)
+  {
+  assume "pfeval ctx p (MatchNot m) = TernaryTrue"
+  then have "pfeval ctx p m = TernaryFalse"
+    by (simp add: MatchNot.hyps(2) ternary_lift)
+  then have "ipteval p m \<noteq> TernaryTrue" using MatchNot by (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def no_anyhost_def good_match_expr_def)
+  then have "ipteval p (MatchNot m) \<noteq> TernaryFalse"
+    by (simp add: ipteval_def ternary_lift)
+} note 1=this
+  {
+  assume "pfeval ctx p (MatchNot m) = TernaryFalse"
+  then have "pfeval ctx p m = TernaryTrue"
+    by (simp add: MatchNot.hyps(2) ternary_lift)
+  then have "ipteval p m \<noteq> TernaryFalse" using MatchNot by (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def no_anyhost_def good_match_expr_def)
+  then have "ipteval p (MatchNot m) \<noteq> TernaryTrue"
+    by (simp add: ipteval_def ternary_lift)
+} note 2=this
+  {
+    assume "ipteval p (MatchNot m) = TernaryFalse"
+    then have "ipteval p m = TernaryTrue"
+      by (simp add: MatchNot.hyps(3) ternary_lift)
+    then have "pfeval ctx p m \<noteq> TernaryFalse" using MatchNot by (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def no_anyhost_def good_match_expr_def)
+    then have "pfeval ctx p (MatchNot m) \<noteq> TernaryTrue"
+      by (simp add: pfeval_def ternary_lift)
+  } note 3=this
+  {
+    assume "ipteval p (MatchNot m) = TernaryTrue"
+    then have "ipteval p m = TernaryFalse"
+      by (simp add: MatchNot.hyps(3) ternary_lift)
+    then have "pfeval ctx p m \<noteq> TernaryTrue" using MatchNot by (simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def no_anyhost_def good_match_expr_def)
+    then have "pfeval ctx p (MatchNot m) \<noteq> TernaryFalse"
+      by (simp add: pfeval_def ternary_lift)
+  } note 4=this
+  show ?case 
+    apply(rule conjI) apply(rule impI) apply fact
+    apply(rule conjI) apply(rule impI) apply fact
+    apply(rule conjI) apply(rule impI) apply fact
+    apply(rule impI) by fact
 next
   case (MatchAnd m1 m2)
-  then show ?case by (auto simp add:no_tables_def normalized_ports_def no_ipv6_def no_af_def good_match_expr_def)
+  then show ?case sorry
 next
   case MatchAny
   then show ?case by simp
 qed
+
 
 lemma pf_ipt_matches_eq:
   assumes "no_tables m"
@@ -478,8 +550,8 @@ case (2 m)
   then show ?case
   proof(cases "(PF_PrimitiveMatchers.common_matcher ctx m (tagged_packet_untag p))")
     case TernaryTrue
-    then show ?thesis using 2 pf_ipt_agree_on_primitives
-      by(simp add: PF_Matching_Ternary.matches_def matches_def tagged_packet_untag_def )
+    then show ?thesis using 2 pf_ipt_ternary_eq
+      by(simp add: PF_Matching_Ternary.matches_def matches_def tagged_packet_untag_def)
   next
     case TernaryFalse
     then show ?thesis using 2 pf_ipt_agree_on_primitives
@@ -631,7 +703,7 @@ theorem
          approximating_bigstep_fun
            (Common_Primitive_Matcher.common_matcher,Unknown_Match_Tacs.in_doubt_allow)
            p 
-           (pf_to_ipt ctx rs)
+           (pf_to_ipt_v4_upper ctx rs)
            Undecided = Decision FinalAllow"
   sorry
 
