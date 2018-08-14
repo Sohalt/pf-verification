@@ -13,14 +13,14 @@ begin
 
 fun pfcp_to_iptcp :: "pfprefix_Primitives.common_primitive \<Rightarrow> 32 common_primitive" where
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src (Hostspec (Address (IPv4 a)))) = (case prefix_match_to_CIDR a of (a,m) \<Rightarrow> (Src (IpAddrNetmask a m)))" |
-"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src (Hostspec (Address (IPv6 a)))) = undefined" | (* TODO *)
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src (Hostspec (Address (IPv6 a)))) = undefined" |  (* has to be removed *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src (Hostspec AnyHost)) = undefined" | (* has to be translated to MatchAny first *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src (Hostspec (Route r))) = (Extra ''route'')" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src (Hostspec NoRoute)) = (Extra ''noroute'')" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src UrpfFailed) = (Extra ''urpf_failed'')" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Src (Hostspec (Table _))) = undefined" | (* tables have to be translated to addresses *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst (Address (IPv4 a))) = (let (a,m) = prefix_match_to_CIDR a in (Dst (IpAddrNetmask a m)))" |
-"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst (Address (IPv6 a))) = undefined" | (* TODO *)
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst (Address (IPv6 a))) = undefined" | (* has to be removed *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst AnyHost) = undefined" |  (* has to be translated to MatchAny first *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst (Route r)) = (Extra ''route'')" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst NoRoute) = (Extra ''noroute'')" |
@@ -32,9 +32,9 @@ fun pfcp_to_iptcp :: "pfprefix_Primitives.common_primitive \<Rightarrow> 32 comm
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Dst_Ports _) = undefined" | (* ports have to be normalized *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Interface (Some (InterfaceName name)) (Some In)) = (IIface (Iface name))" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Interface (Some (InterfaceName name)) (Some Out)) = (OIface (Iface name))" |
-"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Interface _ _) = undefined" | (* TODO *)
-"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Address_Family Inet) = undefined" | (* TODO true *)
-"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Address_Family Inet6) = undefined" |(* TODO false *)
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Interface _ _) = (Extra ''unsupported interface match'')" | (* iptables does not support direction *)
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Address_Family Inet) = undefined" | (* has to be translated *)
+"pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Address_Family Inet6) = undefined" | (* has to be translated *)
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Protocol p) = (Prot p)" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.L4_Flags f) = (L4_Flags f)" |
 "pfcp_to_iptcp (pfprefix_Primitives.common_primitive.Extra e) = (Extra e)"
@@ -365,8 +365,27 @@ qed
 definition pfcp_to_iptcp_rs :: "pfprefix_Primitives.common_primitive ruleset \<Rightarrow> 32 common_primitive rule list" where
 "pfcp_to_iptcp_rs = map (\<lambda>l. (case l of (PfRule r) \<Rightarrow> (Rule (pfm_to_iptm (pf_rule.get_match r)) (pfa_to_ipta (pf_rule.get_action r)))))"
 
-fun pf_to_ipt :: "pfcontext \<Rightarrow> pfprefix_Primitives.common_primitive ruleset \<Rightarrow> 32 common_primitive rule list" where
-"pf_to_ipt ctx rs = pfcp_to_iptcp_rs (rev (normalize_ports_rs (remove_tables_rs ctx (remove_quick_approx (remove_matches (remove_anchors rs))))))"
+definition remove_match_any where
+"remove_match_any = id"  (* FIMXE *)
+
+definition ipv4_only where
+"ipv4_only = id" (* FIMXE *)
+
+definition add_default_policy where
+"add_default_policy = id" (* FIMXE *)
+
+fun pf_to_ipt_v4_upper :: "pfcontext \<Rightarrow> pfprefix_Primitives.common_primitive ruleset \<Rightarrow> 32 common_primitive rule list" where
+"pf_to_ipt_v4_upper ctx rs = 
+add_default_policy
+(pfcp_to_iptcp_rs 
+(rev 
+(remove_match_any 
+(ipv4_only 
+(normalize_ports_rs 
+(remove_tables_rs ctx 
+(remove_quick_approx 
+(remove_matches 
+(remove_anchors rs)))))))))"
 
 
 fun pf_decision_to_ipt_decision :: "decision \<Rightarrow> state" where
@@ -379,9 +398,11 @@ theorem
       and "pfprefix_Predicates.good_ruleset ctx rs"
       and "no_unknown_anchors (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) rs"
   shows
- "pf_decision_to_ipt_decision
- (pf_approx rs (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow) (tagged_packet_untag p)) =
-approximating_bigstep_fun (common_matcher,in_doubt_allow) p (pf_to_ipt ctx rs) Undecided"
+ "(pf_approx
+    rs 
+    (pfprefix_PrimitiveMatchers.common_matcher ctx, pfprefix_Unknown_Match_Tacs.in_doubt_allow)
+    (tagged_packet_untag p)) = decision.Accept \<Longrightarrow>
+  approximating_bigstep_fun (common_matcher,in_doubt_allow) p (pf_to_ipt ctx rs) Undecided = Decision FinalAllow"
   sorry
 
 end
