@@ -31,10 +31,12 @@ fun normalize_ports' :: "16 word opspec \<Rightarrow> 16 wordinterval" where
                                      then Empty_WordInterval
                                      else (WordInterval 0 (p - 1)))" |
 "normalize_ports' (Binary (RangeIncl from to)) = (WordInterval from to)" |
-"normalize_ports' (Binary (RangeExcl from to)) = (if (from = max_word \<or> to = 0)
-                                                   then Empty_WordInterval
-                                                   else (WordInterval (from + 1) (to -1)))" |
-"normalize_ports' (Binary (RangeComp from to)) = wordinterval_setminus wordinterval_UNIV (WordInterval from to)"
+"normalize_ports' (Binary (RangeExcl from to)) = 
+  (if (from = max_word \<or> to = 0)
+    then Empty_WordInterval
+    else (WordInterval (from + 1) (to -1)))" |
+"normalize_ports' (Binary (RangeComp from to)) =
+  wordinterval_setminus wordinterval_UNIV (WordInterval from to)"
 
 lemma normalize_ports' :
 "match_port spec p \<longleftrightarrow> wordinterval_element p (normalize_ports' spec)"
@@ -167,7 +169,8 @@ definition normalize_ports_rs :: "common_primitive ruleset \<Rightarrow> common_
 lemma normalize_ports_rs_preserves_semantics:
   assumes "simple_ruleset rs"
       and "good_matcher (common_matcher ctx,\<alpha>)"
-    shows "pf_approx rs (common_matcher ctx,\<alpha>) p = pf_approx (normalize_ports_rs rs) (common_matcher ctx,\<alpha>) p"
+    shows "pf_approx rs (common_matcher ctx,\<alpha>) p =
+           pf_approx (normalize_ports_rs rs) (common_matcher ctx,\<alpha>) p"
   unfolding normalize_ports_rs_def
   using optimize_matches' assms normalize_ports_preserves_semantics
   by metis
@@ -223,16 +226,20 @@ qed
 fun remove_tables ::"pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
 "remove_tables ctx (Match (common_primitive.Src (Hostspec (Table name)))) =
   (MatchOr
-    (match_or (map (\<lambda> a. (common_primitive.Src (Hostspec (Address (IPv4 a)))))
-                (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))
-    (match_or (map (\<lambda> a. (common_primitive.Src (Hostspec (Address (IPv6 a)))))
-                (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name))))))" |
+    (match_or 
+      (map (\<lambda> a. (common_primitive.Src (Hostspec (Address (IPv4 a)))))
+        (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))
+    (match_or
+      (map (\<lambda> a. (common_primitive.Src (Hostspec (Address (IPv6 a)))))
+        (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name))))))" |
 "remove_tables ctx (Match (common_primitive.Dst (Table name))) =
   (MatchOr
-    (match_or (map (\<lambda> a. (common_primitive.Dst (Address (IPv4 a))))
-                (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))
-    (match_or (map (\<lambda> a. (common_primitive.Dst (Address (IPv6 a))))
-                (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name))))))" |
+    (match_or
+      (map (\<lambda> a. (common_primitive.Dst (Address (IPv4 a))))
+        (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v4 (lookup_table ctx name)))))
+    (match_or
+      (map (\<lambda> a. (common_primitive.Dst (Address (IPv6 a))))
+        (wordinterval_CIDR_split_prefixmatch (table_to_wordinterval_v6 (lookup_table ctx name))))))" |
 "remove_tables ctx (MatchNot m) = (MatchNot (remove_tables ctx m))" |
 "remove_tables ctx (MatchAnd m1 m2) = (MatchAnd (remove_tables ctx m1) (remove_tables ctx m2))" |
 "remove_tables ctx m = m"
@@ -319,7 +326,8 @@ qed (simp add:good_match_expr_def)+
 
 lemma remove_tables_preserves_semantics :
   assumes "good_match_expr ctx m"
-    shows "matches (common_matcher ctx, \<alpha>) m a d p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (remove_tables ctx m) a d p"
+  shows "matches (common_matcher ctx, \<alpha>) m a d p \<longleftrightarrow> 
+         matches (common_matcher ctx, \<alpha>) (remove_tables ctx m) a d p"
   using assms by (simp add:good_match_expr_def matches_def remove_tables_preserves_semantics')
 
 definition no_tables :: "common_primitive match_expr \<Rightarrow> bool" where

@@ -61,9 +61,12 @@ fun common_matcher :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 32
 "common_matcher ctx (Src hosts) p = match_hosts_src ctx hosts (p_src p)"|
 "common_matcher ctx (Dst hosts) p = match_hosts ctx hosts (p_dst p)"|
 "common_matcher _ (Src_OS _) _ = TernaryUnknown"|
-"common_matcher _ (Src_Ports (L4Ports proto ports)) p = bool_to_ternary ((proto = (p_proto p)) \<and> match_port ports (p_sport p))"|
-"common_matcher _ (Dst_Ports (L4Ports proto ports)) p = bool_to_ternary ((proto = (p_proto p)) \<and> match_port ports (p_dport p))"|
-"common_matcher ctx (Interface interface direction) p = match_interface ctx interface direction p"|
+"common_matcher _ (Src_Ports (L4Ports proto ports)) p = 
+  bool_to_ternary ((proto = (p_proto p)) \<and> match_port ports (p_sport p))"|
+"common_matcher _ (Dst_Ports (L4Ports proto ports)) p = 
+  bool_to_ternary ((proto = (p_proto p)) \<and> match_port ports (p_dport p))"|
+"common_matcher ctx (Interface interface direction) p = 
+  match_interface ctx interface direction p"|
 "common_matcher _ (Address_Family af) p = bool_to_ternary (match_af af p)"|
 "common_matcher _ (Protocol proto) p = bool_to_ternary (match_proto proto (p_proto p))"|
 "common_matcher _ (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags  (p_tcp_flags p))"|
