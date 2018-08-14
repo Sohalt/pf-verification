@@ -1,4 +1,4 @@
-theory pfprefix_Primitives
+theory PF_Primitives
 imports IP_Addresses.IPv4
         IP_Addresses.IPv6
         IP_Addresses.Prefix_Match

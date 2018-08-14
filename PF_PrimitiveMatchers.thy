@@ -1,10 +1,10 @@
-theory pfprefix_PrimitiveMatchers
-  imports pfprefix_Primitives
+theory PF_PrimitiveMatchers
+  imports PF_Primitives
           Simple_Firewall.Simple_Packet
           Iptables_Semantics.Ternary
-          pfprefix_Tables
-          pfprefix_Firewall_Common
-          "SemanticsTernary/pfprefix_Unknown_Match_Tacs"
+          PF_Tables
+          PF_Firewall_Common
+          "SemanticsTernary/PF_Unknown_Match_Tacs"
 begin
 
 fun match_interface :: "pfcontext \<Rightarrow> ifspec option \<Rightarrow> direction option \<Rightarrow> 32 simple_packet \<Rightarrow> ternaryvalue" where

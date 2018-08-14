@@ -1,4 +1,4 @@
-theory pfprefix_Firewall_Common
+theory PF_Firewall_Common
   imports 
 "HOL-Library.Simps_Case_Conv"
 Iptables_Semantics.Firewall_Common

@@ -1,5 +1,5 @@
-theory pfprefix_Stuff
-  imports pfprefix_Ternary_Translation
+theory PF_Stuff
+  imports PF_Ternary_Translation
 begin
 
 (* unused but might come in handy at some point *)

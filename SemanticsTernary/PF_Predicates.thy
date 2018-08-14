@@ -1,7 +1,7 @@
-theory pfprefix_Predicates
+theory PF_Predicates
   imports
-  "../pfprefix_Primitives"
-  pfprefix_Matching_Ternary
+  "../PF_Primitives"
+  PF_Matching_Ternary
 begin
 fun all_match :: "('a \<Rightarrow> bool) \<Rightarrow> 'a match_expr  \<Rightarrow> bool" where
 "all_match _ MatchAny = True" |

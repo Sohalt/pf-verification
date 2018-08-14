@@ -1,5 +1,5 @@
-theory pfprefix_Pf_To_Simple_Firewall
-imports pfprefix_PF
+theory PF_Pf_To_Simple_Firewall
+imports PF_PF
         Simple_Firewall.SimpleFw_Semantics
 begin
 

@@ -1,5 +1,5 @@
-theory pfprefix_Util
-  imports pfprefix_PF
+theory PF_Util
+  imports PF_PF
 begin
 
 (* definitions without packet type 'p *)

@@ -1,5 +1,5 @@
-theory pfprefix_Fixed_Action
-  imports pfprefix_Semantics_Ternary
+theory PF_Fixed_Action
+  imports PF_Semantics_Ternary
           Iptables_Semantics.List_Misc
 begin
 (* adapted from Iptables_Semantics.Fixed_Action *)

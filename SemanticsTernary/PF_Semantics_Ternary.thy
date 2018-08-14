@@ -1,6 +1,6 @@
-theory pfprefix_Semantics_Ternary
-  imports pfprefix_Matching_Ternary
-          pfprefix_Unknown_Match_Tacs
+theory PF_Semantics_Ternary
+  imports PF_Matching_Ternary
+          PF_Unknown_Match_Tacs
 begin
 
 fun filter_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
@@ -218,10 +218,10 @@ lemma optimize_matches:
     shows "pf_approx (optimize_matches f rs) \<gamma> p = pf_approx rs \<gamma> p"
   using assms optimize_matches_generic[where P="\<lambda>_ _. True"]
 (* TODO more elegant *)
-  by (simp add: \<open>\<And>rs p f \<gamma>. \<lbrakk>pfprefix_Firewall_Common.simple_ruleset rs;
+  by (simp add: \<open>\<And>rs p f \<gamma>. \<lbrakk>PF_Firewall_Common.simple_ruleset rs;
  \<forall>r\<in>set rs. case r of PfRule r \<Rightarrow> True | _ \<Rightarrow> True;
  \<And>m a d. True \<Longrightarrow> matches \<gamma> (f m) a d p = matches \<gamma> m a d p\<rbrakk> \<Longrightarrow> 
-  pf_approx (pfprefix_Firewall_Common.optimize_matches f rs) \<gamma> p = pf_approx rs \<gamma> p\<close> line.case_eq_if)
+  pf_approx (PF_Firewall_Common.optimize_matches f rs) \<gamma> p = pf_approx rs \<gamma> p\<close> line.case_eq_if)
 
 lemma optimize_matches':
   assumes "simple_ruleset rs"
@@ -233,10 +233,10 @@ proof(-)
     apply (auto simp:good_matcher_def) by (metis matches_case)+
   then show ?thesis using assms optimize_matches_generic[where P="\<lambda> m a. a \<noteq> ActionMatch"]
 (* TODO more elegant *)
-    by (simp add: \<open>\<And>rs p f \<gamma>. \<lbrakk>pfprefix_Firewall_Common.simple_ruleset rs; no_match rs;
+    by (simp add: \<open>\<And>rs p f \<gamma>. \<lbrakk>PF_Firewall_Common.simple_ruleset rs; no_match rs;
  \<And>m a d. a \<noteq> ActionMatch \<Longrightarrow> matches \<gamma> (f m) a d p = matches \<gamma> m a d p\<rbrakk> \<Longrightarrow>
- pf_approx (pfprefix_Firewall_Common.optimize_matches f rs) \<gamma> p = pf_approx rs \<gamma> p\<close>
- pfprefix_Firewall_Common.simple_ruleset_def)
+ pf_approx (PF_Firewall_Common.optimize_matches f rs) \<gamma> p = pf_approx rs \<gamma> p\<close>
+ PF_Firewall_Common.simple_ruleset_def)
 qed
 
 end

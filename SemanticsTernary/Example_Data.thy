@@ -1,7 +1,7 @@
 theory Example_Data
   imports          
-          "../pfprefix_Firewall_Common"
-          "../pfprefix_Primitives"
+          "../PF_Firewall_Common"
+          "../PF_Primitives"
 begin
 (*
 int_if  = "dc0"
@@ -48,7 +48,7 @@ pass in log on egress proto tcp to ! <firewall> port ssh # synproxy state
 *)
 
 
-definition pf_ruleset ::"pfprefix_Primitives.common_primitive pfprefix_Firewall_Common.ruleset" where
+definition pf_ruleset ::"PF_Primitives.common_primitive PF_Firewall_Common.ruleset" where
 "pf_ruleset = [
 (PfRule \<lparr>get_action = Block, get_quick = False, get_match = MatchAny\<rparr>),
 (PfRule \<lparr>get_action = Block, get_quick = True, get_match = (MatchAnd (Match (Src UrpfFailed)) (Match (Interface None (Some In))))\<rparr>),

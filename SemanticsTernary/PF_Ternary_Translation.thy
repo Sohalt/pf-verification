@@ -1,9 +1,9 @@
-theory pfprefix_Ternary_Translation
-  imports "../pfprefix_Pf_To_Simple_Firewall"
-          "../pfprefix_PrimitiveMatchers"
-          pfprefix_Semantics_Ternary
-          pfprefix_Unknown_Match_Tacs
-          pfprefix_Predicates
+theory PF_Ternary_Translation
+  imports "../PF_Pf_To_Simple_Firewall"
+          "../PF_PrimitiveMatchers"
+          PF_Semantics_Ternary
+          PF_Unknown_Match_Tacs
+          PF_Predicates
 begin
 
 lemma filter_approx'_to_pf_approx:
