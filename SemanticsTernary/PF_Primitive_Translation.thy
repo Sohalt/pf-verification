@@ -172,7 +172,7 @@ lemma normalize_ports_rs_preserves_semantics:
     shows "pf_approx rs (common_matcher ctx,\<alpha>) p =
            pf_approx (normalize_ports_rs rs) (common_matcher ctx,\<alpha>) p"
   unfolding normalize_ports_rs_def
-  using optimize_matches' assms normalize_ports_preserves_semantics
+  using optimize_matches_preserves_semantics assms normalize_ports_preserves_semantics
   by metis
 
 lemma simple_ruleset_good_ruleset:

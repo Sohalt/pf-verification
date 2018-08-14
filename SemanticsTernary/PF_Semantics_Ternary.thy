@@ -223,7 +223,7 @@ lemma optimize_matches:
  \<And>m a d. True \<Longrightarrow> matches \<gamma> (f m) a d p = matches \<gamma> m a d p\<rbrakk> \<Longrightarrow> 
   pf_approx (PF_Firewall_Common.optimize_matches f rs) \<gamma> p = pf_approx rs \<gamma> p\<close> line.case_eq_if)
 
-lemma optimize_matches':
+lemma optimize_matches_preserves_semantics:
   assumes "simple_ruleset rs"
       and "good_matcher \<gamma>"
       and "\<forall>m a. matches \<gamma> (f m) a d p = matches \<gamma> m a d p"
