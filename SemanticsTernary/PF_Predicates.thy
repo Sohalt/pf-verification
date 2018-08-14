@@ -71,6 +71,6 @@ definition no_match_quick :: "'a ruleset \<Rightarrow> bool" where
 "no_match_quick rs = all_PfRules_P (\<lambda>r. \<not>((pf_rule.get_action r) = ActionMatch \<and> pf_rule.get_quick r)) rs"
 
 
-definition good_ruleset :: "pfcontext \<Rightarrow> common_primitive ruleset \<Rightarrow> bool" where
-"good_ruleset ctx rs = (all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r)) rs \<and> all_AnchorRules_P (\<lambda>a. good_match_expr ctx (anchor_rule.get_match a)) rs)"
+definition wf_ruleset :: "pfcontext \<Rightarrow> common_primitive ruleset \<Rightarrow> bool" where
+"wf_ruleset ctx rs = (all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r)) rs \<and> all_AnchorRules_P (\<lambda>a. good_match_expr ctx (anchor_rule.get_match a)) rs)"
 end

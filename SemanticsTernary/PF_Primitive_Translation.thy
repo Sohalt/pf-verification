@@ -175,21 +175,21 @@ lemma normalize_ports_rs_preserves_semantics:
   using optimize_matches_preserves_semantics assms normalize_ports_preserves_semantics
   by metis
 
-lemma simple_ruleset_good_ruleset:
+lemma simple_ruleset_wf_ruleset:
   assumes "simple_ruleset rs"
       and "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r)) rs"
-    shows "good_ruleset ctx rs"
+    shows "wf_ruleset ctx rs"
 proof(-)
   have "all_AnchorRules_P (\<lambda>r. good_match_expr ctx (anchor_rule.get_match r)) rs"
     using assms unfolding simple_ruleset_def
     by (simp add: line.case_eq_if)
-  then show ?thesis using assms(2) by (simp add:good_ruleset_def)
+  then show ?thesis using assms(2) by (simp add:wf_ruleset_def)
 qed
 
-lemma normalize_ports_rs_preserves_good_ruleset:
+lemma normalize_ports_rs_preserves_wf_ruleset:
   assumes "simple_ruleset rs"
-      and "good_ruleset ctx rs"
-    shows "good_ruleset ctx (normalize_ports_rs rs)"
+      and "wf_ruleset ctx rs"
+    shows "wf_ruleset ctx (normalize_ports_rs rs)"
 proof(-)
   have 1:"\<And>xs proto. all_match (good_primitive ctx)
         (match_or
@@ -215,11 +215,11 @@ proof(-)
       unfolding good_match_expr_def using 1 2 by(induction m rule:normalize_ports.induct) (auto simp:MatchOr_def)
   qed
   then have "(\<And> r. (PfRule r) \<in> set rs \<Longrightarrow> good_match_expr ctx (normalize_ports (pf_rule.get_match r)))"
-    using assms good_ruleset_def by auto
+    using assms wf_ruleset_def by auto
   then have "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r)) (normalize_ports_rs rs)"
     unfolding normalize_ports_rs_def using optimize_matches_preserves assms 
     sorry
-  then show ?thesis using simple_ruleset_good_ruleset assms(1)
+  then show ?thesis using simple_ruleset_wf_ruleset assms(1)
     by (simp add: normalize_ports_rs_def optimize_matches_simple_ruleset)
 qed
 
@@ -384,7 +384,7 @@ definition remove_tables_rs :: "pfcontext \<Rightarrow> common_primitive ruleset
 "remove_tables_rs ctx = optimize_matches (remove_tables ctx)"
 
 lemma remove_tables_rs_preserves_semantics:
-  assumes "good_ruleset ctx rs"
+  assumes "wf_ruleset ctx rs"
       and "simple_ruleset rs"
       and "good_matcher (common_matcher ctx,\<alpha>)"
     shows "pf_approx rs (common_matcher ctx,\<alpha>) p =
@@ -392,7 +392,7 @@ lemma remove_tables_rs_preserves_semantics:
 proof(-)
   have "\<forall>r\<in>set rs.
        case r of PfRule r \<Rightarrow> pf_rule.get_action r \<noteq> ActionMatch \<and> good_match_expr ctx (pf_rule.get_match r)
-       | Anchor _ _ \<Rightarrow> True" using assms(1) assms(2) unfolding good_ruleset_def simple_ruleset_def
+       | Anchor _ _ \<Rightarrow> True" using assms(1) assms(2) unfolding wf_ruleset_def simple_ruleset_def
     by (simp add: line.case_eq_if)
   have "(\<And>m a d. a \<noteq> ActionMatch \<and> good_match_expr ctx m \<Longrightarrow>
   matches (common_matcher ctx,\<alpha>) (remove_tables ctx m) a d p = matches(common_matcher ctx,\<alpha>) m a d p)"
@@ -479,7 +479,7 @@ qed (auto simp:MatchOr_def good_match_expr_def)
 
 lemma remove_tables_rs_preserves_simple_ruleset:
   assumes "simple_ruleset rs"
-      and "good_ruleset ctx rs"
+      and "wf_ruleset ctx rs"
     shows "simple_ruleset (remove_tables_rs ctx rs)"
   unfolding remove_tables_rs_def using assms optimize_matches_simple_ruleset by blast
 
@@ -496,20 +496,20 @@ next
 qed
 
 
-lemma remove_tables_rs_preserves_good_ruleset:
+lemma remove_tables_rs_preserves_wf_ruleset:
   assumes "simple_ruleset rs"
-      and "good_ruleset ctx rs"
-    shows "good_ruleset ctx (remove_tables_rs ctx rs)"
+      and "wf_ruleset ctx rs"
+    shows "wf_ruleset ctx (remove_tables_rs ctx rs)"
 proof(-)
   have "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r))
      (optimize_matches (remove_tables ctx) rs)"
     using optimize_matches_preserves[of rs "good_match_expr ctx" "remove_tables ctx"] assms
-          optimize_matches_simple_ruleset good_ruleset_def simple_ruleset_def
+          optimize_matches_simple_ruleset wf_ruleset_def simple_ruleset_def
           remove_tables_preserves_good_match_expr
     sorry (*sledgehammer*)
   moreover have "all_AnchorRules_P (\<lambda>a. good_match_expr ctx (anchor_rule.get_match a))
        (remove_tables_rs ctx rs)"
     using assms remove_tables_rs_preserves_simple_ruleset foo by blast
-  ultimately show ?thesis unfolding good_ruleset_def remove_tables_rs_def by auto
+  ultimately show ?thesis unfolding wf_ruleset_def remove_tables_rs_def by auto
 qed
 end

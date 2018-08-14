@@ -374,7 +374,8 @@ definition ipv4_only where
 definition add_default_policy where
 "add_default_policy = id" (* FIMXE *)
 
-fun pf_to_ipt_v4_upper :: "pfcontext \<Rightarrow> PF_Primitives.common_primitive ruleset \<Rightarrow> 32 common_primitive rule list" where
+fun pf_to_ipt_v4_upper ::
+"pfcontext \<Rightarrow> PF_Primitives.common_primitive ruleset \<Rightarrow> 32 common_primitive rule list" where
 "pf_to_ipt_v4_upper ctx rs = 
 add_default_policy
 (pfcp_to_iptcp_rs 
@@ -394,15 +395,20 @@ fun pf_decision_to_ipt_decision :: "decision \<Rightarrow> state" where
 
 
 theorem
-  assumes "no_match_quick rs"
-      and "PF_Predicates.good_ruleset ctx rs"
-      and "no_unknown_anchors (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow) rs"
-  shows
- "(pf_approx
-    rs 
-    (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
-    (tagged_packet_untag p)) = decision.Accept \<Longrightarrow>
-  approximating_bigstep_fun (common_matcher,in_doubt_allow) p (pf_to_ipt ctx rs) Undecided = Decision FinalAllow"
+  assumes "PF_Predicates.wf_ruleset ctx rs"
+      and "no_match_quick rs"
+      and "no_unknown_anchors
+            (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+            rs"
+  shows "pf_approx
+           rs 
+           (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+           (tagged_packet_untag p) = decision.Accept \<Longrightarrow>
+         approximating_bigstep_fun
+           (Common_Primitive_Matcher.common_matcher,Unknown_Match_Tacs.in_doubt_allow)
+           p 
+           (pf_to_ipt ctx rs)
+           Undecided = Decision FinalAllow"
   sorry
 
 end
