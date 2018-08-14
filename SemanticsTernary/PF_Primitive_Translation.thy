@@ -512,4 +512,29 @@ proof(-)
     using assms remove_tables_rs_preserves_simple_ruleset foo by blast
   ultimately show ?thesis unfolding wf_ruleset_def remove_tables_rs_def by auto
 qed
+
+
+fun remove_ipv6 :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+"remove_ipv6 (Match (Src (Hostspec (Address (IPv6 _))))) = MatchNone" |
+"remove_ipv6 (Match (Dst (Address (IPv6 _)))) = MatchNone" |
+"remove_ipv6 (Match (Address_Family Inet)) = MatchAny" |
+"remove_ipv6 (Match (Address_Family Inet6)) = MatchNone" |
+"remove_ipv6 (Match m) = (Match m)" |
+"remove_ipv6 (MatchNot m) = (MatchNot (remove_ipv6 m))" |
+"remove_ipv6 (MatchAnd m1 m2) = (MatchAnd (remove_ipv6 m1) (remove_ipv6 m2))"
+
+definition ipv4_only :: "common_primitive ruleset \<Rightarrow> common_primitive ruleset" where
+"ipv4_only = optimize_matches remove_ipv6"
+
+fun remove_match_any' ::  "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
+"remove_match_any' (Match (Src (Hostspec AnyHost))) = MatchAny" |
+"remove_match_any' (Match (Dst AnyHost)) = MatchAny" |
+"remove_match_any' (Match (Address_Family Inet)) = MatchAny" |
+"remove_match_any' (Match (Address_Family Inet6)) = MatchNone" |
+"remove_match_any' (Match m) = (Match m)" |
+"remove_match_any' (MatchNot m) = (MatchNot (remove_match_any' m))" |
+"remove_match_any' (MatchAnd m1 m2) = (MatchAnd (remove_match_any' m1) (remove_match_any' m2))"
+
+definition remove_match_any :: "common_primitive ruleset \<Rightarrow> common_primitive ruleset" where
+"remove_match_any = optimize_matches remove_match_any'"
 end
