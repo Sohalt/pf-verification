@@ -161,7 +161,7 @@ lemma normalize_ports_ok:
 by (induction m rule:normalize_ports.induct)
    ((simp add:normalized_ports_def; fail) | simp)+
 
-definition normalize_ports_rs :: "pfprefix_Primitives.common_primitive ruleset \<Rightarrow> pfprefix_Primitives.common_primitive ruleset" where
+definition normalize_ports_rs :: "common_primitive ruleset \<Rightarrow> common_primitive ruleset" where
 "normalize_ports_rs = optimize_matches normalize_ports"
 
 lemma normalize_ports_rs_preserves_semantics:
@@ -172,6 +172,53 @@ lemma normalize_ports_rs_preserves_semantics:
   using optimize_matches' assms normalize_ports_preserves_semantics
   by metis
 
+lemma simple_ruleset_good_ruleset:
+  assumes "simple_ruleset rs"
+      and "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r)) rs"
+    shows "good_ruleset ctx rs"
+proof(-)
+  have "all_AnchorRules_P (\<lambda>r. good_match_expr ctx (anchor_rule.get_match r)) rs"
+    using assms unfolding simple_ruleset_def
+    by (simp add: line.case_eq_if)
+  then show ?thesis using assms(2) by (simp add:good_ruleset_def)
+qed
+
+lemma normalize_ports_rs_preserves_good_ruleset:
+  assumes "simple_ruleset rs"
+      and "good_ruleset ctx rs"
+    shows "good_ruleset ctx (normalize_ports_rs rs)"
+proof(-)
+  have 1:"\<And>xs proto. all_match (good_primitive ctx)
+        (match_or
+          (map (\<lambda>(l, u). Src_Ports (L4Ports proto (Binary (RangeIncl l u)))) xs))"
+  proof(-)
+  fix xs proto show "all_match (good_primitive ctx)
+        (match_or
+          (map (\<lambda>(l, u). Src_Ports (L4Ports proto (Binary (RangeIncl l u)))) xs))"
+    by(induction xs) (auto simp:MatchOr_def)
+  qed
+  have 2:"\<And>xs proto. all_match (good_primitive ctx)
+        (match_or
+          (map (\<lambda>(l, u). Dst_Ports (L4Ports proto (Binary (RangeIncl l u)))) xs))"
+  proof(-)
+  fix xs proto show "all_match (good_primitive ctx)
+        (match_or
+          (map (\<lambda>(l, u). Dst_Ports (L4Ports proto (Binary (RangeIncl l u)))) xs))"
+    by(induction xs) (auto simp:MatchOr_def)
+  qed
+  have "\<And>m. good_match_expr ctx m \<Longrightarrow> good_match_expr ctx (normalize_ports m)"
+  proof(-)
+    fix m show "good_match_expr ctx m \<Longrightarrow> good_match_expr ctx (normalize_ports m)"
+      unfolding good_match_expr_def using 1 2 by(induction m rule:normalize_ports.induct) (auto simp:MatchOr_def)
+  qed
+  then have "(\<And> r. (PfRule r) \<in> set rs \<Longrightarrow> good_match_expr ctx (normalize_ports (pf_rule.get_match r)))"
+    using assms good_ruleset_def by auto
+  then have "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r)) (normalize_ports_rs rs)"
+    unfolding normalize_ports_rs_def using optimize_matches_preserves assms 
+    sorry
+  then show ?thesis using simple_ruleset_good_ruleset assms(1)
+    by (simp add: normalize_ports_rs_def optimize_matches_simple_ruleset)
+qed
 
 fun remove_tables ::"pfcontext \<Rightarrow> common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
 "remove_tables ctx (Match (common_primitive.Src (Hostspec (Table name)))) =
@@ -447,7 +494,7 @@ lemma remove_tables_rs_preserves_good_ruleset:
     shows "good_ruleset ctx (remove_tables_rs ctx rs)"
 proof(-)
   have "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r))
-     (pfprefix_Firewall_Common.optimize_matches (remove_tables ctx) rs)"
+     (optimize_matches (remove_tables ctx) rs)"
     using optimize_matches_preserves[of rs "good_match_expr ctx" "remove_tables ctx"] assms
           optimize_matches_simple_ruleset good_ruleset_def simple_ruleset_def
           remove_tables_preserves_good_match_expr
