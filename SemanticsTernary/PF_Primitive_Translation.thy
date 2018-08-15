@@ -576,12 +576,55 @@ lemma ipv4_only_no_af:
 fun remove_match_any' ::  "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
 "remove_match_any' (Match (Src (Hostspec AnyHost))) = MatchAny" |
 "remove_match_any' (Match (Dst AnyHost)) = MatchAny" |
-"remove_match_any' (Match (Address_Family Inet)) = MatchAny" |
-"remove_match_any' (Match (Address_Family Inet6)) = MatchNone" |
 "remove_match_any' (Match m) = (Match m)" |
+"remove_match_any' MatchAny = MatchAny" |
 "remove_match_any' (MatchNot m) = (MatchNot (remove_match_any' m))" |
 "remove_match_any' (MatchAnd m1 m2) = (MatchAnd (remove_match_any' m1) (remove_match_any' m2))"
 
+lemma remove_match_any'_ok: "no_anyhost (remove_match_any' m)"
+  by (induction m rule:remove_match_any'.induct) (auto simp: no_anyhost_def MatchNone_def)
+
 definition remove_match_any :: "common_primitive ruleset \<Rightarrow> common_primitive ruleset" where
 "remove_match_any = optimize_matches remove_match_any'"
+
+lemma remove_match_any_ok:
+  assumes "simple_ruleset rs"
+  shows "no_anyhost_rs (remove_match_any rs)"
+  unfolding no_anyhost_rs_def remove_match_any_def
+  using optimize_matches_preserves_all_PfRules_P' assms remove_match_any'_ok by auto
+
+lemma remove_match_any_preserves_simple_ruleset:
+  assumes "simple_ruleset rs"
+  shows "simple_ruleset (remove_match_any rs)"
+  using assms by (auto simp:remove_match_any_def optimize_matches_simple_ruleset)
+
+lemma remove_match_any'_preserves_good_match_expr:
+  assumes "good_match_expr ctx m"
+  shows "good_match_expr ctx (remove_match_any' m)"
+  using assms by (induction m rule:remove_match_any'.induct)
+                 (auto simp:good_match_expr_def MatchNone_def)
+
+lemma remove_match_any_preserves_good_ruleset:
+  assumes "simple_ruleset rs"
+  and "wf_ruleset ctx rs"
+shows "wf_ruleset ctx (remove_match_any rs)"
+proof(-)
+  have "all_PfRules_P (\<lambda>r. good_match_expr ctx (remove_match_any' (pf_rule.get_match r))) rs"
+  using assms proof(induction rs)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rs)
+    then show ?case by(cases a)
+        (auto simp add:remove_match_any'_preserves_good_match_expr
+                       simple_ruleset_def wf_ruleset_def)
+  qed
+  then have "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r))
+                  (remove_match_any rs)" unfolding remove_match_any_def
+    using assms optimize_matches_preserves_all_PfRules_P by simp
+  then show ?thesis
+  using assms remove_match_any_preserves_simple_ruleset simple_ruleset_wf_ruleset
+  by simp
+qed
+
 end
