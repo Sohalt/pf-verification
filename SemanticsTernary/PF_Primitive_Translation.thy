@@ -159,6 +159,13 @@ by (induction m rule:normalize_ports.induct)
 definition normalize_ports_rs :: "common_primitive ruleset \<Rightarrow> common_primitive ruleset" where
 "normalize_ports_rs = optimize_matches normalize_ports"
 
+lemma normalize_ports_rs_ok:
+  assumes "simple_ruleset rs"
+  shows "normalized_ports_rs (normalize_ports_rs rs)"
+  unfolding normalized_ports_rs_def normalize_ports_rs_def
+  using optimize_matches_preserves_all_PfRules_P'[where f="normalize_ports"]
+    assms normalize_ports_ok by auto
+
 lemma normalize_ports_rs_preserves_semantics:
   assumes "simple_ruleset rs"
       and "good_matcher (common_matcher ctx,\<alpha>)"
@@ -613,6 +620,65 @@ proof(-)
   by simp
 qed
 
+lemma remove_ipv6_preserves_no_tables:
+  assumes "no_tables m"
+  shows "no_tables (remove_ipv6 m)"
+  using assms apply (induction m rule:remove_ipv6.induct)
+  by (auto simp:no_tables_def MatchNone_def)
+
+lemma ipv4_only_preserves_no_tables_rs:
+  assumes "simple_ruleset rs"
+    and "no_tables_rs rs"
+  shows "no_tables_rs (ipv4_only rs)"
+proof(-)
+  have "all_PfRules_P (\<lambda>r. (no_tables (remove_ipv6 (pf_rule.get_match r)))) rs" using assms
+  proof(induction rs)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rs)
+    then show ?case by (cases a)
+        (auto simp:remove_ipv6_preserves_no_tables 
+                   simple_ruleset_def no_tables_rs_def)
+  qed
+  then have "all_PfRules_P (\<lambda>r. no_tables (pf_rule.get_match r))
+                  (ipv4_only rs)" unfolding ipv4_only_def
+    using assms optimize_matches_preserves_all_PfRules_P by simp
+  then show ?thesis unfolding ipv4_only_def no_tables_rs_def
+  using assms ipv4_only_preserves_simple_ruleset simple_ruleset_wf_ruleset
+  by simp
+qed
+
+lemma remove_ipv6_preserves_normalized_ports:
+  assumes "normalized_ports m"
+  shows "normalized_ports (remove_ipv6 m)"
+  using assms apply (induction m rule:remove_ipv6.induct)
+  by (auto simp:normalized_ports_def MatchNone_def)
+
+lemma ipv4_only_preserves_normalized_ports_rs:
+  assumes "simple_ruleset rs"
+    and "normalized_ports_rs rs"
+  shows "normalized_ports_rs (ipv4_only rs)"
+proof(-)
+  have "all_PfRules_P (\<lambda>r. normalized_ports (remove_ipv6 (pf_rule.get_match r))) rs" using assms
+  proof(induction rs)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rs)
+    then show ?case by (cases a)
+        (auto simp:remove_ipv6_preserves_normalized_ports
+                   simple_ruleset_def normalized_ports_rs_def)
+  qed
+  then have "all_PfRules_P (\<lambda>r. normalized_ports (pf_rule.get_match r))
+                  (ipv4_only rs)" unfolding ipv4_only_def
+    using assms optimize_matches_preserves_all_PfRules_P by simp
+  then show ?thesis unfolding ipv4_only_def normalized_ports_rs_def
+  using assms ipv4_only_preserves_simple_ruleset simple_ruleset_wf_ruleset
+  by simp
+qed
+
+
 lemma no_ipv6_ok: "no_ipv6 (remove_ipv6 m)"
   by (induction m rule:remove_ipv6.induct) (auto simp: no_ipv6_def MatchNone_def)
 
@@ -687,4 +753,203 @@ proof(-)
   by simp
 qed
 
+
+lemma remove_match_any'_preserves_no_tables:
+  assumes "no_tables m"
+  shows "no_tables (remove_match_any' m)"
+  using assms apply (induction m rule:remove_match_any'.induct)
+  by (auto simp:no_tables_def MatchNone_def)
+
+lemma remove_match_any_preserves_no_tables_rs:
+  assumes "simple_ruleset rs"
+    and "no_tables_rs rs"
+  shows "no_tables_rs (remove_match_any rs)"
+proof(-)
+  have "all_PfRules_P (\<lambda>r. (no_tables (remove_match_any' (pf_rule.get_match r)))) rs" using assms
+  proof(induction rs)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rs)
+    then show ?case by (cases a)
+        (auto simp:remove_match_any'_preserves_no_tables 
+                   simple_ruleset_def no_tables_rs_def)
+  qed
+  then have "all_PfRules_P (\<lambda>r. no_tables (pf_rule.get_match r))
+                  (remove_match_any rs)" unfolding remove_match_any_def
+    using assms optimize_matches_preserves_all_PfRules_P by simp
+  then show ?thesis unfolding ipv4_only_def no_tables_rs_def by simp
+qed
+
+lemma remove_match_any'_preserves_normalized_ports:
+  assumes "normalized_ports m"
+  shows "normalized_ports (remove_match_any' m)"
+  using assms apply (induction m rule:remove_match_any'.induct)
+  by (auto simp:normalized_ports_def MatchNone_def)
+
+lemma remove_match_any_preserves_normalized_ports_rs:
+  assumes "simple_ruleset rs"
+    and "normalized_ports_rs rs"
+  shows "normalized_ports_rs (remove_match_any rs)"
+proof(-)
+  have "all_PfRules_P (\<lambda>r. normalized_ports (remove_match_any' (pf_rule.get_match r))) rs" using assms
+  proof(induction rs)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rs)
+    then show ?case by (cases a)
+        (auto simp:remove_match_any'_preserves_normalized_ports
+                   simple_ruleset_def normalized_ports_rs_def)
+  qed
+  then have "all_PfRules_P (\<lambda>r. normalized_ports (pf_rule.get_match r))
+                  (remove_match_any rs)" unfolding remove_match_any_def
+    using assms optimize_matches_preserves_all_PfRules_P by simp
+  then show ?thesis unfolding remove_match_any_def normalized_ports_rs_def
+  using assms remove_match_any_preserves_simple_ruleset simple_ruleset_wf_ruleset
+  by simp
+qed
+
+lemma remove_match_any'_preserves_no_ipv6:
+  assumes "no_ipv6 m"
+  shows "no_ipv6 (remove_match_any' m)"
+  using assms apply (induction m rule:remove_match_any'.induct)
+  by (auto simp:no_ipv6_def MatchNone_def)
+
+lemma remove_match_any_preserves_no_ipv6_rs:
+  assumes "simple_ruleset rs"
+    and "no_ipv6_rs rs"
+  shows "no_ipv6_rs (remove_match_any rs)"
+proof(-)
+  have "all_PfRules_P (\<lambda>r. no_ipv6 (remove_match_any' (pf_rule.get_match r))) rs" using assms
+  proof(induction rs)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rs)
+    then show ?case by (cases a)
+        (auto simp:remove_match_any'_preserves_no_ipv6
+                   simple_ruleset_def no_ipv6_rs_def)
+  qed
+  then have "all_PfRules_P (\<lambda>r. no_ipv6 (pf_rule.get_match r))
+                  (remove_match_any rs)" unfolding remove_match_any_def
+    using assms optimize_matches_preserves_all_PfRules_P by simp
+  then show ?thesis unfolding remove_match_any_def no_ipv6_rs_def
+  using assms remove_match_any_preserves_simple_ruleset simple_ruleset_wf_ruleset
+  by simp
+qed
+
+lemma remove_match_any'_preserves_no_af:
+  assumes "no_af m"
+  shows "no_af (remove_match_any' m)"
+  using assms apply (induction m rule:remove_match_any'.induct)
+  by (auto simp:no_af_def MatchNone_def)
+
+lemma remove_match_any_preserves_no_af_rs:
+  assumes "simple_ruleset rs"
+    and "no_af_rs rs"
+  shows "no_af_rs (remove_match_any rs)"
+proof(-)
+  have "all_PfRules_P (\<lambda>r. no_af (remove_match_any' (pf_rule.get_match r))) rs" using assms
+  proof(induction rs)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rs)
+    then show ?case by (cases a)
+        (auto simp:remove_match_any'_preserves_no_af
+                   simple_ruleset_def no_af_rs_def)
+  qed
+  then have "all_PfRules_P (\<lambda>r. no_af (pf_rule.get_match r))
+                  (remove_match_any rs)" unfolding remove_match_any_def
+    using assms optimize_matches_preserves_all_PfRules_P by simp
+  then show ?thesis unfolding remove_match_any_def no_af_rs_def
+  using assms remove_match_any_preserves_simple_ruleset simple_ruleset_wf_ruleset
+  by simp
+qed
+
+definition primitive_transformations :: "pfcontext \<Rightarrow> common_primitive ruleset \<Rightarrow> common_primitive ruleset" where
+"primitive_transformations ctx rs =
+(remove_match_any
+(ipv4_only
+(normalize_ports_rs
+(remove_tables_rs ctx rs))))"
+
+lemma primitive_transformations_simple_ruleset:
+  assumes "simple_ruleset rs"
+    shows "simple_ruleset (primitive_transformations ctx rs)"
+  unfolding primitive_transformations_def using assms
+ remove_tables_rs_preserves_simple_ruleset
+ normalize_ports_rs_preserves_simple_ruleset
+ ipv4_only_preserves_simple_ruleset
+ remove_match_any_preserves_simple_ruleset
+  by auto
+
+lemma primitive_transformations_wf_ruleset:
+  assumes "simple_ruleset rs"
+      and "wf_ruleset ctx rs"
+    shows "wf_ruleset ctx (primitive_transformations ctx rs)"
+  unfolding primitive_transformations_def using assms
+remove_tables_rs_preserves_wf_ruleset remove_tables_rs_preserves_simple_ruleset
+normalize_ports_rs_preserves_wf_ruleset normalize_ports_rs_preserves_simple_ruleset
+ipv4_only_preserves_wf_ruleset ipv4_only_preserves_simple_ruleset
+remove_match_any_preserves_wf_ruleset remove_match_any_preserves_simple_ruleset
+  by auto
+
+lemma primitive_transformations_no_tables:
+  assumes "simple_ruleset rs"
+      and "wf_ruleset ctx rs"
+    shows "no_tables_rs (primitive_transformations ctx rs)"
+  unfolding primitive_transformations_def using assms
+remove_tables_rs_preserves_wf_ruleset remove_tables_rs_preserves_simple_ruleset remove_tables_rs_ok
+normalize_ports_rs_preserves_wf_ruleset normalize_ports_rs_preserves_simple_ruleset normalize_ports_rs_preserves_no_tables_rs
+ipv4_only_preserves_wf_ruleset ipv4_only_preserves_simple_ruleset ipv4_only_preserves_no_tables_rs     
+remove_match_any_preserves_wf_ruleset remove_match_any_preserves_simple_ruleset remove_match_any_preserves_no_tables_rs
+  by simp
+
+lemma primitive_transformations_normalized_ports:
+  assumes "simple_ruleset rs"
+      and "wf_ruleset ctx rs"
+    shows "normalized_ports_rs (primitive_transformations ctx rs)"
+  unfolding primitive_transformations_def using assms
+remove_tables_rs_preserves_wf_ruleset remove_tables_rs_preserves_simple_ruleset
+normalize_ports_rs_preserves_wf_ruleset normalize_ports_rs_preserves_simple_ruleset normalize_ports_rs_ok
+ipv4_only_preserves_wf_ruleset ipv4_only_preserves_simple_ruleset ipv4_only_preserves_normalized_ports_rs
+remove_match_any_preserves_wf_ruleset remove_match_any_preserves_simple_ruleset remove_match_any_preserves_normalized_ports_rs
+  by simp
+
+lemma primitive_transformations_no_ipv6:
+  assumes "simple_ruleset rs"
+      and "wf_ruleset ctx rs"
+    shows "no_ipv6_rs (primitive_transformations ctx rs)"
+  unfolding primitive_transformations_def using assms
+remove_tables_rs_preserves_wf_ruleset remove_tables_rs_preserves_simple_ruleset
+normalize_ports_rs_preserves_wf_ruleset normalize_ports_rs_preserves_simple_ruleset 
+ipv4_only_preserves_wf_ruleset ipv4_only_preserves_simple_ruleset ipv4_only_no_ipv6
+remove_match_any_preserves_wf_ruleset remove_match_any_preserves_simple_ruleset remove_match_any_preserves_no_ipv6_rs
+  by simp
+
+lemma primitive_transformations_no_af:
+  assumes "simple_ruleset rs"
+      and "wf_ruleset ctx rs"
+    shows "no_af_rs (primitive_transformations ctx rs)"
+  unfolding primitive_transformations_def using assms
+remove_tables_rs_preserves_wf_ruleset remove_tables_rs_preserves_simple_ruleset
+normalize_ports_rs_preserves_wf_ruleset normalize_ports_rs_preserves_simple_ruleset 
+ipv4_only_preserves_wf_ruleset ipv4_only_preserves_simple_ruleset ipv4_only_no_af
+remove_match_any_preserves_wf_ruleset remove_match_any_preserves_simple_ruleset remove_match_any_preserves_no_af_rs
+  by simp
+
+lemma primitive_transformations_no_anyhost:
+  assumes "simple_ruleset rs"
+      and "wf_ruleset ctx rs"
+    shows "no_anyhost_rs (primitive_transformations ctx rs)"
+  unfolding primitive_transformations_def using assms
+remove_tables_rs_preserves_wf_ruleset remove_tables_rs_preserves_simple_ruleset
+normalize_ports_rs_preserves_wf_ruleset normalize_ports_rs_preserves_simple_ruleset 
+ipv4_only_preserves_wf_ruleset ipv4_only_preserves_simple_ruleset ipv4_only_no_af
+remove_match_any_preserves_wf_ruleset remove_match_any_preserves_simple_ruleset remove_match_any_ok
+  by simp
+
+lemmas primitive_transformations_ok = primitive_transformations_simple_ruleset primitive_transformations_wf_ruleset primitive_transformations_no_tables primitive_transformations_normalized_ports primitive_transformations_no_ipv6 primitive_transformations_no_af primitive_transformations_no_anyhost
 end
