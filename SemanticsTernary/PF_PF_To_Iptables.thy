@@ -813,6 +813,75 @@ fun pf_decision_to_ipt_decision :: "decision \<Rightarrow> state" where
 "pf_decision_to_ipt_decision decision.Accept = Decision FinalAllow" |
 "pf_decision_to_ipt_decision decision.Reject = Decision FinalDeny"
 
+lemmas assm_rs_simps = PF_Predicates.wf_ruleset_def simple_ruleset_def no_tables_rs_def normalized_ports_rs_def no_ipv6_rs_def no_af_rs_def no_anyhost_rs_def
+
+lemma
+  defines "\<gamma>_pf ctx \<equiv> (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
+      and "\<gamma>_ipt \<equiv> (Common_Primitive_Matcher.common_matcher,Unknown_Match_Tacs.in_doubt_allow)" 
+  assumes "PF_Predicates.wf_ruleset ctx rs"
+      and "simple_ruleset rs"
+      and "no_tables_rs rs"
+      and "normalized_ports_rs rs"
+      and "no_ipv6_rs rs"
+      and "no_af_rs rs"
+      and "no_anyhost_rs rs"
+  shows "pf_approx
+           (rev rs) 
+           (\<gamma>_pf ctx)
+           (tagged_packet_untag p) = decision.Accept \<Longrightarrow>
+         approximating_bigstep_fun
+            \<gamma>_ipt
+           p 
+           (add_default_policy (pfcp_to_iptcp_rs rs))
+           Undecided = Decision FinalAllow"
+proof(-)
+  assume prem: "pf_approx
+           (rev rs) 
+           (\<gamma>_pf ctx)
+           (tagged_packet_untag p) = decision.Accept"
+  have "good_matcher (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
+    by (simp add: in_doubt_allow_good_matcher)
+  then have "pf_approx (rev rs) (\<gamma>_pf ctx) (tagged_packet_untag p) = 
+(case (find (\<lambda>r. match_pf_rule r (\<gamma>_pf ctx) (tagged_packet_untag p)) rs) of
+(Some (PfRule r)) \<Rightarrow> (action_to_decision (pf_rule.get_action r) decision.Accept)
+| None \<Rightarrow> decision.Accept)"
+    using assms by (auto simp: pf_reverse_semantics)
+    then have "(case (find (\<lambda>r. match_pf_rule r (\<gamma>_pf ctx) (tagged_packet_untag p)) rs) of
+(Some (PfRule r)) \<Rightarrow> (action_to_decision (pf_rule.get_action r) decision.Accept)
+| None \<Rightarrow> decision.Accept) = decision.Accept" using prem by simp
+  then show ?thesis using assms
+  proof(induction rs)
+    case Nil
+    then show ?case apply (auto simp:add_default_policy_def pfcp_to_iptcp_rs_def)
+      by (simp add: Matching_Ternary.bunch_of_lemmata_about_matches(2))
+  next
+    case (Cons a rs)
+    then show ?case
+    proof(cases "(\<lambda>r. match_pf_rule r (\<gamma>_pf ctx) (tagged_packet_untag p)) a")
+      case matches:True
+      obtain r where pfr:"a = (PfRule r)" using Cons(6) simple_ruleset_def
+        by (metis line.collapse(1) list.set_intros(1))
+    then show ?thesis
+    proof(cases "get_action r")
+      case Pass
+      then have "Matching_Ternary.matches \<gamma>_ipt (pfm_to_iptm (pf_rule.get_match r)) (pfa_to_ipta Pass) p"
+        using matches pfr pf_ipt_matches Cons.prems assm_rs_simps
+        by (metis Cons.hyps(3) Cons.hyps(4) list.set_intros(1) match_pf_rule.simps simple_ruleset_all_PfRules_P)
+      then show ?thesis using Cons Pass pfr by (simp add:add_default_policy_def pfcp_to_iptcp_rs_def)
+    next
+      case ActionMatch
+      then show ?thesis using Cons.prems(2) pfr by (simp add:simple_ruleset_def)
+    next
+      case Block
+      then show ?thesis using Cons.hyps(2) matches pfr by simp
+    qed
+    next
+      case nmatches:False
+      then have ""
+      then show ?thesis using Cons apply (auto simp add:assm_simps assm_rs_simps)
+    qed
+  qed
+qed
 
 theorem
   assumes "PF_Predicates.wf_ruleset ctx rs"
