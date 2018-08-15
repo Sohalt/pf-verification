@@ -434,4 +434,15 @@ next
   qed
 qed
 
+lemma pf_reverse_semantics':
+  assumes "simple_ruleset rs"
+      and "good_matcher \<gamma>"
+    shows "pf_approx rs \<gamma> p = (case (find (\<lambda>r. match_pf_rule r \<gamma> p) (rev rs)) of
+(Some (PfRule r)) \<Rightarrow> (action_to_decision (pf_rule.get_action r) decision.Accept)
+| None \<Rightarrow> decision.Accept)"
+proof(-)
+  have "simple_ruleset (rev rs)" using assms by (induction rs) (auto simp add:simple_ruleset_def)
+  then show ?thesis using assms pf_reverse_semantics[where rs="(rev rs)"] by simp
+qed
+
 end
