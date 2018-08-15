@@ -233,7 +233,50 @@ proof(-)
     by simp
 qed
 
+lemma normalize_ports_no_tables_src_helper:
+"no_tables
+        (match_or
+          (map (\<lambda>(l, u). Src_Ports (L4Ports proto (Binary (RangeIncl l u))))
+            l))"
+  by (induction l) (auto simp:MatchOr_def no_tables_def)
 
+lemma normalize_ports_no_tables_dst_helper:
+"no_tables
+        (match_or
+          (map (\<lambda>(l, u). Dst_Ports (L4Ports proto (Binary (RangeIncl l u))))
+            l))"
+  by (induction l) (auto simp:MatchOr_def no_tables_def)
+
+lemma normalize_ports_preserves_no_tables:
+  assumes "no_tables m"
+  shows "no_tables (normalize_ports m)"
+  using assms apply (induction m rule:normalize_ports.induct)
+  by (auto simp:normalize_ports_no_tables_src_helper
+                normalize_ports_no_tables_dst_helper)
+     (auto simp:no_tables_def)
+                 
+lemma normalize_ports_rs_preserves_no_tables_rs:
+  assumes "simple_ruleset rs"
+      and "no_tables_rs rs"
+    shows "no_tables_rs (normalize_ports_rs rs)"
+proof(-)
+  have "all_PfRules_P (\<lambda>r. (no_tables (normalize_ports (pf_rule.get_match r)))) rs" using assms
+  proof(induction rs)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rs)
+    then show ?case by (cases a)
+        (auto simp:normalize_ports_preserves_no_tables 
+                   simple_ruleset_def no_tables_rs_def)
+  qed
+  then have "all_PfRules_P (\<lambda>r. no_tables (pf_rule.get_match r))
+                  (normalize_ports_rs rs)" unfolding normalize_ports_rs_def
+    using assms optimize_matches_preserves_all_PfRules_P by simp
+  then show ?thesis unfolding normalize_ports_rs_def no_tables_rs_def
+  using assms normalize_ports_rs_preserves_simple_ruleset simple_ruleset_wf_ruleset
+  by simp
+qed
 
 
 (* -------------- Tables -------------- *)
