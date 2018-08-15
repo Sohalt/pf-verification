@@ -583,8 +583,26 @@ fun remove_ipv6 :: "common_primitive match_expr \<Rightarrow> common_primitive m
 "remove_ipv6 (MatchNot m) = (MatchNot (remove_ipv6 m))" |
 "remove_ipv6 (MatchAnd m1 m2) = (MatchAnd (remove_ipv6 m1) (remove_ipv6 m2))"
 
+lemma remove_ipv6_preserves_semantics':
+"ternary_ternary_eval (map_match_tac (common_matcher ctx) p m) =
+ ternary_ternary_eval (map_match_tac (common_matcher ctx) p (remove_ipv6 m))"
+  by (induction m rule:remove_ipv6.induct) (auto simp:MatchNone_def)
+
+lemma remove_ipv6_preserves_semantics:
+  "matches (common_matcher ctx,\<alpha>) m a d p = matches (common_matcher ctx,\<alpha>) (remove_ipv6 m) a d p"
+  unfolding matches_def using remove_ipv6_preserves_semantics' by auto
+
 definition ipv4_only :: "common_primitive ruleset \<Rightarrow> common_primitive ruleset" where
 "ipv4_only = optimize_matches remove_ipv6"
+
+lemma ipv4_only_preserves_semantics:
+  assumes "simple_ruleset rs"
+      and "good_matcher (common_matcher ctx,\<alpha>)"
+    shows "pf_approx rs (common_matcher ctx,\<alpha>) p =
+           pf_approx (ipv4_only rs) (common_matcher ctx,\<alpha>) p"
+  unfolding ipv4_only_def
+  using optimize_matches_preserves_semantics assms remove_ipv6_preserves_semantics
+  by metis
 
 lemma remove_ipv6_preserves_good_match_expr:
   assumes "good_match_expr ctx m"
@@ -710,8 +728,27 @@ fun remove_match_any' ::  "common_primitive match_expr \<Rightarrow> common_prim
 lemma remove_match_any'_ok: "no_anyhost (remove_match_any' m)"
   by (induction m rule:remove_match_any'.induct) (auto simp: no_anyhost_def MatchNone_def)
 
+lemma remove_match_any'_preserves_semantics':
+"ternary_ternary_eval (map_match_tac (common_matcher ctx) p m) =
+ ternary_ternary_eval (map_match_tac (common_matcher ctx) p (remove_match_any' m))"
+  by (induction m rule:remove_match_any'.induct) (auto simp:MatchNone_def)
+
+lemma remove_match_any'_preserves_semantics:
+  "matches (common_matcher ctx,\<alpha>) m a d p = matches (common_matcher ctx,\<alpha>) (remove_match_any' m) a d p"
+  unfolding matches_def using remove_match_any'_preserves_semantics' by auto
+
 definition remove_match_any :: "common_primitive ruleset \<Rightarrow> common_primitive ruleset" where
 "remove_match_any = optimize_matches remove_match_any'"
+
+lemma remove_match_any_preserves_semantics:
+  assumes "simple_ruleset rs"
+      and "good_matcher (common_matcher ctx,\<alpha>)"
+    shows "pf_approx rs (common_matcher ctx,\<alpha>) p =
+           pf_approx (remove_match_any rs) (common_matcher ctx,\<alpha>) p"
+  unfolding remove_match_any_def
+  using optimize_matches_preserves_semantics assms remove_match_any'_preserves_semantics
+  by metis
+
 
 lemma remove_match_any_ok:
   assumes "simple_ruleset rs"
@@ -875,6 +912,23 @@ definition primitive_transformations :: "pfcontext \<Rightarrow> common_primitiv
 (normalize_ports_rs
 (remove_tables_rs ctx rs))))"
 
+lemma primitive_transformations_preserves_semantics:
+  assumes "simple_ruleset rs"
+      and "wf_ruleset ctx rs"
+      and "good_matcher (common_matcher ctx,\<alpha>)"
+    shows "pf_approx rs (common_matcher ctx,\<alpha>) p = pf_approx (primitive_transformations ctx rs) (common_matcher ctx,\<alpha>) p"
+  unfolding primitive_transformations_def
+  using assms
+ remove_tables_rs_preserves_simple_ruleset
+ normalize_ports_rs_preserves_simple_ruleset
+ ipv4_only_preserves_simple_ruleset
+ remove_match_any_preserves_simple_ruleset
+ remove_tables_rs_preserves_semantics
+ normalize_ports_rs_preserves_semantics
+ ipv4_only_preserves_semantics
+ remove_match_any_preserves_semantics
+  by metis
+
 lemma primitive_transformations_simple_ruleset:
   assumes "simple_ruleset rs"
     shows "simple_ruleset (primitive_transformations ctx rs)"
@@ -951,5 +1005,5 @@ ipv4_only_preserves_wf_ruleset ipv4_only_preserves_simple_ruleset ipv4_only_no_a
 remove_match_any_preserves_wf_ruleset remove_match_any_preserves_simple_ruleset remove_match_any_ok
   by simp
 
-lemmas primitive_transformations_ok = primitive_transformations_simple_ruleset primitive_transformations_wf_ruleset primitive_transformations_no_tables primitive_transformations_normalized_ports primitive_transformations_no_ipv6 primitive_transformations_no_af primitive_transformations_no_anyhost
+lemmas primitive_transformations_ok = primitive_transformations_preserves_semantics primitive_transformations_simple_ruleset primitive_transformations_wf_ruleset primitive_transformations_no_tables primitive_transformations_normalized_ports primitive_transformations_no_ipv6 primitive_transformations_no_af primitive_transformations_no_anyhost
 end

@@ -932,6 +932,41 @@ proof(-)
   qed
 qed
 
+lemma pf_approx_ipt':
+  defines "\<gamma>_pf ctx \<equiv> (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
+      and "\<gamma>_ipt \<equiv> (Common_Primitive_Matcher.common_matcher,Unknown_Match_Tacs.in_doubt_allow)" 
+  assumes "PF_Predicates.wf_ruleset ctx rs"
+      and "simple_ruleset rs"
+      and "no_tables_rs rs"
+      and "normalized_ports_rs rs"
+      and "no_ipv6_rs rs"
+      and "no_af_rs rs"
+      and "no_anyhost_rs rs"
+  shows "pf_approx
+           rs
+           (\<gamma>_pf ctx)
+           (tagged_packet_untag p) = decision.Accept \<Longrightarrow>
+         approximating_bigstep_fun
+            \<gamma>_ipt
+           p 
+           (add_default_policy (pfcp_to_iptcp_rs (rev rs)))
+           Undecided = Decision FinalAllow"
+proof-
+  assume "pf_approx
+           rs
+           (\<gamma>_pf ctx)
+           (tagged_packet_untag p) = decision.Accept"
+  moreover have "PF_Predicates.wf_ruleset ctx (rev rs)" using assms(3) by (induction rs) (simp add:PF_Predicates.wf_ruleset_def)+
+  moreover have "simple_ruleset (rev rs)" using assms(4) by (induction rs) (simp add:simple_ruleset_def)+
+  moreover have "no_tables_rs (rev rs)" using assms(5) by (induction rs) (simp add:no_tables_rs_def)+
+  moreover have "normalized_ports_rs (rev rs)" using assms(6) by (induction rs) (simp add:normalized_ports_rs_def)+
+  moreover have "no_ipv6_rs (rev rs)" using assms(7) by (induction rs) (simp add:no_ipv6_rs_def)+
+  moreover have "no_af_rs (rev rs)" using assms(8) by (induction rs) (simp add:no_af_rs_def)+
+  moreover have "no_anyhost_rs (rev rs)" using assms(9) by (induction rs) (simp add:no_anyhost_rs_def)+
+  ultimately show ?thesis unfolding \<gamma>_pf_def \<gamma>_ipt_def using pf_approx_ipt[where rs="rev rs"] by auto
+qed 
+
+
 theorem
   assumes "PF_Predicates.wf_ruleset ctx rs"
       and "no_match_quick rs"
@@ -947,6 +982,35 @@ theorem
            p 
            (pf_to_ipt_v4_upper ctx rs)
            Undecided = Decision FinalAllow"
-  sorry
+proof -
+  assume accept:"pf_approx
+           rs 
+           (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+           (tagged_packet_untag p) = decision.Accept" (is "?pf = decision.Accept")
+  have gm:"good_matcher (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
+    by (simp add:in_doubt_allow_good_matcher)
+  then have "pf_approx
+           (to_simple_ruleset rs)
+           (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+           (tagged_packet_untag p) = decision.Accept" using accept assms to_simple_ruleset_def to_simple_ruleset by fastforce
+  then have "pf_approx
+           (primitive_transformations ctx (to_simple_ruleset rs))
+           (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+           (tagged_packet_untag p) = decision.Accept" (is "pf_approx ?rs ?gamma ?p = decision.Accept")
+    using assms primitive_transformations_def primitive_transformations_ok to_simple_ruleset to_simple_ruleset_preserves_wf_ruleset gm by metis
+  then have "pf_approx
+           ?rs
+           ?gamma
+           (tagged_packet_untag p) = decision.Accept \<Longrightarrow>
+         approximating_bigstep_fun
+            (Common_Primitive_Matcher.common_matcher,Unknown_Match_Tacs.in_doubt_allow)
+           p 
+           (add_default_policy (pfcp_to_iptcp_rs (rev ?rs)))
+           Undecided = Decision FinalAllow"
+    using accept assms to_simple_ruleset to_simple_ruleset_preserves_wf_ruleset
+          primitive_transformations_def primitive_transformations_ok pf_approx_ipt' gm by metis
+  then show ?thesis using accept primitive_transformations_def to_simple_ruleset_def
+    by (metis \<open>pf_approx (primitive_transformations ctx (to_simple_ruleset rs)) (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow) (tagged_packet_untag p) = decision.Accept\<close> pf_to_ipt_v4_upper.simps)
+qed
 
 end
