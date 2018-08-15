@@ -78,4 +78,14 @@ definition no_match_quick :: "'a ruleset \<Rightarrow> bool" where
 
 definition wf_ruleset :: "pfcontext \<Rightarrow> common_primitive ruleset \<Rightarrow> bool" where
 "wf_ruleset ctx rs = (all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r)) rs \<and> all_AnchorRules_P (\<lambda>a. good_match_expr ctx (anchor_rule.get_match a)) rs)"
+
+definition no_ipv6_rs :: "common_primitive ruleset \<Rightarrow> bool" where
+"no_ipv6_rs = all_PfRules_P (\<lambda>r. no_ipv6 (pf_rule.get_match r))"
+
+definition no_af_rs :: "common_primitive ruleset \<Rightarrow> bool" where
+"no_af_rs = all_PfRules_P (\<lambda>r. no_af (pf_rule.get_match r))"
+
+definition no_anyhost_rs :: "common_primitive ruleset \<Rightarrow> bool" where
+"no_anyhost_rs = all_PfRules_P (\<lambda>r. no_anyhost (pf_rule.get_match r))"
+
 end
