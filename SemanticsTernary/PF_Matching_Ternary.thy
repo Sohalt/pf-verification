@@ -1,46 +1,12 @@
 theory PF_Matching_Ternary
-imports Iptables_Semantics.Ternary "../PF_Firewall_Common"
+imports Iptables_Semantics.Ternary Iptables_Semantics.Matching_Ternary "../PF_Firewall_Common"
 begin
 
 (* adapted from Iptables_Semantics.Matching_Ternary *)
 
-section\<open>Packet Matching in Ternary Logic\<close>
-
-text\<open>The matcher for a primitive match expression @{typ "'a"}\<close>
-type_synonym ('a, 'packet) exact_match_tac="'a \<Rightarrow> 'packet \<Rightarrow> ternaryvalue"
-
-text\<open>
-If the matching is @{const TernaryUnknown}, it can be decided by the action whether this rule matches.
-E.g. in doubt, we allow packets
-\<close>
 type_synonym 'packet unknown_match_tac="action \<Rightarrow> decision \<Rightarrow> 'packet \<Rightarrow> bool"
 
 type_synonym ('a, 'packet) match_tac="(('a, 'packet) exact_match_tac \<times> 'packet unknown_match_tac)"
-
-text\<open>
-For a given packet, map a firewall @{typ "'a match_expr"} to a @{typ ternaryformula}
-Evaluating the formula gives whether the packet/rule matches (or unknown).
-\<close>
-fun map_match_tac :: "('a, 'packet) exact_match_tac \<Rightarrow> 'packet \<Rightarrow> 'a match_expr \<Rightarrow> ternaryformula" where
-  "map_match_tac \<beta> p (MatchAnd m1 m2) = TernaryAnd (map_match_tac \<beta> p m1) (map_match_tac \<beta> p m2)" |
-  "map_match_tac \<beta> p (MatchNot m) = TernaryNot (map_match_tac \<beta> p m)" |
-  "map_match_tac \<beta> p (Match m) = TernaryValue (\<beta> m p)" |
-  "map_match_tac _ _ MatchAny = TernaryValue TernaryTrue"
-
-
-context
-begin
-  text\<open>the @{term ternaryformula}s we construct never have Or expressions.\<close>
-  private fun ternary_has_or :: "ternaryformula \<Rightarrow> bool" where
-    "ternary_has_or (TernaryOr _ _) \<longleftrightarrow> True" |
-    "ternary_has_or (TernaryAnd t1 t2) \<longleftrightarrow> ternary_has_or t1 \<or> ternary_has_or t2" |
-    "ternary_has_or (TernaryNot t) \<longleftrightarrow> ternary_has_or t" |
-    "ternary_has_or (TernaryValue _) \<longleftrightarrow> False"
-  private lemma map_match_tac__does_not_use_TernaryOr: "\<not> (ternary_has_or (map_match_tac \<beta> p m))"
-    by(induction m, simp_all)
-  declare ternary_has_or.simps[simp del]
-end
-
 
 fun ternary_to_bool_unknown_match_tac :: "'packet unknown_match_tac \<Rightarrow> action \<Rightarrow> decision \<Rightarrow> 'packet \<Rightarrow> ternaryvalue \<Rightarrow> bool" where
   "ternary_to_bool_unknown_match_tac _ _ _ _ TernaryTrue = True" |
