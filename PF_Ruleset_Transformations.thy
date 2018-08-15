@@ -1,19 +1,9 @@
 theory PF_Ruleset_Transformations
-imports PF_PF
-        Simple_Firewall.SimpleFw_Semantics
+  imports
+PF_PF
+PF_Utils   
+Simple_Firewall.SimpleFw_Semantics
 begin
-
-fun and_line :: "'a match_expr \<Rightarrow> 'a line \<Rightarrow> 'a line" where
-"and_line m (PfRule r) =
-(PfRule (r\<lparr>pf_rule.get_match := (MatchAnd m (pf_rule.get_match r))\<rparr>))" |
-"and_line m (Anchor r l) =
-(Anchor (r\<lparr>anchor_rule.get_match := (MatchAnd m (anchor_rule.get_match r))\<rparr>) l)"
-
-case_of_simps and_line_cases:and_line.simps
-
-fun and_each :: "'a match_expr \<Rightarrow> 'a ruleset \<Rightarrow> 'a ruleset" where
-"and_each _ [] = []" |
-"and_each m (l#ls) = (and_line m l)#(and_each m ls)"
 
 (* remove anchors *)
 fun remove_anchors :: "'a ruleset \<Rightarrow> 'a ruleset" where
@@ -51,47 +41,6 @@ proof(induction rules rule:remove_anchors.induct)
 qed simp+
 
 
-lemma filter_add_equiv_prefix :
-  assumes "filter' l1 m p d = filter' l2 m p d"
-          "\<And>d. filter' l3 m p d = filter' l4 m p d"
-  shows "filter' (l1@l3) m p d = filter' (l2@l4) m p d"
-proof -
-    have "filter' (l1@l3) m p d = filter' l3 m p (filter' l1 m p d)" by (simp add: filter_chain)
-    moreover have "filter' (l2@l4) m p d = filter' l4 m p (filter' l2 m p d)" by (simp add: filter_chain)
-    ultimately show ?thesis using assms by auto
-qed
-
-lemma filter_add_same_prefix :
-  assumes "\<And>d. filter' l1 m p d = filter' l2 m p d"
-  shows "filter' (l@l1) m p d = filter' (l@l2) m p d"
-  by (metis assms filter_add_equiv_prefix)
-
-lemma filter_cons_same_prefix :
-  assumes "\<And>d. filter' l1 m p d = filter' l2 m p d"
-  shows "filter' (l#l1) m p d = filter' (l#l2) m p d"
-  by (metis append_Cons append_Nil assms filter_chain)
-
-
-lemma and_each_false[simp]:
-  assumes "\<not>matches \<gamma> e p"
-  shows "filter' (and_each e l) \<gamma> p d = d"
-  using assms
-  by (induction l) (auto split:line.splits decision_wrap.splits
-                         simp:filter'_cases and_line_cases)
-
-lemma and_each_true[simp]:
-  assumes "matches \<gamma> e p"
-  shows "filter' (and_each e l) \<gamma> p d = filter' l \<gamma> p d"
-proof(induction l arbitrary:d)
-  case Nil
-  then show ?case by (cases d) auto
-next
-  case (Cons a l)
-  then show ?case using assms
-    by (cases d;cases a) auto
-qed
-
-
 lemma remove_anchors_preserves_semantics:
 "pf (remove_anchors rules) \<gamma> packet = pf rules \<gamma> packet"
 proof(-)
@@ -122,12 +71,14 @@ next
   then show ?case by (cases l;simp)
 qed
 
-lemma and_each_preserves_no_quick:
-  assumes "no_quick rs"
-    shows "no_quick (and_each m rs)"
-  using assms
-  by (induction rs) (auto split:line.splits simp:is_quick_rule_cases)
+(* remove quick rules *)
 
+fun remove_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
+"remove_quick [] = []" |
+"remove_quick ((PfRule r)#ls) =
+(if (get_quick r)
+  then (and_each (MatchNot (pf_rule.get_match r)) (remove_quick ls)) @ [PfRule (r\<lparr>get_quick := False\<rparr>)]
+  else (PfRule r)#(remove_quick ls))"
 
 fun count_quick :: "'a ruleset \<Rightarrow> nat" where
 "count_quick [] = 0"
@@ -144,20 +95,11 @@ lemma count_quick_append[simp]:
 "count_quick (l1 @ l2) = count_quick l1 + count_quick l2"
   by (induction l1) (auto split:line.splits)
 
-
-lemma remove_suffix[simp]:
-  assumes "\<not>matches \<gamma> (pf_rule.get_match r) p"
-  shows "filter' (l@[(PfRule r)]) \<gamma> p d = filter' l \<gamma> p d"
-  using assms by (cases "filter' l \<gamma> p d") (simp add: filter_chain)+
-
-(* remove quick rules *)
-
-fun remove_quick :: "'a ruleset \<Rightarrow> 'a ruleset" where
-"remove_quick [] = []" |
-"remove_quick ((PfRule r)#ls) =
-(if (get_quick r)
-  then (and_each (MatchNot (pf_rule.get_match r)) (remove_quick ls)) @ [PfRule (r\<lparr>get_quick := False\<rparr>)]
-  else (PfRule r)#(remove_quick ls))"
+lemma and_each_preserves_no_quick:
+  assumes "no_quick rs"
+    shows "no_quick (and_each m rs)"
+  using assms
+  by (induction rs) (auto split:line.splits simp:is_quick_rule_cases)
 
 lemma remove_quick_ok:
   assumes "no_anchors rules"
