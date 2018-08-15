@@ -582,7 +582,7 @@ lemma remove_match_any'_preserves_good_match_expr:
   using assms by (induction m rule:remove_match_any'.induct)
                  (auto simp:good_match_expr_def MatchNone_def)
 
-lemma remove_match_any_preserves_good_ruleset:
+lemma remove_match_any_preserves_wf_ruleset:
   assumes "simple_ruleset rs"
   and "wf_ruleset ctx rs"
 shows "wf_ruleset ctx (remove_match_any rs)"
