@@ -554,6 +554,25 @@ proof(-)
   by simp
 qed
 
+lemma no_ipv6_ok: "no_ipv6 (remove_ipv6 m)"
+  by (induction m rule:remove_ipv6.induct) (auto simp: no_ipv6_def MatchNone_def)
+
+lemma no_af_ok: "no_af (remove_ipv6 m)"
+  by (induction m rule:remove_ipv6.induct) (auto simp: no_af_def MatchNone_def)
+
+lemma ipv4_only_no_ipv6:
+  assumes "simple_ruleset rs"
+  shows "no_ipv6_rs (ipv4_only rs)"
+  unfolding no_ipv6_rs_def ipv4_only_def
+  using optimize_matches_preserves_all_PfRules_P' assms no_ipv6_ok by auto
+
+lemma ipv4_only_no_af:
+  assumes "simple_ruleset rs"
+  shows "no_af_rs (ipv4_only rs)"
+  unfolding no_af_rs_def ipv4_only_def
+  using optimize_matches_preserves_all_PfRules_P' assms no_af_ok by auto
+
+
 fun remove_match_any' ::  "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
 "remove_match_any' (Match (Src (Hostspec AnyHost))) = MatchAny" |
 "remove_match_any' (Match (Dst AnyHost)) = MatchAny" |

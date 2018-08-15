@@ -53,4 +53,16 @@ proof(-)
     by(smt line.simps(5))
 qed
 
+lemma optimize_matches_preserves_all_PfRules_P':
+  assumes "simple_ruleset rs"
+    and "\<And>m. P (f m)"
+  shows "all_PfRules_P (\<lambda>r. P (pf_rule.get_match r)) (optimize_matches f rs)"
+proof(-)
+  have "\<And>r. (PfRule r) \<in> set rs \<Longrightarrow> P (f (pf_rule.get_match r))" using assms by auto
+  then have "\<forall> r \<in> set (optimize_matches f rs). (case r of (PfRule r) \<Rightarrow> P (pf_rule.get_match r) | _ \<Rightarrow> True)"
+    using optimize_matches_preserves assms by blast
+  then show ?thesis using assms simple_ruleset_all_PfRules_P optimize_matches_simple_ruleset
+    by(smt line.simps(5))
+qed
+
 end
