@@ -501,10 +501,9 @@ proof(-)
   then have "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r))
                   (remove_tables_rs ctx rs)" unfolding remove_tables_rs_def
     using optimize_matches_preserves_all_PfRules_P assms by simp
-  moreover have "all_AnchorRules_P (\<lambda>a. good_match_expr ctx (anchor_rule.get_match a))
-     (remove_tables_rs ctx rs)" using assms remove_tables_rs_preserves_simple_ruleset
-     simple_ruleset_all_AnchorRules_P by blast
-  ultimately show ?thesis unfolding wf_ruleset_def by simp
+  then show ?thesis 
+    using assms remove_tables_rs_preserves_simple_ruleset simple_ruleset_wf_ruleset
+    by simp
 qed
 
 
@@ -513,12 +512,47 @@ fun remove_ipv6 :: "common_primitive match_expr \<Rightarrow> common_primitive m
 "remove_ipv6 (Match (Dst (Address (IPv6 _)))) = MatchNone" |
 "remove_ipv6 (Match (Address_Family Inet)) = MatchAny" |
 "remove_ipv6 (Match (Address_Family Inet6)) = MatchNone" |
+"remove_ipv6 MatchAny = MatchAny" |
 "remove_ipv6 (Match m) = (Match m)" |
 "remove_ipv6 (MatchNot m) = (MatchNot (remove_ipv6 m))" |
 "remove_ipv6 (MatchAnd m1 m2) = (MatchAnd (remove_ipv6 m1) (remove_ipv6 m2))"
 
 definition ipv4_only :: "common_primitive ruleset \<Rightarrow> common_primitive ruleset" where
 "ipv4_only = optimize_matches remove_ipv6"
+
+lemma remove_ipv6_preserves_good_match_expr:
+  assumes "good_match_expr ctx m"
+  shows "good_match_expr ctx (remove_ipv6 m)"
+  using assms by (induction m rule:remove_ipv6.induct)
+                 (auto simp:good_match_expr_def MatchNone_def)
+
+lemma ipv4_only_preserves_simple_ruleset:
+  assumes "simple_ruleset rs"
+  shows "simple_ruleset (ipv4_only rs)"
+  using assms by (auto simp:ipv4_only_def optimize_matches_simple_ruleset)
+
+lemma ipv4_only_preserves_wf_ruleset:
+  assumes "simple_ruleset rs"
+      and "wf_ruleset ctx rs"
+    shows "wf_ruleset ctx (ipv4_only rs)"
+proof(-)
+  have "all_PfRules_P (\<lambda>r. good_match_expr ctx (remove_ipv6 (pf_rule.get_match r))) rs"
+  using assms proof(induction rs)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rs)
+    then show ?case by(cases a)
+        (auto simp add:remove_ipv6_preserves_good_match_expr
+                       simple_ruleset_def wf_ruleset_def)
+  qed
+  then have "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r))
+                  (ipv4_only rs)" unfolding ipv4_only_def
+    using assms optimize_matches_preserves_all_PfRules_P by simp
+  then show ?thesis
+  using assms ipv4_only_preserves_simple_ruleset simple_ruleset_wf_ruleset
+  by simp
+qed
 
 fun remove_match_any' ::  "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
 "remove_match_any' (Match (Src (Hostspec AnyHost))) = MatchAny" |
