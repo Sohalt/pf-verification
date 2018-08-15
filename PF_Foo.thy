@@ -65,4 +65,16 @@ proof(-)
     by(smt line.simps(5))
 qed
 
+
+lemma simple_ruleset_wf_ruleset:
+  assumes "simple_ruleset rs"
+      and "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r)) rs"
+    shows "wf_ruleset ctx rs"
+proof(-)
+  have "all_AnchorRules_P (\<lambda>r. good_match_expr ctx (anchor_rule.get_match r)) rs"
+    using assms unfolding simple_ruleset_def
+    by (simp add: line.case_eq_if)
+  then show ?thesis using assms(2) by (simp add:wf_ruleset_def)
+qed
+
 end

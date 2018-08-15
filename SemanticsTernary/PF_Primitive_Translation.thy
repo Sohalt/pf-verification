@@ -133,16 +133,6 @@ lemma normalize_ports_preserves_semantics:
  "matches (common_matcher ctx, \<alpha>) m a d p \<longleftrightarrow> matches (common_matcher ctx, \<alpha>) (normalize_ports m) a d p"
   apply(simp add:matches_def) using normalize_ports_preserves_semantics' by auto
 
-definition normalized_ports :: "common_primitive match_expr \<Rightarrow> bool" where
-"normalized_ports mexpr =
-all_match
-(\<lambda>m. (case m of
-(Src_Ports (L4Ports _ (Binary bop))) \<Rightarrow> is_RangeIncl bop
-| (Src_Ports (L4Ports _ (Unary _))) \<Rightarrow> False
-| (Dst_Ports (L4Ports _ (Binary bop))) \<Rightarrow> is_RangeIncl bop
-| (Dst_Ports (L4Ports _ (Unary _))) \<Rightarrow> False
-| _ \<Rightarrow> True))
-mexpr"
 
 (* FIXME remove after Isabelle2018 *)
 lemma [simp]: "wi2l Empty_WordInterval = []"
@@ -175,17 +165,6 @@ lemma normalize_ports_rs_preserves_semantics:
   unfolding normalize_ports_rs_def
   using optimize_matches_preserves_semantics assms normalize_ports_preserves_semantics
   by metis
-
-lemma simple_ruleset_wf_ruleset:
-  assumes "simple_ruleset rs"
-      and "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r)) rs"
-    shows "wf_ruleset ctx rs"
-proof(-)
-  have "all_AnchorRules_P (\<lambda>r. good_match_expr ctx (anchor_rule.get_match r)) rs"
-    using assms unfolding simple_ruleset_def
-    by (simp add: line.case_eq_if)
-  then show ?thesis using assms(2) by (simp add:wf_ruleset_def)
-qed
 
 lemma normalize_ports_rs_preserves_wf_ruleset:
   assumes "simple_ruleset rs"
@@ -330,14 +309,6 @@ lemma remove_tables_preserves_semantics :
   shows "matches (common_matcher ctx, \<alpha>) m a d p \<longleftrightarrow> 
          matches (common_matcher ctx, \<alpha>) (remove_tables ctx m) a d p"
   using assms by (simp add:good_match_expr_def matches_def remove_tables_preserves_semantics')
-
-definition no_tables :: "common_primitive match_expr \<Rightarrow> bool" where
-"no_tables mexpr = all_match
-                    (\<lambda>m. (case m of
-                      (Src (Hostspec (Table _))) \<Rightarrow> False
-                      |(Dst (Table _)) \<Rightarrow> False
-                      | _ \<Rightarrow> True))
-                    mexpr"
 
 lemma [simp]:
   "no_tables
@@ -505,6 +476,13 @@ proof(-)
     using assms remove_tables_rs_preserves_simple_ruleset simple_ruleset_wf_ruleset
     by simp
 qed
+
+lemma remove_tables_rs_ok: 
+  assumes "simple_ruleset rs"
+  shows "no_tables_rs (remove_tables_rs ctx rs)"
+  unfolding no_tables_rs_def remove_tables_rs_def
+  using optimize_matches_preserves_all_PfRules_P'[where f="remove_tables ctx"]
+    assms remove_tables_ok by auto
 
 
 fun remove_ipv6 :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where

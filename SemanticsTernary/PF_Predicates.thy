@@ -79,6 +79,31 @@ definition no_match_quick :: "'a ruleset \<Rightarrow> bool" where
 definition wf_ruleset :: "pfcontext \<Rightarrow> common_primitive ruleset \<Rightarrow> bool" where
 "wf_ruleset ctx rs = (all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r)) rs \<and> all_AnchorRules_P (\<lambda>a. good_match_expr ctx (anchor_rule.get_match a)) rs)"
 
+definition no_tables :: "common_primitive match_expr \<Rightarrow> bool" where
+"no_tables mexpr = all_match
+                    (\<lambda>m. (case m of
+                      (Src (Hostspec (Table _))) \<Rightarrow> False
+                      |(Dst (Table _)) \<Rightarrow> False
+                      | _ \<Rightarrow> True))
+                    mexpr"
+
+definition no_tables_rs :: "common_primitive ruleset \<Rightarrow> bool" where
+"no_tables_rs = all_PfRules_P (\<lambda>r. no_tables (pf_rule.get_match r))"
+
+definition normalized_ports :: "common_primitive match_expr \<Rightarrow> bool" where
+"normalized_ports mexpr =
+all_match
+(\<lambda>m. (case m of
+(Src_Ports (L4Ports _ (Binary bop))) \<Rightarrow> is_RangeIncl bop
+| (Src_Ports (L4Ports _ (Unary _))) \<Rightarrow> False
+| (Dst_Ports (L4Ports _ (Binary bop))) \<Rightarrow> is_RangeIncl bop
+| (Dst_Ports (L4Ports _ (Unary _))) \<Rightarrow> False
+| _ \<Rightarrow> True))
+mexpr"
+
+definition normalized_ports_rs :: "common_primitive ruleset \<Rightarrow> bool" where
+"normalized_ports_rs = all_PfRules_P (\<lambda>r. normalized_ports (pf_rule.get_match r))"
+
 definition no_ipv6_rs :: "common_primitive ruleset \<Rightarrow> bool" where
 "no_ipv6_rs = all_PfRules_P (\<lambda>r. no_ipv6 (pf_rule.get_match r))"
 
