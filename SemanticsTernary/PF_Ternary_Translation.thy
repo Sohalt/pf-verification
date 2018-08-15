@@ -118,6 +118,45 @@ next
   then show ?case by (simp add:no_match_quick_def)
 qed
 
+lemma and_each_preserves_good_match_expr:
+  assumes "good_match_expr ctx m"
+      and "wf_ruleset ctx rs"
+    shows "wf_ruleset ctx (and_each m rs)"
+  using assms
+proof(induction m rs rule:and_each.induct)
+  case (1 uu)
+  then show ?case by simp
+next
+  case (2 m l ls)
+  have "wf_ruleset ctx [l]" using 2(3) unfolding wf_ruleset_def by simp
+  then have "wf_ruleset ctx [and_line m l]" apply(cases l) using 2(2) unfolding wf_ruleset_def by (simp add:good_match_expr_def)+
+  moreover have "wf_ruleset ctx ls" using 2(3) unfolding wf_ruleset_def by simp
+  ultimately show ?case using 2 unfolding wf_ruleset_def by simp
+qed
+
+
+lemma remove_anchors_preserves_wf_ruleset:
+  assumes "wf_ruleset ctx rs"
+  shows "wf_ruleset ctx (remove_anchors rs)"
+  using assms
+proof(induction rs rule:remove_anchors.induct)
+case 1
+then show ?case by simp
+next
+  case (2 r l rs)
+  have "good_match_expr ctx (anchor_rule.get_match r)" using 2(3) unfolding wf_ruleset_def by simp
+  moreover have "wf_ruleset ctx l" using 2(3) unfolding wf_ruleset_def by simp
+  moreover have "wf_ruleset ctx rs" using 2(3) unfolding wf_ruleset_def by simp
+  ultimately show ?case using 2 by (simp add:and_each_preserves_good_match_expr)
+next
+  case (3 v rs)
+  have "good_match_expr ctx (pf_rule.get_match v)" using 3(2) unfolding wf_ruleset_def by simp
+  moreover have "wf_ruleset ctx rs" using 3(2) unfolding wf_ruleset_def by simp
+  ultimately show ?case unfolding wf_ruleset_def
+    using "3.IH" wf_ruleset_def by auto
+qed
+
+
   
 (* helpers for remove quick *)
 

@@ -38,7 +38,7 @@ fun all_AnchorRules_P' :: "('a anchor_rule \<Rightarrow> bool) \<Rightarrow> 'a 
 lemma "all_AnchorRules_P P l= all_AnchorRules_P' P l"
   by (induction P l rule: all_AnchorRules_P'.induct) auto
 
-lemma all_AnchorRules_append[simp]:
+lemma all_AnchorRules_P_append[simp]:
   "all_AnchorRules_P P (xs @ ys) \<longleftrightarrow> all_AnchorRules_P P xs \<and> all_AnchorRules_P P ys"
   by (induction P xs rule: all_AnchorRules_P.induct) auto
 
@@ -68,7 +68,7 @@ fun all_PfRules_P' :: "('a pf_rule \<Rightarrow> bool) \<Rightarrow> 'a ruleset 
 lemma "all_PfRules_P P l= all_PfRules_P' P l"
   by (induction P l rule: all_PfRules_P'.induct) auto
 
-lemma all_PfRules_append[simp]:
+lemma all_PfRules_P_append[simp]:
   "all_PfRules_P P (xs @ ys) \<longleftrightarrow> all_PfRules_P P xs \<and> all_PfRules_P P ys"
   by (induction P xs rule: all_PfRules_P.induct) auto
 
@@ -78,6 +78,13 @@ definition no_match_quick :: "'a ruleset \<Rightarrow> bool" where
 
 definition wf_ruleset :: "pfcontext \<Rightarrow> common_primitive ruleset \<Rightarrow> bool" where
 "wf_ruleset ctx rs = (all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r)) rs \<and> all_AnchorRules_P (\<lambda>a. good_match_expr ctx (anchor_rule.get_match a)) rs)"
+
+lemma wf_ruleset_append[simp]:
+"wf_ruleset ctx (xs @ ys) \<longleftrightarrow> wf_ruleset ctx xs \<and> wf_ruleset ctx ys"
+  unfolding wf_ruleset_def
+  using all_PfRules_P_append[of "(\<lambda>r. good_match_expr ctx (pf_rule.get_match r))" xs ys]
+  all_AnchorRules_P_append[of "(\<lambda>r. good_match_expr ctx (anchor_rule.get_match r))" xs ys]
+  by blast
 
 definition no_tables :: "common_primitive match_expr \<Rightarrow> bool" where
 "no_tables mexpr = all_match
