@@ -311,6 +311,35 @@ proof(-)
   then show ?thesis by (simp add:pf_approx_def)
 qed
 
+lemma remove_quick_approx_preserves_wf_ruleset:
+  assumes "wf_ruleset ctx rs"
+      and "no_anchors rs"
+  shows "wf_ruleset ctx (remove_quick_approx rs)"
+  using assms
+proof(induction rs rule:remove_quick_approx.induct)
+  case 1
+  then show ?case by simp
+next
+  case (2 r ls)
+  have r_gm:"good_match_expr ctx (pf_rule.get_match r)" using 2(3) unfolding wf_ruleset_def by simp
+  have ls_wf:"wf_ruleset ctx ls" using 2(3) unfolding wf_ruleset_def by simp
+  then show ?case
+  proof(cases "get_quick r")
+    case True
+    have "wf_ruleset ctx [PfRule (r\<lparr>get_quick := False\<rparr>)]" using r_gm  wf_ruleset_def 
+      by (simp add:ls_wf r_gm good_match_expr_def)
+    then show ?thesis using 2 True by (simp add:ls_wf r_gm good_match_expr_def)
+  next
+    case False
+    then have "wf_ruleset ctx (remove_quick_approx ls)" using "2.IH" 2(4) ls_wf by simp
+    then show ?thesis unfolding wf_ruleset_def using r_gm by simp
+  qed
+next
+  case (3 vb vc va)
+  then show ?case by simp
+qed
+
+
 (* remove matches *)
 
 fun remove_matches :: "'a ruleset \<Rightarrow> 'a ruleset" where
@@ -345,6 +374,20 @@ lemma remove_matches_preserves_no_anchors:
   assumes "no_anchors rs"
     shows "no_anchors (remove_matches rs)"
   using assms by (induction rs rule: remove_matches.induct) simp+
+
+lemma remove_matches_preserves_wf_ruleset:
+  assumes "wf_ruleset ctx rs"
+      and "no_anchors rs"
+  shows "wf_ruleset ctx (remove_matches rs)"
+  using assms 
+proof (induction rs rule:remove_matches.induct)
+  case (2 r ls)
+  have "good_match_expr ctx (pf_rule.get_match r)" using 2 unfolding wf_ruleset_def by simp
+  moreover have "wf_ruleset ctx ls" using 2 unfolding wf_ruleset_def by simp
+  ultimately show ?case using 2 unfolding wf_ruleset_def by (cases "pf_rule.get_action r = ActionMatch") simp+
+qed simp+
+
+
 
 (* to_simple_ruleset *)
 
@@ -390,6 +433,17 @@ proof(-)
   from nq nm na show "simple_ruleset (to_simple_ruleset rs)"
     unfolding to_simple_ruleset_def by (simp add:simple_ruleset_def)
 qed
+
+lemma to_simple_ruleset_preserves_wf_ruleset:
+  assumes "wf_ruleset ctx rs"
+  shows "wf_ruleset ctx (to_simple_ruleset rs)"
+  unfolding to_simple_ruleset_def
+  using assms
+remove_anchors_ok remove_anchors_preserves_wf_ruleset
+remove_matches_preserves_no_anchors remove_matches_preserves_wf_ruleset
+remove_quick_approx_preserves_wf_ruleset
+  by metis
+
 
 (* simple ruleset reverse *)
 
