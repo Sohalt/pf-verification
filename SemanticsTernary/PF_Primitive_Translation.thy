@@ -8,6 +8,7 @@ imports
   Iptables_Semantics.Negation_Type
   PF_Negation_Type_Matching
   PF_Predicates
+  "../PF_Foo"
 begin
 
 (* normalize matches to representation closest to simple_matcher *)
@@ -479,38 +480,31 @@ qed (auto simp:MatchOr_def good_match_expr_def)
 
 lemma remove_tables_rs_preserves_simple_ruleset:
   assumes "simple_ruleset rs"
-      and "wf_ruleset ctx rs"
     shows "simple_ruleset (remove_tables_rs ctx rs)"
   unfolding remove_tables_rs_def using assms optimize_matches_simple_ruleset by blast
-
-lemma foo:
-  assumes "simple_ruleset rs"
-  shows "all_AnchorRules_P P rs"
-  using assms
-proof(induction rs)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons a rs)
-  then show ?case by (cases a) (auto simp:simple_ruleset_def)
-qed
-
 
 lemma remove_tables_rs_preserves_wf_ruleset:
   assumes "simple_ruleset rs"
       and "wf_ruleset ctx rs"
     shows "wf_ruleset ctx (remove_tables_rs ctx rs)"
 proof(-)
-  have "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r))
-     (optimize_matches (remove_tables ctx) rs)"
-    using optimize_matches_preserves[of rs "good_match_expr ctx" "remove_tables ctx"] assms
-          optimize_matches_simple_ruleset wf_ruleset_def simple_ruleset_def
-          remove_tables_preserves_good_match_expr
-    sorry (*sledgehammer*)
+  have "all_PfRules_P (\<lambda>r. good_match_expr ctx (remove_tables ctx (pf_rule.get_match r))) rs"
+    using assms proof(induction rs)
+    case Nil
+    then show ?case by simp
+  next
+    case (Cons a rs)
+    then show ?case by(cases a)
+        (auto simp add:remove_tables_preserves_good_match_expr
+                       simple_ruleset_def wf_ruleset_def)
+  qed
+  then have "all_PfRules_P (\<lambda>r. good_match_expr ctx (pf_rule.get_match r))
+                  (remove_tables_rs ctx rs)" unfolding remove_tables_rs_def
+    using optimize_matches_preserves_all_PfRules_P assms by simp
   moreover have "all_AnchorRules_P (\<lambda>a. good_match_expr ctx (anchor_rule.get_match a))
-       (remove_tables_rs ctx rs)"
-    using assms remove_tables_rs_preserves_simple_ruleset foo by blast
-  ultimately show ?thesis unfolding wf_ruleset_def remove_tables_rs_def by auto
+     (remove_tables_rs ctx rs)" using assms remove_tables_rs_preserves_simple_ruleset
+     simple_ruleset_all_AnchorRules_P by blast
+  ultimately show ?thesis unfolding wf_ruleset_def by simp
 qed
 
 
