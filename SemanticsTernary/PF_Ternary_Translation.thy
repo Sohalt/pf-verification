@@ -1,5 +1,5 @@
 theory PF_Ternary_Translation
-  imports "../PF_Pf_To_Simple_Firewall"
+  imports "../PF_Ruleset_Transformations"
           "../PF_PrimitiveMatchers"
           PF_Semantics_Ternary
           PF_Unknown_Match_Tacs

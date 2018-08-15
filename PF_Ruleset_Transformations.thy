@@ -1,4 +1,4 @@
-theory PF_Pf_To_Simple_Firewall
+theory PF_Ruleset_Transformations
 imports PF_PF
         Simple_Firewall.SimpleFw_Semantics
 begin
