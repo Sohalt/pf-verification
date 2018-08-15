@@ -815,7 +815,7 @@ fun pf_decision_to_ipt_decision :: "decision \<Rightarrow> state" where
 
 lemmas assm_rs_simps = PF_Predicates.wf_ruleset_def simple_ruleset_def no_tables_rs_def normalized_ports_rs_def no_ipv6_rs_def no_af_rs_def no_anyhost_rs_def
 
-lemma
+lemma pf_approx_ipt:
   defines "\<gamma>_pf ctx \<equiv> (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
       and "\<gamma>_ipt \<equiv> (Common_Primitive_Matcher.common_matcher,Unknown_Match_Tacs.in_doubt_allow)" 
   assumes "PF_Predicates.wf_ruleset ctx rs"
@@ -856,11 +856,11 @@ proof(-)
       by (simp add: Matching_Ternary.bunch_of_lemmata_about_matches(2))
   next
     case (Cons a rs)
+      obtain r where pfr:"a = (PfRule r)" using Cons(6) simple_ruleset_def
+        by (metis line.collapse(1) list.set_intros(1))
     then show ?case
     proof(cases "(\<lambda>r. match_pf_rule r (\<gamma>_pf ctx) (tagged_packet_untag p)) a")
       case matches:True
-      obtain r where pfr:"a = (PfRule r)" using Cons(6) simple_ruleset_def
-        by (metis line.collapse(1) list.set_intros(1))
     then show ?thesis
     proof(cases "get_action r")
       case Pass
@@ -877,8 +877,57 @@ proof(-)
     qed
     next
       case nmatches:False
-      then have ""
-      then show ?thesis using Cons apply (auto simp add:assm_simps assm_rs_simps)
+      then have *:"ternary_ternary_eval
+         (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+           (tagged_packet_untag p)
+           (pf_rule.get_match r)) = TernaryFalse \<or> 
+        (ternary_ternary_eval
+         (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+           (tagged_packet_untag p)
+           (pf_rule.get_match r)) = TernaryUnknown \<and> (pf_rule.get_action r) = Block)"
+      proof -
+        have "\<And>p pa. \<not> (case a of PfRule x \<Rightarrow> p x | Anchor x xa \<Rightarrow> pa x xa) \<or> p r"
+          using pfr by fastforce
+        then have "pf_rule.get_action r \<noteq> ActionMatch \<or> a \<notin> set (a # rs)"
+          using Cons.prems(2) PF_Firewall_Common.simple_ruleset_def by blast
+        then show ?thesis
+          by (metis (no_types) PF_Matching_Ternary.matches_tuple PF_Matching_Ternary.ternary_to_bool_unknown_match_tac.elims(3) PF_Unknown_Match_Tacs.in_doubt_allow.elims(3) \<gamma>_pf_def list.set_intros(1) match_pf_rule.simps nmatches pfr)
+      qed
+      {
+      assume "ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) (tagged_packet_untag p) (pf_rule.get_match r)) =
+     TernaryFalse"
+      then have ipt_not_tt:"ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm (pf_rule.get_match r))) \<noteq> TernaryTrue"
+        by (metis Cons.prems all_PfRules_P.simps line.simps(5) list.set_intros(1) assm_rs_simps pf_ipt_ternary_eval(2) pfr)
+      { assume tu:"ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm (pf_rule.get_match r))) = TernaryUnknown"
+      then have "approximating_bigstep_fun \<gamma>_ipt p (add_default_policy (pfcp_to_iptcp_rs (a # rs))) Undecided = Decision FinalAllow"
+      proof(cases "pf_rule.get_action r")
+        case Pass
+        then show ?thesis using pfr tu by (simp add:add_default_policy_def pfcp_to_iptcp_rs_def Matching_Ternary.matches_def \<gamma>_ipt_def)
+      next
+        case ActionMatch
+        then show ?thesis using Cons pfr by (simp add:simple_ruleset_def)
+      next
+        case Block
+        then show ?thesis using Cons nmatches pfr tu by (simp add:assm_rs_simps add_default_policy_def pfcp_to_iptcp_rs_def Matching_Ternary.matches_def \<gamma>_ipt_def)
+      qed 
+      } note iptu=this
+      { assume tf:"ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm (pf_rule.get_match r))) = TernaryFalse"
+        then have  "approximating_bigstep_fun \<gamma>_ipt p (add_default_policy (pfcp_to_iptcp_rs (a # rs))) Undecided = Decision FinalAllow"
+          using Cons nmatches pfr by (simp add:assm_rs_simps add_default_policy_def pfcp_to_iptcp_rs_def Matching_Ternary.matches_def \<gamma>_ipt_def)
+      } note iptf=this
+      from ipt_not_tt iptu iptf have "approximating_bigstep_fun \<gamma>_ipt p (add_default_policy (pfcp_to_iptcp_rs (a # rs))) Undecided = Decision FinalAllow"
+        using ternaryvalue.exhaust by blast
+      } note pftf=this
+      { assume "ternary_ternary_eval
+         (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+           (tagged_packet_untag p)
+           (pf_rule.get_match r)) = TernaryUnknown \<and> (pf_rule.get_action r) = Block"
+        then have "ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm (pf_rule.get_match r))) = TernaryUnknown \<and> (pf_rule.get_action r) = Block"
+          using Cons.prems pfr by (auto simp:assm_rs_simps pf_unknown_ipt_unknown)
+        then have "approximating_bigstep_fun \<gamma>_ipt p (add_default_policy (pfcp_to_iptcp_rs (a # rs))) Undecided = Decision FinalAllow"
+          using Cons nmatches pfr by (auto simp:assm_rs_simps add_default_policy_def pfcp_to_iptcp_rs_def Matching_Ternary.matches_def \<gamma>_ipt_def)
+      } note pftu=this
+      from * pftf pftu show ?thesis by auto
     qed
   qed
 qed
