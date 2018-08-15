@@ -433,6 +433,113 @@ proof(rule classical)
     using 1 pf_false_ipt_not_true assms by auto
 qed
 
+lemma pf_unknown_ipt_unknown:
+  assumes "no_tables (Match m)"
+      and "normalized_ports (Match m)"
+      and "no_ipv6 (Match m)"
+      and "no_af (Match m)"
+      and "no_anyhost (Match m)"
+      and "good_match_expr ctx (Match m)"
+      and "a \<noteq> ActionMatch"
+    shows "
+(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryUnknown \<Longrightarrow>
+(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryUnknown"
+  using assms proof(induction m)
+  case (Src x)
+  then show ?case proof(cases x)
+    case (Hostspec x1)
+    then show ?thesis using Src Hostspec
+    proof(cases x1)
+      case (Address x3)
+      then show ?thesis
+      proof(cases x3)
+        case (IPv4 x1)
+        then show ?thesis using Src Hostspec Address apply auto
+          using bool_to_ternary_Unknown by blast
+      next
+        case (IPv6 x2)
+        then show ?thesis using Src Hostspec Address by (auto simp:no_ipv6_def)
+      qed
+    next
+      case (Table x5)
+      then show ?thesis using Src Hostspec apply auto
+        using bool_to_ternary_Unknown by blast
+    qed auto
+  next
+    case UrpfFailed
+    then show ?thesis using Src by auto
+  qed
+next
+  case (Src_OS x)
+  then show ?case by auto
+next
+  case (Dst x)
+  then show ?case
+  proof(cases x)
+    case (Address x3)
+    then show ?thesis
+    proof(cases x3)
+      case (IPv4 x1)
+      then show ?thesis using Dst Address apply auto
+        using bool_to_ternary_Unknown by blast
+    next
+      case (IPv6 x2)
+      then show ?thesis using Dst Address by (auto simp:no_ipv6_def)
+    qed
+  next
+    case (Table x5)
+    then show ?thesis using Dst apply auto
+      using bool_to_ternary_Unknown by blast
+  qed auto
+next
+  case (Src_Ports x)
+  then show ?case apply (cases x) apply auto
+      using bool_to_ternary_Unknown by blast
+next
+  case (Dst_Ports x)
+  then show ?case apply (cases x) apply auto
+      using bool_to_ternary_Unknown by blast
+next
+  case (Interface iface dir)
+  then show ?case
+  proof (cases iface)
+    case None
+    then show ?thesis using Interface by auto
+  next
+    case *:(Some ifspec)
+    then show ?thesis
+    proof(cases ifspec)
+    case (InterfaceName x1)
+    then show ?thesis
+      proof(cases dir)
+        case None
+        then show ?thesis using Interface * by auto
+      next
+        case (Some a)
+        then show ?thesis using Interface * InterfaceName Some apply(cases a) apply auto
+           using bool_to_ternary_Unknown by blast+
+      qed      
+    next
+      case (InterfaceGroup x2)
+      then show ?thesis using Interface * by auto
+    qed
+  qed
+next
+  case (Address_Family x)
+  then show ?case apply auto
+    using bool_to_ternary_Unknown by blast
+next
+  case (Protocol x)
+  then show ?case apply auto
+    using bool_to_ternary_Unknown by blast
+next
+  case (L4_Flags x)
+  then show ?case apply auto
+    using bool_to_ternary_Unknown by blast
+next
+  case (Extra x)
+  then show ?case by auto
+qed
 
 lemma pf_ipt_ternary_eval:
   defines "pfeval ctx p m \<equiv> (ternary_ternary_eval
