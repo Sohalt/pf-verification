@@ -6,7 +6,7 @@ imports IP_Addresses.IPv4
         Simple_Firewall.Iface
 begin
 
-(* names for users, groups, ports get resolved to numbers in the pfctl dump *)
+(* names for users, groups, and ports get resolved to numbers in the pfctl dump *)
 datatype 'i unary_op =
   Eq "'i"
   | NEq "'i"
@@ -30,31 +30,29 @@ datatype filteropt =
   | Flags ipt_tcp_flags (* taken from iptables_semantics *)
 
 
-(*
-  | IcmpType icmp_type
-  | Icmp6Type icmp6_type
-  | Tos string
-*)
-
 datatype direction = In | Out
 
 datatype ifspec =
   InterfaceName string
   | InterfaceGroup string
 
+
 datatype afspec =
   Inet
   | Inet6
 
+
 datatype address =
   isIPv4: IPv4 (ip4:"32 prefix_match")
   | isIPv6: IPv6 (ip6:"128 prefix_match")
+
 
 datatype table_entry =
 TableEntry (ta: address)
 | is_Negated: TableEntryNegated (ta: address)
 
 type_synonym table = "table_entry list"
+
 
 datatype hostspec =
   AnyHost
@@ -67,12 +65,15 @@ datatype hostspec_from =
   Hostspec hostspec
   | UrpfFailed
 
+
 record pfcontext =
   get_tables :: "string \<rightharpoonup> table"
  (* get_ifgroups :: "string \<rightharpoonup> string list"
     get_routes :: "routes option" *)
 
+
 datatype pf_l4_ports = L4Ports primitive_protocol "16 word opspec"
+
 
 datatype common_primitive =
 is_Src: Src (src_sel: hostspec_from) |
@@ -85,6 +86,7 @@ is_Address_Family: Address_Family (address_family_sel: afspec) |
 is_Protocol: Protocol (protocol_sel: protocol) |
 is_L4_Flags: L4_Flags (l4_flags_sel: ipt_tcp_flags) |
 is_Extra: Extra (extra_sel: string)
+
 
 definition valid_table :: "table \<Rightarrow> bool" where
 "valid_table table \<longleftrightarrow> (\<forall> t \<in> set table . (case (ta t) of (IPv4 a) \<Rightarrow> valid_prefix a | (IPv6 a) \<Rightarrow> valid_prefix a))"
