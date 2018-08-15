@@ -1,7 +1,7 @@
 theory PF_PF
-  imports 
-          "HOL-Library.Simps_Case_Conv"
-          PF_Firewall_Common
+imports 
+  "HOL-Library.Simps_Case_Conv"
+  PF_Firewall_Common
 begin
 
 text\<open>A matcher (parameterized by the type of primitive @{typ 'a} and packet @{typ 'p})
@@ -93,69 +93,5 @@ lemma filter_to_pf:
   assumes "\<forall> d. (filter' rs1 m p d = filter' rs2 m p d)"
   shows "pf rs1 m p = pf rs2 m p"
   unfolding pf_def using assms by simp
-
-(*
-definition test_packet :: "('i::len) simple_packet" where
-"test_packet \<equiv>
-\<lparr>
-          p_iiface = ''eth1'', p_oiface = '''',
-          p_src = 0, p_dst = 0,
-          p_proto = TCP, p_sport = 0, p_dport = 0,
-          p_tcp_flags = {TCP_SYN},
-          p_payload = ''arbitrary payload''
-          \<rparr>"
-
-lemma "pf [] matcher test_packet = Undecided" by code_simp
-
-lemma "pf [
-PfRule \<lparr>
-  get_action = Pass,
-  get_quick = False,
-  get_match = MatchAny
-\<rparr>
-] matcher test_packet = Accept" by code_simp
-
-lemma "pf [
-PfRule \<lparr>
-  get_action = Block,
-  get_quick = False,
-  get_match = MatchAny
-\<rparr>
-] matcher test_packet = Reject" by code_simp
-
-lemma "pf [
-PfRule \<lparr>
-  get_action = Match,
-  get_quick = False,
-  get_match = MatchAny
-\<rparr>
-] matcher test_packet = Undecided" by code_simp
-
-lemma "pf [
-PfRule \<lparr>
-  get_action = Pass,
-  get_quick = True,
-  get_match = MatchAny
-\<rparr>,
-PfRule \<lparr>
-  get_action = Block,
-  get_quick = True,
-  get_match = MatchAny
-\<rparr>
-] matcher test_packet = Accept" by code_simp
-
-lemma "pf [
-PfRule \<lparr>
-  get_action = Block,
-  get_quick = True,
-  get_match = MatchAny
-\<rparr>,
-PfRule \<lparr>
-  get_action = Pass,
-  get_quick = True,
-  get_match = MatchAny
-\<rparr>
-] matcher test_packet = Reject" by code_simp
-*)
 
 end
