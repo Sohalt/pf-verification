@@ -54,6 +54,7 @@ end
 
 
 (* IPv4 *)
+
 definition match_table_v4_inner :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
 "match_table_v4_inner table addr =
  (case (find (\<lambda> t . prefix_match_semantics (ip4 (ta t)) addr) table) of
@@ -72,6 +73,10 @@ definition table_to_set_v4 :: "table \<Rightarrow> 32 word set" where
 definition match_table_v4'_inner :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
 "match_table_v4'_inner table address \<longleftrightarrow> address \<in> table_to_set_v4 table"
 
+definition match_table_v4' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
+"match_table_v4' table address = match_table_v4'_inner (sort [t \<leftarrow> table. isIPv4 (ta t)]) address"
+
+
 abbreviation foldf_wi_v4 :: "table_entry \<Rightarrow> 32 wordinterval \<Rightarrow> 32 wordinterval" where
 "foldf_wi_v4 t a \<equiv> (case t of (TableEntry te) \<Rightarrow> wordinterval_union a (prefix_to_wordinterval (ip4 te))
  | (TableEntryNegated te) \<Rightarrow> wordinterval_setminus a (prefix_to_wordinterval (ip4 te)))"
@@ -82,15 +87,15 @@ definition table_to_wordinterval_v4_inner :: "table \<Rightarrow> 32 wordinterva
 definition table_to_wordinterval_v4 :: "table \<Rightarrow> 32 wordinterval" where
 "table_to_wordinterval_v4 table = table_to_wordinterval_v4_inner (sort [t \<leftarrow> table. isIPv4 (ta t)])"
 
+
 lemma table_to_wordinterval_v4: "wordinterval_to_set (table_to_wordinterval_v4_inner table) = table_to_set_v4 table"
   unfolding table_to_set_v4_def table_to_wordinterval_v4_inner_def
   by (induction table ) (auto split:table_entry.splits)
 
-definition match_table_v4' :: "table \<Rightarrow> 32 word \<Rightarrow> bool" where
-"match_table_v4' table address = match_table_v4'_inner (sort [t \<leftarrow> table. isIPv4 (ta t)]) address"
 
 lemma match_table_v4': "match_table_v4' table addr = wordinterval_element addr (table_to_wordinterval_v4 table)"
   unfolding match_table_v4'_def table_to_wordinterval_v4_def match_table_v4'_inner_def using table_to_wordinterval_v4 by auto
+
 
 lemma find_Some_decision_addr_in_set_v4:
   assumes "\<And>t. t \<in> set table \<Longrightarrow> isIPv4 (ta t)" "valid_table table"
@@ -173,6 +178,7 @@ proof(-)
     by blast
 qed
 
+
 lemma match_table_v4_wordinterval:
   assumes "valid_table table"
   shows "match_table_v4 table address = wordinterval_element address (table_to_wordinterval_v4 table)"
@@ -180,6 +186,7 @@ lemma match_table_v4_wordinterval:
 
 
 (* IPv6 *) (* largely copied from above *)
+
 definition match_table_v6_inner :: "table \<Rightarrow> 128 word \<Rightarrow> bool" where
 "match_table_v6_inner table addr =
  (case (find (\<lambda> t . prefix_match_semantics (ip6 (ta t)) addr) table) of
@@ -198,6 +205,10 @@ definition table_to_set_v6 :: "table \<Rightarrow> 128 word set" where
 definition match_table_v6'_inner :: "table \<Rightarrow> 128 word \<Rightarrow> bool" where
 "match_table_v6'_inner table address \<longleftrightarrow> address \<in> table_to_set_v6 table"
 
+definition match_table_v6' :: "table \<Rightarrow> 128 word \<Rightarrow> bool" where
+"match_table_v6' table address = match_table_v6'_inner (sort [t \<leftarrow> table. isIPv6 (ta t)]) address"
+
+
 abbreviation foldf_wi_v6 :: "table_entry \<Rightarrow> 128 wordinterval \<Rightarrow> 128 wordinterval" where
 "foldf_wi_v6 t a \<equiv> (case t of (TableEntry te) \<Rightarrow> wordinterval_union a (prefix_to_wordinterval (ip6 te))
  | (TableEntryNegated te) \<Rightarrow> wordinterval_setminus a (prefix_to_wordinterval (ip6 te)))"
@@ -208,15 +219,15 @@ definition table_to_wordinterval_v6_inner :: "table \<Rightarrow> 128 wordinterv
 definition table_to_wordinterval_v6 :: "table \<Rightarrow> 128 wordinterval" where
 "table_to_wordinterval_v6 table = table_to_wordinterval_v6_inner (sort [t \<leftarrow> table. isIPv6 (ta t)])"
 
+
 lemma table_to_wordinterval_v6: "wordinterval_to_set (table_to_wordinterval_v6_inner table) = table_to_set_v6 table"
   unfolding table_to_set_v6_def table_to_wordinterval_v6_inner_def
   by (induction table ) (auto split:table_entry.splits)
 
-definition match_table_v6' :: "table \<Rightarrow> 128 word \<Rightarrow> bool" where
-"match_table_v6' table address = match_table_v6'_inner (sort [t \<leftarrow> table. isIPv6 (ta t)]) address"
 
 lemma match_table_v6': "match_table_v6' table addr = wordinterval_element addr (table_to_wordinterval_v6 table)"
   unfolding match_table_v6'_def table_to_wordinterval_v6_def match_table_v6'_inner_def using table_to_wordinterval_v6 by auto
+
 
 lemma find_Some_decision_addr_in_set_v6:
   assumes "\<And>t. t \<in> set table \<Longrightarrow> isIPv6 (ta t)" "valid_table table"
@@ -228,7 +239,7 @@ lemma find_Some_decision_addr_in_set_v6:
 next
   case (Cons x xs)
   have vp: "valid_prefix (ip6 (ta x))" using Cons(2) Cons(3) unfolding valid_table_def
-    by (metis list.set_intros(1) address.case_eq_if address.distinct_disc(1))
+    by (metis address.collapse(2) address.simps(6) list.set_intros(1))
   show ?case
   proof(cases "prefix_match_semantics (ip6 (ta x)) address")
     case True
@@ -272,7 +283,7 @@ next
   then have *:"\<not>prefix_match_semantics (ip6 (ta a)) address" by auto
   moreover have "prefix_match_semantics (ip6 (ta a)) address = (address \<in> prefix_to_wordset (ip6 (ta a)))"
     using prefix_match_semantics_wordset Cons unfolding valid_table_def
-    by (metis list.set_intros(1) address.case_eq_if address.distinct_disc(1))
+    by (metis address.case_eq_if address.distinct_disc(1) list.set_intros(1))
   ultimately show ?case using Cons unfolding valid_table_def
     by (simp add: table_entry.case_eq_if table_to_set_v6_def)
 qed
@@ -300,9 +311,9 @@ proof(-)
     by blast
 qed
 
+
 lemma match_table_v6_wordinterval:
   assumes "valid_table table"
   shows "match_table_v6 table address = wordinterval_element address (table_to_wordinterval_v6 table)"
   using assms match_table_v6 match_table_v6' by simp
-
 end
