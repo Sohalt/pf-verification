@@ -1,7 +1,6 @@
 theory PF_PrimitiveMatchers
   imports PF_Primitives
           Simple_Firewall.Simple_Packet
-          Iptables_Semantics.Ternary
           PF_Tables
           PF_Firewall_Common
           "SemanticsTernary/PF_Unknown_Match_Tacs"
@@ -16,9 +15,11 @@ fun match_interface :: "pfcontext \<Rightarrow> ifspec option \<Rightarrow> dire
 "match_interface _ None (Some Out) p = bool_to_ternary ((p_oiface p) \<noteq> '''')" |
 "match_interface _ None None _ = TernaryFalse"
 
+
 fun match_af:: "afspec \<Rightarrow> 'i::len0 simple_packet \<Rightarrow> bool" where
 "match_af Inet p \<longleftrightarrow> len_of TYPE ('i) = 32"
 |"match_af Inet6 p \<longleftrightarrow> len_of TYPE ('i) = 128"
+
 
 fun match_unary_op :: "'i::ord unary_op \<Rightarrow> 'i \<Rightarrow> bool" where
 "match_unary_op (Eq i) x = (x = i)" |
@@ -41,7 +42,7 @@ definition match_port :: "16 word opspec \<Rightarrow> 16 word \<Rightarrow> boo
 "match_port operator port = match_op operator port"
 
 
-(* TODO ipv6 *)
+(* TODO ipv6 version *)
 fun match_hosts :: "pfcontext \<Rightarrow> hostspec \<Rightarrow> 32 word \<Rightarrow> ternaryvalue" where
 "match_hosts _ AnyHost _ = bool_to_ternary True" |
 "match_hosts _ (Address addr) p_addr =
@@ -52,10 +53,10 @@ fun match_hosts :: "pfcontext \<Rightarrow> hostspec \<Rightarrow> 32 word \<Rig
 "match_hosts ctx (Route _) _ = TernaryUnknown" |
 "match_hosts ctx (Table name) p_addr = bool_to_ternary (match_table_v4 (lookup_table ctx name) p_addr)"
 
-
 fun match_hosts_src :: "pfcontext \<Rightarrow> hostspec_from \<Rightarrow> 32 word \<Rightarrow> ternaryvalue" where
 "match_hosts_src ctx (Hostspec h) a = match_hosts ctx h a" |
 "match_hosts_src ctx UrpfFailed a = TernaryUnknown"
+
 
 fun common_matcher :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 32 simple_packet \<Rightarrow> ternaryvalue" where
 "common_matcher ctx (Src hosts) p = match_hosts_src ctx hosts (p_src p)"|
@@ -71,12 +72,6 @@ fun common_matcher :: "pfcontext \<Rightarrow> common_primitive \<Rightarrow> 32
 "common_matcher _ (Protocol proto) p = bool_to_ternary (match_proto proto (p_proto p))"|
 "common_matcher _ (L4_Flags flags) p = bool_to_ternary (match_tcp_flags flags  (p_tcp_flags p))"|
 "common_matcher _ (Extra _) _ = TernaryUnknown"
-
-fun rewrite_match_any :: "common_primitive match_expr \<Rightarrow> common_primitive match_expr" where
-"rewrite_match_any (Match (Src (Hostspec AnyHost))) = MatchAny" |
-"rewrite_match_any (Match (Dst AnyHost)) = MatchAny" |
-"rewrite_match_any (Match (Protocol ProtoAny)) = MatchAny" |
-"rewrite_match_any m = m"
 
 subsection\<open>Abstracting over unknowns\<close>
   text\<open>remove match expressions which evaluate to @{const TernaryUnknown}\<close>
