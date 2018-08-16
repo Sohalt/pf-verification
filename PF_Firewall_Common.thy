@@ -2,6 +2,7 @@ theory PF_Firewall_Common
   imports 
 "HOL-Library.Simps_Case_Conv"
 Iptables_Semantics.Firewall_Common
+PF_Primitives
 begin
 (* Block return semantically equal to Block (without return)*)
 datatype action = Pass | ActionMatch | Block
