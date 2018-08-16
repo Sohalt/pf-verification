@@ -1,6 +1,7 @@
-theory PF_Util
+theory PF_Ok_Transformation
   imports PF_PF
 begin
+(* this is currently unused *)
 
 (* definitions without packet type 'p *)
 definition filter'' :: "'a ruleset \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> decision_wrap \<Rightarrow> decision_wrap" where
