@@ -1,6 +1,8 @@
 theory PF_Semantics_Ternary
-  imports PF_Matching_Ternary
-          PF_Unknown_Match_Tacs
+  imports
+PF_Matching_Ternary
+PF_Unknown_Match_Tacs
+"../PF_Optimize_Match_Exprs"
 begin
 
 fun filter_approx :: "'a ruleset \<Rightarrow> ('a, 'p) match_tac \<Rightarrow> 'p \<Rightarrow> decision \<Rightarrow> decision" where
@@ -221,7 +223,7 @@ lemma optimize_matches:
   by (simp add: \<open>\<And>rs p f \<gamma>. \<lbrakk>PF_Firewall_Common.simple_ruleset rs;
  \<forall>r\<in>set rs. case r of PfRule r \<Rightarrow> True | _ \<Rightarrow> True;
  \<And>m a d. True \<Longrightarrow> matches \<gamma> (f m) a d p = matches \<gamma> m a d p\<rbrakk> \<Longrightarrow> 
-  pf_approx (PF_Firewall_Common.optimize_matches f rs) \<gamma> p = pf_approx rs \<gamma> p\<close> line.case_eq_if)
+  pf_approx (optimize_matches f rs) \<gamma> p = pf_approx rs \<gamma> p\<close> line.case_eq_if)
 
 lemma optimize_matches_preserves_semantics:
   assumes "simple_ruleset rs"
@@ -235,7 +237,7 @@ proof(-)
 (* TODO more elegant *)
     by (simp add: \<open>\<And>rs p f \<gamma>. \<lbrakk>PF_Firewall_Common.simple_ruleset rs; no_match rs;
  \<And>m a d. a \<noteq> ActionMatch \<Longrightarrow> matches \<gamma> (f m) a d p = matches \<gamma> m a d p\<rbrakk> \<Longrightarrow>
- pf_approx (PF_Firewall_Common.optimize_matches f rs) \<gamma> p = pf_approx rs \<gamma> p\<close>
+ pf_approx (optimize_matches f rs) \<gamma> p = pf_approx rs \<gamma> p\<close>
  PF_Firewall_Common.simple_ruleset_def)
 qed
 

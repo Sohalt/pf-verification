@@ -8,7 +8,7 @@ imports
   Iptables_Semantics.Negation_Type
   PF_Negation_Type_Matching
   PF_Predicates
-  "../PF_Foo"
+  "../PF_Optimize_Match_Exprs"
 begin
 
 (* normalize matches to representation closest to simple_matcher *)
