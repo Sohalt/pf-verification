@@ -3,6 +3,8 @@
 This repository contains a formal semantics of the BSD PF firewall in Isabelle/HOL, along with transformations to turn a PF ruleset into
 an iptables ruleset approximating the PF ruleset. The transformations are proven sound w.r.t. the filtering semantics.
 
+All files/theories have a "PF_" prefix so they do not clash with theories of the same name from the `Iptables_Semantics` theories.
+
 `PF_PF.thy` contains the filtering semantics.
 
 `SemanticsTernary/PF_Semantics_Ternary.thy` contains an approximate filtering semantics using ternary logic.
