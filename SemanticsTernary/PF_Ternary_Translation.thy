@@ -1,6 +1,6 @@
 theory PF_Ternary_Translation
   imports "../PF_Ruleset_Transformations"
-          "../PF_PrimitiveMatchers"
+          "../PF_Primitive_Matchers"
           PF_Semantics_Ternary
           PF_Unknown_Match_Tacs
           PF_Predicates

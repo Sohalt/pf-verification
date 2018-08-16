@@ -1,4 +1,4 @@
-theory PF_PrimitiveMatchers
+theory PF_Primitive_Matchers
   imports PF_Primitives
           Simple_Firewall.Simple_Packet
           PF_Tables

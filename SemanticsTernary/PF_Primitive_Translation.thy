@@ -1,7 +1,7 @@
 theory PF_Primitive_Translation
 imports
   "../PF_Firewall_Common"
-  "../PF_PrimitiveMatchers"
+  "../PF_Primitive_Matchers"
   "../PF_Primitives"
   PF_Matching_Ternary
   IP_Addresses.CIDR_Split

@@ -4,7 +4,7 @@ theory PF_PF_To_Iptables
           PF_Primitive_Translation
           PF_Ternary_Translation
           "../PF_Primitives"
-          "../PF_PrimitiveMatchers"
+          "../PF_Primitive_Matchers"
           Iptables_Semantics.Common_Primitive_Syntax
           Iptables_Semantics.Common_Primitive_Matcher
           Iptables_Semantics.Semantics_Ternary
@@ -67,10 +67,10 @@ lemma pf_true_ipt_not_false:
       and "no_anyhost (Match m)"
       and "good_match_expr ctx (Match m)"
     shows "
-(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryTrue \<Longrightarrow>
+(ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryTrue \<Longrightarrow>
 (ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) \<noteq> TernaryFalse"
 proof(-)
-assume prem:"(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryTrue"
+assume prem:"(ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryTrue"
   show ?thesis
 proof(cases m)
 case (Src x1)
@@ -235,10 +235,10 @@ lemma pf_false_ipt_not_true:
       and "no_anyhost (Match m)"
       and "good_match_expr ctx (Match m)"
     shows "
-(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryFalse \<Longrightarrow>
+(ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryFalse \<Longrightarrow>
 (ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) \<noteq> TernaryTrue"
 proof(-)
-assume prem:"(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryFalse"
+assume prem:"(ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryFalse"
   show ?thesis
 proof(cases m)
 case (Src x1)
@@ -404,12 +404,12 @@ lemma ipt_false_pf_not_true:
       and "good_match_expr ctx (Match m)"
     shows "
 (ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryFalse \<Longrightarrow>
-(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryTrue"
+(ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryTrue"
 proof(rule classical)
   assume 1:"(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryFalse"
-  assume 2:"\<not> (ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryTrue"
+  assume 2:"\<not> (ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryTrue"
   then show "(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryFalse \<Longrightarrow>
-             (ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryTrue"
+             (ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryTrue"
     using 1 pf_true_ipt_not_false assms by auto
 qed
 
@@ -422,12 +422,12 @@ lemma ipt_true_pf_not_false:
       and "good_match_expr ctx (Match m)"
     shows "
 (ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryTrue \<Longrightarrow>
-(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryFalse"
+(ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryFalse"
 proof(rule classical)
   assume 1:"(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryTrue"
-  assume 2:"\<not> (ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryFalse"
+  assume 2:"\<not> (ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryFalse"
   then show "(ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryTrue \<Longrightarrow>
-             (ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryFalse"
+             (ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) \<noteq> TernaryFalse"
     using 1 pf_false_ipt_not_true assms by auto
 qed
 
@@ -439,7 +439,7 @@ lemma pf_unknown_ipt_unknown_match:
       and "no_anyhost (Match m)"
       and "good_match_expr ctx (Match m)"
     shows "
-(ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryUnknown \<Longrightarrow>
+(ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) (Match m))) = TernaryUnknown \<Longrightarrow>
 (ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (Match (pfcp_to_iptcp m)))) = TernaryUnknown"
   using assms proof(induction m)
   case (Src x)
@@ -541,7 +541,7 @@ qed
 
 lemma pf_ipt_ternary_eval':
   defines "pfeval ctx p m \<equiv> (ternary_ternary_eval
-         (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+         (map_match_tac (PF_Primitive_Matchers.common_matcher ctx)
            (tagged_packet_untag p)
            m))"
       and "ipteval p m \<equiv> ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m))"
@@ -678,7 +678,7 @@ qed
 
 lemma pf_ipt_ternary_eval:
   defines "pfeval ctx p m \<equiv> (ternary_ternary_eval
-         (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+         (map_match_tac (PF_Primitive_Matchers.common_matcher ctx)
            (tagged_packet_untag p)
            m))"
       and "ipteval p m \<equiv> ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m))"
@@ -700,7 +700,7 @@ lemma pf_ipt_ternary_eval:
   by(metis assms ipteval_def pfeval_def)+
 
 lemma pf_unknown_ipt_unknown:
-  defines "pfeval ctx p m \<equiv> (ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) m))"
+  defines "pfeval ctx p m \<equiv> (ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) ((tagged_packet_untag p):: 32 simple_packet) m))"
       and "ipteval p m \<equiv> (ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m)))"
   assumes "no_tables m"
       and "normalized_ports m"
@@ -752,7 +752,7 @@ qed
 
 lemma pf_ipt_matches:
  defines "pfeval ctx p m \<equiv> (ternary_ternary_eval
-         (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+         (map_match_tac (PF_Primitive_Matchers.common_matcher ctx)
            (tagged_packet_untag p)
            m))"
       and "ipteval p m \<equiv> ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm m))"
@@ -763,12 +763,12 @@ lemma pf_ipt_matches:
       and "no_anyhost m"
       and "good_match_expr ctx m"
     shows "PF_Matching_Ternary.matches
- (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+ (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
  m Pass d (tagged_packet_untag p) \<Longrightarrow>
 Matching_Ternary.matches (Common_Primitive_Matcher.common_matcher, in_doubt_allow) (pfm_to_iptm m) (pfa_to_ipta Pass) p"
 proof(-)
   assume prem:"PF_Matching_Ternary.matches
- (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+ (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
   m Pass d (tagged_packet_untag p)"
   then show ?thesis
   proof(cases "pfeval ctx p m")
@@ -816,7 +816,7 @@ fun pf_decision_to_ipt_decision :: "decision \<Rightarrow> state" where
 lemmas assm_rs_simps = PF_Predicates.wf_ruleset_def simple_ruleset_def no_tables_rs_def normalized_ports_rs_def no_ipv6_rs_def no_af_rs_def no_anyhost_rs_def
 
 lemma pf_approx_ipt:
-  defines "\<gamma>_pf ctx \<equiv> (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
+  defines "\<gamma>_pf ctx \<equiv> (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
       and "\<gamma>_ipt \<equiv> (Common_Primitive_Matcher.common_matcher,Unknown_Match_Tacs.in_doubt_allow)" 
   assumes "PF_Predicates.wf_ruleset ctx rs"
       and "simple_ruleset rs"
@@ -839,7 +839,7 @@ proof(-)
            (rev rs) 
            (\<gamma>_pf ctx)
            (tagged_packet_untag p) = decision.Accept"
-  have "good_matcher (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
+  have "good_matcher (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
     by (simp add: in_doubt_allow_good_matcher)
   then have "pf_approx (rev rs) (\<gamma>_pf ctx) (tagged_packet_untag p) = 
 (case (find (\<lambda>r. match_pf_rule r (\<gamma>_pf ctx) (tagged_packet_untag p)) rs) of
@@ -878,11 +878,11 @@ proof(-)
     next
       case nmatches:False
       then have *:"ternary_ternary_eval
-         (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+         (map_match_tac (PF_Primitive_Matchers.common_matcher ctx)
            (tagged_packet_untag p)
            (pf_rule.get_match r)) = TernaryFalse \<or> 
         (ternary_ternary_eval
-         (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+         (map_match_tac (PF_Primitive_Matchers.common_matcher ctx)
            (tagged_packet_untag p)
            (pf_rule.get_match r)) = TernaryUnknown \<and> (pf_rule.get_action r) = Block)"
       proof -
@@ -894,7 +894,7 @@ proof(-)
           by (metis (no_types) PF_Matching_Ternary.matches_tuple PF_Matching_Ternary.ternary_to_bool_unknown_match_tac.elims(3) PF_Unknown_Match_Tacs.in_doubt_allow.elims(3) \<gamma>_pf_def list.set_intros(1) match_pf_rule.simps nmatches pfr)
       qed
       {
-      assume "ternary_ternary_eval (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx) (tagged_packet_untag p) (pf_rule.get_match r)) =
+      assume "ternary_ternary_eval (map_match_tac (PF_Primitive_Matchers.common_matcher ctx) (tagged_packet_untag p) (pf_rule.get_match r)) =
      TernaryFalse"
       then have ipt_not_tt:"ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm (pf_rule.get_match r))) \<noteq> TernaryTrue"
         by (metis Cons.prems all_PfRules_P.simps line.simps(5) list.set_intros(1) assm_rs_simps pf_ipt_ternary_eval(2) pfr)
@@ -919,7 +919,7 @@ proof(-)
         using ternaryvalue.exhaust by blast
       } note pftf=this
       { assume "ternary_ternary_eval
-         (map_match_tac (PF_PrimitiveMatchers.common_matcher ctx)
+         (map_match_tac (PF_Primitive_Matchers.common_matcher ctx)
            (tagged_packet_untag p)
            (pf_rule.get_match r)) = TernaryUnknown \<and> (pf_rule.get_action r) = Block"
         then have "ternary_ternary_eval (map_match_tac Common_Primitive_Matcher.common_matcher p (pfm_to_iptm (pf_rule.get_match r))) = TernaryUnknown \<and> (pf_rule.get_action r) = Block"
@@ -933,7 +933,7 @@ proof(-)
 qed
 
 lemma pf_approx_ipt':
-  defines "\<gamma>_pf ctx \<equiv> (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
+  defines "\<gamma>_pf ctx \<equiv> (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
       and "\<gamma>_ipt \<equiv> (Common_Primitive_Matcher.common_matcher,Unknown_Match_Tacs.in_doubt_allow)" 
   assumes "PF_Predicates.wf_ruleset ctx rs"
       and "simple_ruleset rs"
@@ -971,11 +971,11 @@ theorem
   assumes "PF_Predicates.wf_ruleset ctx rs"
       and "no_match_quick rs"
       and "no_unknown_anchors
-            (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+            (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
             rs"
   shows "pf_approx
            rs 
-           (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+           (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
            (tagged_packet_untag p) = decision.Accept \<Longrightarrow>
          approximating_bigstep_fun
            (Common_Primitive_Matcher.common_matcher,Unknown_Match_Tacs.in_doubt_allow)
@@ -985,17 +985,17 @@ theorem
 proof -
   assume accept:"pf_approx
            rs 
-           (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+           (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
            (tagged_packet_untag p) = decision.Accept" (is "?pf = decision.Accept")
-  have gm:"good_matcher (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
+  have gm:"good_matcher (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)"
     by (simp add:in_doubt_allow_good_matcher)
   then have "pf_approx
            (to_simple_ruleset rs)
-           (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+           (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
            (tagged_packet_untag p) = decision.Accept" using accept assms to_simple_ruleset_def to_simple_ruleset by fastforce
   then have "pf_approx
            (primitive_transformations ctx (to_simple_ruleset rs))
-           (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
+           (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow)
            (tagged_packet_untag p) = decision.Accept" (is "pf_approx ?rs ?gamma ?p = decision.Accept")
     using assms primitive_transformations_def primitive_transformations_ok to_simple_ruleset to_simple_ruleset_preserves_wf_ruleset gm by metis
   then have "pf_approx
@@ -1010,7 +1010,7 @@ proof -
     using accept assms to_simple_ruleset to_simple_ruleset_preserves_wf_ruleset
           primitive_transformations_def primitive_transformations_ok pf_approx_ipt' gm by metis
   then show ?thesis using accept primitive_transformations_def to_simple_ruleset_def
-    by (metis \<open>pf_approx (primitive_transformations ctx (to_simple_ruleset rs)) (PF_PrimitiveMatchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow) (tagged_packet_untag p) = decision.Accept\<close> pf_to_ipt_v4_upper.simps)
+    by (metis \<open>pf_approx (primitive_transformations ctx (to_simple_ruleset rs)) (PF_Primitive_Matchers.common_matcher ctx, PF_Unknown_Match_Tacs.in_doubt_allow) (tagged_packet_untag p) = decision.Accept\<close> pf_to_ipt_v4_upper.simps)
 qed
 
 end
